@@ -1,10 +1,14 @@
 {
-  "rewrites": [
+  "builds": [
     {
-      "source": "/(.*)",
-      "destination": "/Frontend/$1"
+      "src": "Frontend/package.json",
+      "use": "@vercel/next"
     }
   ],
-  "cleanUrls": true,
-  "trailingSlash": false
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "Frontend/$1"
+    }
+  ]
 }
