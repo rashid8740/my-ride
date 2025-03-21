@@ -1,7 +1,13 @@
 // src/components/home/StatisticsSection.jsx
 "use client";
 import { useState, useEffect, useRef } from "react";
-import { Car, Users, Award, MapPin } from "lucide-react";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faCar,
+  faUsers,
+  faTrophy,
+  faLocationDot,
+} from "@fortawesome/free-solid-svg-icons";
 
 // CountUp animation component
 const CountUp = ({ end, duration = 2000, prefix = "", suffix = "" }) => {
@@ -66,87 +72,6 @@ const CountUp = ({ end, duration = 2000, prefix = "", suffix = "" }) => {
   );
 };
 
-// Premium Icon Components
-const PremiumCarIcon = ({ size = 24, className = "" }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={className}
-  >
-    <path d="M14 16H9m10-6-2-4H7L5 6m0 0L3 9h18l-2-3M5 6h14M3 9v7h18V9M6 13h.01M18 13h.01" />
-    <path d="M9 18v2M15 18v2M4 10v1M20 10v1" />
-    <circle cx="6.5" cy="13" r="1.5" fill="currentColor" />
-    <circle cx="17.5" cy="13" r="1.5" fill="currentColor" />
-  </svg>
-);
-
-const PremiumUsersIcon = ({ size = 24, className = "" }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={className}
-  >
-    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-    <circle cx="9" cy="7" r="4" />
-    <path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" />
-    <path d="M17 11c2.76 0 5 2.24 5 5v3h-3" />
-    <circle cx="9" cy="7" r="2" fill="currentColor" />
-  </svg>
-);
-
-const PremiumAwardIcon = ({ size = 24, className = "" }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={className}
-  >
-    <circle cx="12" cy="8" r="6" />
-    <path d="M15.477 12.89 17 22l-5-3-5 3 1.523-9.11" />
-    <path d="M12 8v.1" />
-    <circle cx="12" cy="8" r="3" fill="currentColor" />
-  </svg>
-);
-
-const PremiumLocationIcon = ({ size = 24, className = "" }) => (
-  <svg
-    xmlns="http://www.w3.org/2000/svg"
-    width={size}
-    height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-    className={className}
-  >
-    <path d="M20 10c0 4.4-8 12-8 12s-8-7.6-8-12a8 8 0 0 1 16 0Z" />
-    <circle cx="12" cy="10" r="3" />
-    <circle cx="12" cy="10" r="1.5" fill="currentColor" />
-  </svg>
-);
-
 // Stat Card Component
 const StatCard = ({ icon, title, value, suffix = "", color }) => {
   return (
@@ -196,25 +121,25 @@ export default function StatisticsSection({ id }) {
         {/* Statistics Grid - 2x2 on small screens, 4 columns on lg */}
         <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 xs:gap-4 sm:gap-5 md:gap-6 lg:gap-8">
           <StatCard
-            icon={<PremiumCarIcon size={28} />}
+            icon={<FontAwesomeIcon icon={faCar} size="lg" />}
             title="Cars for Sale"
             value={12500}
             color="bg-blue-600"
           />
           <StatCard
-            icon={<PremiumUsersIcon size={28} />}
+            icon={<FontAwesomeIcon icon={faUsers} size="lg" />}
             title="Happy Customers"
             value={9800}
             color="bg-orange-500"
           />
           <StatCard
-            icon={<PremiumAwardIcon size={28} />}
+            icon={<FontAwesomeIcon icon={faTrophy} size="lg" />}
             title="Awards Won"
             value={150}
             color="bg-purple-600"
           />
           <StatCard
-            icon={<PremiumLocationIcon size={28} />}
+            icon={<FontAwesomeIcon icon={faLocationDot} size="lg" />}
             title="Locations"
             value={24}
             color="bg-green-600"

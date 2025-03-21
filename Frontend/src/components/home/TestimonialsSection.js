@@ -10,10 +10,10 @@ const StarRating = ({ rating }) => {
       {[...Array(5)].map((_, i) => (
         <Star
           key={i}
-          size={18}
+          size={16}
           className={`${
             i < rating ? "text-yellow-400 fill-yellow-400" : "text-gray-300"
-          }`}
+          } sm:w-[18px] sm:h-[18px]`}
         />
       ))}
     </div>
@@ -30,44 +30,55 @@ const TestimonialCard = ({ testimonial, isActive }) => {
           : "opacity-0 translate-x-20 scale-95 absolute"
       }`}
     >
-      <div className="bg-white rounded-2xl p-8 shadow-xl relative">
+      <div className="bg-white rounded-2xl p-5 sm:p-6 md:p-8 shadow-xl relative flex flex-col">
         {/* Quote Icon */}
-        <div className="absolute -top-5 -left-5 bg-orange-500 rounded-full p-3 shadow-lg">
-          <Quote size={24} className="text-white" />
+        <div className="absolute -top-4 -left-4 sm:-top-5 sm:-left-5 bg-orange-500 rounded-full p-2 sm:p-3 shadow-lg">
+          <Quote size={20} className="text-white sm:hidden" />
+          <Quote size={24} className="text-white hidden sm:block" />
         </div>
 
-        {/* Content */}
-        <div className="mb-6 pt-4">
+        {/* Rating and Title at the top */}
+        <div className="mb-3 sm:mb-4 pt-3 sm:pt-4">
           <StarRating rating={testimonial.rating} />
-          <h3 className="mt-4 text-xl font-bold text-gray-900">
+          <h3 className="mt-3 sm:mt-4 text-lg sm:text-xl font-bold text-gray-900">
             {testimonial.title}
           </h3>
-          <p className="mt-3 text-gray-600 leading-relaxed">
+        </div>
+
+        {/* Content in scrollable area if needed */}
+        <div className="overflow-y-auto mb-4 flex-grow">
+          <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
             "{testimonial.content}"
           </p>
         </div>
 
-        {/* Author */}
-        <div className="flex items-center">
-          <div className="mr-4">
-            <img
-              src={testimonial.avatar}
-              alt={testimonial.name}
-              className="h-14 w-14 rounded-full object-cover border-2 border-orange-500"
-            />
+        {/* Author - Always at bottom */}
+        <div className="mt-auto pt-4 border-t border-gray-100">
+          <div className="flex items-center">
+            <div className="mr-3 sm:mr-4">
+              <img
+                src={testimonial.avatar}
+                alt={testimonial.name}
+                className="h-12 w-12 sm:h-14 sm:w-14 rounded-full object-cover border-2 border-orange-500"
+              />
+            </div>
+            <div>
+              <h4 className="font-semibold text-gray-900">
+                {testimonial.name}
+              </h4>
+              <p className="text-xs sm:text-sm text-gray-500">
+                {testimonial.location}
+              </p>
+            </div>
           </div>
-          <div>
-            <h4 className="font-semibold text-gray-900">{testimonial.name}</h4>
-            <p className="text-sm text-gray-500">{testimonial.location}</p>
-          </div>
-        </div>
 
-        {/* Car Purchased */}
-        <div className="mt-6 pt-6 border-t border-gray-100">
-          <p className="text-sm text-gray-500">Purchased:</p>
-          <p className="font-medium text-gray-900">
-            {testimonial.carPurchased}
-          </p>
+          {/* Car Purchased */}
+          <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-gray-100">
+            <p className="text-xs sm:text-sm text-gray-500">Purchased:</p>
+            <p className="font-medium text-sm sm:text-base text-gray-900">
+              {testimonial.carPurchased}
+            </p>
+          </div>
         </div>
       </div>
     </div>
@@ -89,17 +100,17 @@ const VideoTestimonial = ({ video, isActive, onClick }) => {
       <img
         src={video.thumbnail}
         alt={video.title}
-        className="w-full h-28 object-cover"
+        className="w-full h-20 sm:h-24 md:h-28 object-cover"
       />
 
       {/* Play Button */}
       <div className="absolute inset-0 flex items-center justify-center">
-        <div className="bg-black/50 rounded-full p-2">
+        <div className="bg-black/50 rounded-full p-1.5 sm:p-2">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 24 24"
             fill="white"
-            className="w-8 h-8"
+            className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8"
           >
             <path
               fillRule="evenodd"
@@ -111,8 +122,8 @@ const VideoTestimonial = ({ video, isActive, onClick }) => {
       </div>
 
       {/* Name */}
-      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-2">
-        <p className="text-white text-xs font-medium truncate">
+      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-1.5 sm:p-2">
+        <p className="text-white text-[10px] sm:text-xs font-medium truncate">
           {video.author}
         </p>
       </div>
@@ -208,25 +219,25 @@ export default function TestimonialsSection({ id }) {
   return (
     <section
       id={id}
-      className="w-full py-24 bg-gradient-to-b from-gray-100 to-white"
+      className="w-full py-12 sm:py-16 md:py-20 lg:py-24 bg-gradient-to-b from-gray-100 to-white"
     >
-      <div className="container mx-auto px-8">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto mb-16">
-          <h2 className="text-4xl font-bold text-gray-900 mb-4">
+        <div className="text-center max-w-3xl mx-auto mb-8 sm:mb-12 md:mb-16">
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-2 sm:mb-3 md:mb-4">
             What Our Customers Say
           </h2>
-          <p className="text-gray-600 text-lg">
+          <p className="text-sm sm:text-base md:text-lg text-gray-600">
             Real stories from real customers about their experience with
             AutoDecar.
           </p>
         </div>
 
         {/* Main Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+        <div className="grid grid-cols-1 gap-6 sm:gap-8 lg:grid-cols-5 lg:gap-8">
           {/* Written Testimonials */}
           <div className="lg:col-span-3 relative">
-            <div className="relative h-[450px]">
+            <div className="relative h-[400px] xs:h-[450px] sm:h-[480px] md:h-[500px] lg:h-[500px] mb-6 sm:mb-8 md:mb-10">
               {testimonials.map((testimonial, index) => (
                 <TestimonialCard
                   key={index}
@@ -237,16 +248,16 @@ export default function TestimonialsSection({ id }) {
             </div>
 
             {/* Pagination */}
-            <div className="flex justify-between items-center mt-8">
-              <div className="flex space-x-2">
+            <div className="flex justify-between items-center mt-6 bg-gray-50 p-3 rounded-lg">
+              <div className="flex space-x-3">
                 {testimonials.map((_, index) => (
                   <button
                     key={index}
                     onClick={() => setActiveIndex(index)}
-                    className={`h-2 rounded-full transition-all duration-300 ${
+                    className={`h-3 rounded-full transition-all duration-300 ${
                       activeIndex === index
                         ? "w-8 bg-orange-500"
-                        : "w-2 bg-gray-300"
+                        : "w-3 bg-gray-300 hover:bg-gray-400"
                     }`}
                     aria-label={`Go to testimonial ${index + 1}`}
                   />
@@ -254,17 +265,17 @@ export default function TestimonialsSection({ id }) {
               </div>
 
               {/* Navigation Buttons */}
-              <div className="flex space-x-2">
+              <div className="flex space-x-3">
                 <button
                   onClick={goToPrev}
-                  className="p-2 rounded-full border border-gray-300 text-gray-600 hover:bg-gray-100 transition-colors"
+                  className="p-2.5 rounded-full bg-white border border-gray-300 shadow-sm text-gray-600 hover:bg-gray-100 transition-colors"
                   aria-label="Previous testimonial"
                 >
                   <ChevronLeft size={20} />
                 </button>
                 <button
                   onClick={goToNext}
-                  className="p-2 rounded-full border border-gray-300 text-gray-600 hover:bg-gray-100 transition-colors"
+                  className="p-2.5 rounded-full bg-white border border-gray-300 shadow-sm text-gray-600 hover:bg-gray-100 transition-colors"
                   aria-label="Next testimonial"
                 >
                   <ChevronRight size={20} />
@@ -289,13 +300,13 @@ export default function TestimonialsSection({ id }) {
                     <div className="absolute inset-0 flex items-center justify-center">
                       <button
                         onClick={handleCloseVideo}
-                        className="bg-white/20 backdrop-blur-sm rounded-full p-4 hover:bg-white/30 transition-colors"
+                        className="bg-white/20 backdrop-blur-sm rounded-full p-3 sm:p-4 hover:bg-white/30 transition-colors"
                       >
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
                           viewBox="0 0 24 24"
                           fill="white"
-                          className="w-8 h-8"
+                          className="w-6 h-6 sm:w-8 sm:h-8"
                         >
                           <path
                             fillRule="evenodd"
@@ -308,13 +319,13 @@ export default function TestimonialsSection({ id }) {
                   </div>
                 ) : (
                   <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900">
-                    <div className="text-center p-8">
-                      <div className="w-16 h-16 bg-orange-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <div className="text-center p-4 sm:p-6 md:p-8">
+                      <div className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 bg-orange-500 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
                         <svg
                           xmlns="http://www.w3.org/2000/svg"
                           viewBox="0 0 24 24"
                           fill="white"
-                          className="w-8 h-8"
+                          className="w-6 h-6 sm:w-7 sm:h-7 md:w-8 md:h-8"
                         >
                           <path
                             fillRule="evenodd"
@@ -323,10 +334,10 @@ export default function TestimonialsSection({ id }) {
                           />
                         </svg>
                       </div>
-                      <h3 className="text-xl font-bold text-white mb-2">
+                      <h3 className="text-lg sm:text-xl font-bold text-white mb-1 sm:mb-2">
                         Customer Video Reviews
                       </h3>
-                      <p className="text-gray-400">
+                      <p className="text-xs sm:text-sm text-gray-400">
                         Select a video below to watch real customer experiences
                       </p>
                     </div>
@@ -335,11 +346,11 @@ export default function TestimonialsSection({ id }) {
               </div>
 
               {/* Video Selection */}
-              <div className="bg-gray-800 p-4">
-                <h3 className="text-white font-medium mb-3">
+              <div className="bg-gray-800 p-3 sm:p-4">
+                <h3 className="text-sm sm:text-base text-white font-medium mb-2 sm:mb-3">
                   Video Testimonials
                 </h3>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-3 gap-2 sm:gap-3">
                   {videoTestimonials.map((video, index) => (
                     <VideoTestimonial
                       key={index}
@@ -354,6 +365,15 @@ export default function TestimonialsSection({ id }) {
           </div>
         </div>
       </div>
+
+      {/* Add custom styles for xs breakpoint */}
+      <style jsx global>{`
+        @media (min-width: 480px) {
+          .xs\\:h-\\[380px\\] {
+            height: 380px;
+          }
+        }
+      `}</style>
     </section>
   );
 }
