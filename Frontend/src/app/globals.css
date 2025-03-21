@@ -1,17 +1,11 @@
-/* globals.css */
 @import "tailwindcss";
 
+/* Light & Dark Mode Variables */
 :root {
   --background: #ffffff;
   --foreground: #171717;
-  --font-primary: "Helvetica Neue", Helvetica, Arial, sans-serif;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-primary);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-mono: "Courier New", Courier, monospace;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -21,27 +15,27 @@
   }
 }
 
-/* Add smooth scrolling to the entire document */
+/* Smooth Scrolling */
 html {
   scroll-behavior: smooth;
 }
 
-/* For browser compatibility and accessibility */
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
   }
 }
 
+/* Global Body Styles */
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-primary);
+  font-family: var(--font-sans);
   min-width: 100%;
   overflow-x: hidden;
 }
 
-/* Optional: Add custom scroll styling */
+/* Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
 }
