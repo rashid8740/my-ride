@@ -13,6 +13,7 @@ import {
   MapPin,
   ArrowRight,
   ChevronUp,
+  ChevronDown,
 } from "lucide-react";
 
 // Social Media Link Component
@@ -23,7 +24,7 @@ const SocialLink = ({ href, icon, label }) => {
       target="_blank"
       rel="noopener noreferrer"
       aria-label={label}
-      className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white hover:bg-white/20 transition-colors"
+      className="w-10 h-10 rounded-full bg-orange-500 flex items-center justify-center text-white hover:bg-orange-600 transition-colors shadow-sm"
     >
       {icon}
     </a>
@@ -33,10 +34,10 @@ const SocialLink = ({ href, icon, label }) => {
 // Footer Link Component
 const FooterLink = ({ href, children }) => {
   return (
-    <li className="mb-2">
+    <li className="mb-2.5">
       <Link
         href={href}
-        className="text-gray-300 hover:text-white transition-colors inline-block py-1"
+        className="text-gray-300 hover:text-white transition-colors inline-block py-0.5"
       >
         {children}
       </Link>
@@ -44,12 +45,37 @@ const FooterLink = ({ href, children }) => {
   );
 };
 
-// Footer Heading Component
-const FooterHeading = ({ children }) => {
+// Footer Heading Component - With Mobile Collapsible Functionality
+const FooterHeading = ({ children, isOpen, toggleOpen }) => {
   return (
-    <h3 className="text-white font-bold text-lg mb-6 relative pb-2 before:content-[''] before:absolute before:bottom-0 before:left-0 before:w-12 before:h-1 before:bg-orange-500">
-      {children}
-    </h3>
+    <div className="flex items-center justify-between">
+      <h3 className="text-white font-bold text-base sm:text-lg mb-3 sm:mb-6 relative pb-1 sm:pb-2 before:content-[''] before:absolute before:bottom-0 before:left-0 before:w-8 sm:before:w-12 before:h-1 before:bg-orange-500">
+        {children}
+      </h3>
+      <button
+        onClick={toggleOpen}
+        className="block sm:hidden text-gray-300 p-1"
+        aria-label={isOpen ? "Close section" : "Open section"}
+      >
+        {isOpen ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+      </button>
+    </div>
+  );
+};
+
+// Collapsible Section Component
+const CollapsibleSection = ({ title, children }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <div className="border-b border-gray-700/30 pb-6 mb-6 sm:pb-0 sm:border-b-0 lg:mb-0">
+      <FooterHeading isOpen={isOpen} toggleOpen={() => setIsOpen(!isOpen)}>
+        {title}
+      </FooterHeading>
+      <div className={`${isOpen ? "block" : "hidden"} sm:block`}>
+        {children}
+      </div>
+    </div>
   );
 };
 
@@ -73,34 +99,38 @@ export default function Footer() {
   return (
     <footer className="w-full bg-gradient-to-b from-gray-800 to-gray-900 text-white">
       {/* Main Footer */}
-      <div className="container mx-auto px-8 py-16">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-12">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-10 sm:py-12 lg:py-16">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 sm:gap-8 lg:gap-12">
           {/* Company Info */}
-          <div className="lg:col-span-2">
-            <div className="mb-6">
+          <div className="lg:col-span-2 mb-6 sm:mb-0 border-b border-gray-700/30 pb-6 lg:border-0 lg:pb-0">
+            <div className="mb-4 sm:mb-6">
               <Image
-                src="/images/logo-white.png"
+                src="/images/logo-2.png"
                 alt="AutoDecar"
                 width={180}
                 height={40}
-                className="h-10 w-auto"
+                className="h-8 sm:h-10 w-auto"
               />
             </div>
-            <p className="text-gray-300 mb-6 max-w-md">
+            <p className="text-gray-300 mb-5 max-w-md text-sm sm:text-base leading-relaxed">
               AutoDecar is your premier destination for quality vehicles. Our
               mission is to provide an exceptional car buying experience with
               transparency, integrity, and unmatched customer service.
             </p>
 
-            {/* Contact Info */}
-            <div className="space-y-4">
+            {/* Contact Info - With improved styling */}
+            <div className="space-y-4 mb-5">
               <div className="flex items-start">
-                <Phone className="h-5 w-5 text-orange-400 mr-3 mt-0.5 flex-shrink-0" />
+                <div className="bg-gray-700 rounded-full p-2 mr-3 flex-shrink-0">
+                  <Phone className="text-orange-400 h-4 w-4" />
+                </div>
                 <div>
-                  <p className="text-gray-400 text-sm">Phone</p>
+                  <p className="text-gray-400 text-xs sm:text-sm font-medium">
+                    Phone
+                  </p>
                   <a
                     href="tel:+1-800-AUTO-CAR"
-                    className="text-white hover:text-orange-400 transition-colors"
+                    className="text-white hover:text-orange-400 transition-colors text-sm sm:text-base"
                   >
                     +1-800-AUTO-CAR
                   </a>
@@ -108,12 +138,16 @@ export default function Footer() {
               </div>
 
               <div className="flex items-start">
-                <Mail className="h-5 w-5 text-orange-400 mr-3 mt-0.5 flex-shrink-0" />
+                <div className="bg-gray-700 rounded-full p-2 mr-3 flex-shrink-0">
+                  <Mail className="text-orange-400 h-4 w-4" />
+                </div>
                 <div>
-                  <p className="text-gray-400 text-sm">Email</p>
+                  <p className="text-gray-400 text-xs sm:text-sm font-medium">
+                    Email
+                  </p>
                   <a
                     href="mailto:info@autodecar.com"
-                    className="text-white hover:text-orange-400 transition-colors"
+                    className="text-white hover:text-orange-400 transition-colors text-sm sm:text-base"
                   >
                     info@autodecar.com
                   </a>
@@ -121,20 +155,22 @@ export default function Footer() {
               </div>
 
               <div className="flex items-start">
-                <MapPin className="h-5 w-5 text-orange-400 mr-3 mt-0.5 flex-shrink-0" />
+                <div className="bg-gray-700 rounded-full p-2 mr-3 flex-shrink-0">
+                  <MapPin className="text-orange-400 h-4 w-4" />
+                </div>
                 <div>
-                  <p className="text-gray-400 text-sm">Location</p>
-                  <address className="text-white not-italic">
-                    1234 Auto Drive, Suite 100
-                    <br />
-                    Miami, FL 33101
+                  <p className="text-gray-400 text-xs sm:text-sm font-medium">
+                    Location
+                  </p>
+                  <address className="text-white not-italic text-sm sm:text-base">
+                    1234 Auto Drive, Miami, FL 33101
                   </address>
                 </div>
               </div>
             </div>
 
             {/* Social Media */}
-            <div className="mt-8 flex space-x-3">
+            <div className="mt-6 flex space-x-4">
               <SocialLink
                 href="https://facebook.com"
                 icon={<Facebook size={18} />}
@@ -158,10 +194,9 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Quick Links */}
-          <div>
-            <FooterHeading>Quick Links</FooterHeading>
-            <ul>
+          {/* Quick Links - Collapsible on Mobile */}
+          <CollapsibleSection title="Quick Links">
+            <ul className="grid grid-cols-2 sm:block text-sm sm:text-base gap-x-4">
               <FooterLink href="/">Home</FooterLink>
               <FooterLink href="/about">About Us</FooterLink>
               <FooterLink href="/cars">Inventory</FooterLink>
@@ -170,76 +205,75 @@ export default function Footer() {
               <FooterLink href="/contact">Contact Us</FooterLink>
               <FooterLink href="/careers">Careers</FooterLink>
             </ul>
-          </div>
+          </CollapsibleSection>
 
-          {/* Vehicle Categories */}
-          <div>
-            <FooterHeading>Vehicle Categories</FooterHeading>
-            <ul>
+          {/* Vehicle Categories - Collapsible on Mobile */}
+          <CollapsibleSection title="Vehicle Categories">
+            <ul className="grid grid-cols-2 sm:block text-sm sm:text-base gap-x-4">
               <FooterLink href="/cars/suv">SUVs</FooterLink>
               <FooterLink href="/cars/sedan">Sedans</FooterLink>
               <FooterLink href="/cars/luxury">Luxury</FooterLink>
-              <FooterLink href="/cars/electric">Electric Vehicles</FooterLink>
+              <FooterLink href="/cars/electric">Electric</FooterLink>
               <FooterLink href="/cars/hybrid">Hybrid</FooterLink>
               <FooterLink href="/cars/truck">Trucks</FooterLink>
               <FooterLink href="/cars/convertible">Convertibles</FooterLink>
             </ul>
-          </div>
+          </CollapsibleSection>
 
           {/* Newsletter */}
-          <div>
-            <FooterHeading>Newsletter</FooterHeading>
-            <p className="text-gray-300 mb-4">
-              Subscribe to our newsletter to receive updates on new inventory,
-              promotions, and automotive tips.
+          <CollapsibleSection title="Newsletter">
+            <p className="text-gray-300 mb-3 text-sm sm:text-base">
+              Subscribe to our newsletter for updates on new inventory and
+              promotions.
             </p>
 
-            <form onSubmit={handleSubmit} className="mt-4">
-              <div className="flex mb-4">
+            <form onSubmit={handleSubmit} className="mt-3 sm:mt-4">
+              <div className="flex mb-2 sm:mb-4">
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Your email address"
-                  className="py-3 px-4 bg-white/10 text-white placeholder-gray-400 rounded-l-md flex-grow focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  placeholder="Your email"
+                  className="py-2 sm:py-3 px-3 sm:px-4 bg-white/10 text-white placeholder-gray-400 rounded-l-md flex-grow focus:outline-none focus:ring-2 focus:ring-orange-500 text-sm"
                   required
                 />
                 <button
                   type="submit"
-                  className="bg-orange-500 hover:bg-orange-600 text-white rounded-r-md px-4 transition-colors"
+                  className="bg-orange-500 hover:bg-orange-600 text-white rounded-r-md px-3 sm:px-4 transition-colors"
                 >
-                  <ArrowRight size={20} />
+                  <ArrowRight size={18} />
                 </button>
               </div>
               <p className="text-xs text-gray-400">
-                By subscribing, you agree to our Privacy Policy and consent to
-                receive updates from our company.
+                By subscribing, you agree to our Privacy Policy.
               </p>
             </form>
 
             {/* Back to top button */}
-            <button
-              onClick={scrollToTop}
-              className="mt-8 bg-white/10 hover:bg-white/20 text-white rounded-full p-3 transition-colors flex items-center justify-center group"
-              aria-label="Scroll to top"
-            >
-              <ChevronUp
-                size={20}
-                className="group-hover:-translate-y-1 transition-transform"
-              />
-            </button>
-          </div>
+            <div className="hidden sm:block">
+              <button
+                onClick={scrollToTop}
+                className="mt-6 sm:mt-8 bg-orange-500 hover:bg-orange-600 text-white rounded-full p-2 sm:p-3 transition-colors flex items-center justify-center group"
+                aria-label="Scroll to top"
+              >
+                <ChevronUp
+                  size={18}
+                  className="group-hover:-translate-y-1 transition-transform"
+                />
+              </button>
+            </div>
+          </CollapsibleSection>
         </div>
       </div>
 
-      {/* Bottom Bar */}
-      <div className="bg-black/30 py-6">
-        <div className="container mx-auto px-8 flex flex-col md:flex-row justify-between items-center">
-          <div className="text-gray-400 text-sm mb-4 md:mb-0">
+      {/* Bottom Bar - Simplified for Mobile */}
+      <div className="bg-black/30 py-4 sm:py-6">
+        <div className="container mx-auto px-4 sm:px-8 flex flex-col md:flex-row justify-between items-center">
+          <div className="text-gray-400 text-xs sm:text-sm mb-3 md:mb-0 text-center md:text-left">
             © {new Date().getFullYear()} AutoDecar. All rights reserved.
           </div>
 
-          <div className="flex flex-wrap justify-center gap-x-6 gap-y-2 text-sm text-gray-400">
+          <div className="flex flex-wrap justify-center gap-x-4 sm:gap-x-6 gap-y-1 sm:gap-y-2 text-xs sm:text-sm text-gray-400">
             <Link
               href="/privacy"
               className="hover:text-white transition-colors"
@@ -263,6 +297,17 @@ export default function Footer() {
             </Link>
           </div>
         </div>
+      </div>
+
+      {/* Mobile Back to Top Button - Fixed */}
+      <div className="sm:hidden fixed bottom-4 right-4 z-50">
+        <button
+          onClick={scrollToTop}
+          className="bg-orange-500 text-white rounded-full p-3 shadow-lg"
+          aria-label="Scroll to top"
+        >
+          <ChevronUp size={20} />
+        </button>
       </div>
     </footer>
   );

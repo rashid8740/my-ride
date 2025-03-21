@@ -30,55 +30,47 @@ const TestimonialCard = ({ testimonial, isActive }) => {
           : "opacity-0 translate-x-20 scale-95 absolute"
       }`}
     >
-      <div className="bg-white rounded-2xl p-5 sm:p-6 md:p-8 shadow-xl relative flex flex-col">
+      <div className="bg-white rounded-2xl p-5 sm:p-6 md:p-8 shadow-xl relative">
         {/* Quote Icon */}
         <div className="absolute -top-4 -left-4 sm:-top-5 sm:-left-5 bg-orange-500 rounded-full p-2 sm:p-3 shadow-lg">
           <Quote size={20} className="text-white sm:hidden" />
           <Quote size={24} className="text-white hidden sm:block" />
         </div>
 
-        {/* Rating and Title at the top */}
-        <div className="mb-3 sm:mb-4 pt-3 sm:pt-4">
+        {/* Content */}
+        <div className="mb-4 sm:mb-6 pt-3 sm:pt-4">
           <StarRating rating={testimonial.rating} />
           <h3 className="mt-3 sm:mt-4 text-lg sm:text-xl font-bold text-gray-900">
             {testimonial.title}
           </h3>
-        </div>
-
-        {/* Content in scrollable area if needed */}
-        <div className="overflow-y-auto mb-4 flex-grow">
-          <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
+          <p className="mt-2 sm:mt-3 text-sm sm:text-base text-gray-600 leading-relaxed">
             "{testimonial.content}"
           </p>
         </div>
 
-        {/* Author - Always at bottom */}
-        <div className="mt-auto pt-4 border-t border-gray-100">
-          <div className="flex items-center">
-            <div className="mr-3 sm:mr-4">
-              <img
-                src={testimonial.avatar}
-                alt={testimonial.name}
-                className="h-12 w-12 sm:h-14 sm:w-14 rounded-full object-cover border-2 border-orange-500"
-              />
-            </div>
-            <div>
-              <h4 className="font-semibold text-gray-900">
-                {testimonial.name}
-              </h4>
-              <p className="text-xs sm:text-sm text-gray-500">
-                {testimonial.location}
-              </p>
-            </div>
+        {/* Author */}
+        <div className="flex items-center">
+          <div className="mr-3 sm:mr-4">
+            <img
+              src={testimonial.avatar}
+              alt={testimonial.name}
+              className="h-12 w-12 sm:h-14 sm:w-14 rounded-full object-cover border-2 border-orange-500"
+            />
           </div>
-
-          {/* Car Purchased */}
-          <div className="mt-3 sm:mt-4 pt-3 sm:pt-4 border-t border-gray-100">
-            <p className="text-xs sm:text-sm text-gray-500">Purchased:</p>
-            <p className="font-medium text-sm sm:text-base text-gray-900">
-              {testimonial.carPurchased}
+          <div>
+            <h4 className="font-semibold text-gray-900">{testimonial.name}</h4>
+            <p className="text-xs sm:text-sm text-gray-500">
+              {testimonial.location}
             </p>
           </div>
+        </div>
+
+        {/* Car Purchased */}
+        <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-gray-100">
+          <p className="text-xs sm:text-sm text-gray-500">Purchased:</p>
+          <p className="font-medium text-sm sm:text-base text-gray-900">
+            {testimonial.carPurchased}
+          </p>
         </div>
       </div>
     </div>
@@ -237,7 +229,7 @@ export default function TestimonialsSection({ id }) {
         <div className="grid grid-cols-1 gap-6 sm:gap-8 lg:grid-cols-5 lg:gap-8">
           {/* Written Testimonials */}
           <div className="lg:col-span-3 relative">
-            <div className="relative h-[400px] xs:h-[450px] sm:h-[480px] md:h-[500px] lg:h-[500px] mb-6 sm:mb-8 md:mb-10">
+            <div className="relative h-[320px] xs:h-[380px] sm:h-[420px] md:h-[450px] lg:h-[450px] mb-6 sm:mb-8 md:mb-10">
               {testimonials.map((testimonial, index) => (
                 <TestimonialCard
                   key={index}
