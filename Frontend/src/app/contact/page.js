@@ -263,7 +263,6 @@ export default function ContactPage() {
         </div>
       </section>
 
-      {/* FAQ Section */}
       <section className="bg-white py-16">
         <div className="container mx-auto px-4 max-w-6xl">
           <div className="text-center mb-12">
