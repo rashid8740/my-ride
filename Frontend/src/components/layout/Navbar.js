@@ -6,7 +6,7 @@ import { useState, useEffect } from "react";
 import { Search, Heart, User, Car, Menu, X } from "lucide-react";
 
 // Navigation Item Component
-function NavItem({ href, label, isActive = false, hasDropdown = false }) {
+function NavItem({ href, label, isActive = false }) {
   // Handle smooth scrolling for anchor links
   const handleClick = (e) => {
     const href = e.currentTarget.getAttribute("href");
@@ -30,22 +30,7 @@ function NavItem({ href, label, isActive = false, hasDropdown = false }) {
         }`}
         onClick={handleClick}
       >
-        {label}{" "}
-        {hasDropdown && (
-          <svg
-            className="h-4 w-4 ml-1"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M19 9l-7 7-7-7"
-            />
-          </svg>
-        )}
+        {label}
       </Link>
     </div>
   );
@@ -142,10 +127,9 @@ export default function Navbar() {
           {/* Main Navigation - Centered on desktop only */}
           <div className="hidden lg:flex items-center absolute left-1/2 transform -translate-x-1/2">
             <div className="flex space-x-1">
-              <NavItem href="/" label="Home" isActive hasDropdown />
-              <NavItem href="/listing" label="Listing Car" hasDropdown />
-              <NavItem href="/page" label="Page" hasDropdown />
-              <NavItem href="/blog" label="Blog" hasDropdown />
+              <NavItem href="/" label="Home" isActive />
+              <NavItem href="/inventory" label="Inventory" />
+              <NavItem href="/about" label="About" />
               <NavItem href="/contact" label="Contact" />
             </div>
           </div>
@@ -223,18 +207,13 @@ export default function Navbar() {
                 onClick={closeMobileMenu}
               />
               <MobileNavItem
-                href="/listing"
-                label="Listing Car"
+                href="/inventory"
+                label="Inventory"
                 onClick={closeMobileMenu}
               />
               <MobileNavItem
-                href="/page"
-                label="Page"
-                onClick={closeMobileMenu}
-              />
-              <MobileNavItem
-                href="/blog"
-                label="Blog"
+                href="/about"
+                label="About"
                 onClick={closeMobileMenu}
               />
               <MobileNavItem
