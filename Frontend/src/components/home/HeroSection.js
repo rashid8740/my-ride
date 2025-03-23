@@ -1,37 +1,44 @@
-// src/components/home/HeroSection.jsx
 "use client";
-import { useState, useEffect } from "react";
-import Image from "next/image";
-import Link from "next/link";
-import { ChevronRight, ChevronLeft, ArrowRight } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { ChevronRight, ChevronLeft, ArrowRight, Star } from "lucide-react";
 
-// Modern slider with pagination - adjusted for more compact display
+// Enhanced Modern Slider with Animation
 const ModernSlider = () => {
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const slideTimerRef = useRef(null);
+
+  // Enhanced slide data with more details and features
   const slides = [
     {
       id: 1,
       image:
-        "https://images.unsplash.com/photo-1583121274602-3e2820c69888?q=80&w=1920&auto=format&fit=crop",
+        "https://images.unsplash.com/photo-1592198084033-aade902d1aae?q=80&w=800&auto=format&fit=crop",
       title: "Find Your Perfect Drive",
       subtitle: "Discover the best deals on premium vehicles",
       car: {
         model: "2023 Audi RS e-tron GT",
         price: "$104,900",
         type: "Electric",
+        features: ["0-60mph in 3.1s", "637hp", "AWD"],
+        rating: 4.9,
       },
+      accent: "bg-blue-500",
     },
     {
       id: 2,
       image:
-        "https://images.unsplash.com/photo-1585011664466-b7bbe92f34ef?q=80&w=800&auto=format&fit=crop",
+        "https://images.unsplash.com/photo-1580273916550-e323be2ae537?q=80&w=800&auto=format&fit=crop",
       title: "Luxury Redefined",
       subtitle: "Experience performance without compromise",
       car: {
         model: "2023 BMW M4 Competition",
         price: "$79,900",
         type: "Sport",
+        features: ["503hp Twin-Turbo", "RWD", "Carbon Fiber"],
+        rating: 4.8,
       },
+      accent: "bg-red-500",
     },
     {
       id: 3,
@@ -43,27 +50,93 @@ const ModernSlider = () => {
         model: "2023 Mercedes EQS 580",
         price: "$125,950",
         type: "Electric",
+        features: ["350mi Range", "516hp", "Hyperscreen"],
+        rating: 4.7,
       },
+      accent: "bg-emerald-500",
     },
   ];
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setCurrentSlide((prev) => (prev === slides.length - 1 ? 0 : prev + 1));
+  // Reset and start the slide timer
+  const resetSlideTimer = () => {
+    if (slideTimerRef.current) {
+      clearTimeout(slideTimerRef.current);
+    }
+
+    slideTimerRef.current = setTimeout(() => {
+      if (!isAnimating) {
+        setIsAnimating(true);
+        setCurrentSlide((prev) => (prev === slides.length - 1 ? 0 : prev + 1));
+
+        setTimeout(() => {
+          setIsAnimating(false);
+        }, 1000);
+      }
     }, 6000);
-    return () => clearTimeout(timer);
-  }, [currentSlide, slides.length]);
+  };
+
+  useEffect(() => {
+    resetSlideTimer();
+    return () => {
+      if (slideTimerRef.current) {
+        clearTimeout(slideTimerRef.current);
+      }
+    };
+  }, [currentSlide, isAnimating]);
 
   const goToSlide = (index) => {
-    setCurrentSlide(index);
+    if (index !== currentSlide && !isAnimating) {
+      setIsAnimating(true);
+      setCurrentSlide(index);
+      setTimeout(() => {
+        setIsAnimating(false);
+      }, 1000);
+      resetSlideTimer();
+    }
   };
 
   const prevSlide = () => {
-    setCurrentSlide((prev) => (prev === 0 ? slides.length - 1 : prev - 1));
+    if (!isAnimating) {
+      setIsAnimating(true);
+      setCurrentSlide((prev) => (prev === 0 ? slides.length - 1 : prev - 1));
+      setTimeout(() => {
+        setIsAnimating(false);
+      }, 1000);
+      resetSlideTimer();
+    }
   };
 
   const nextSlide = () => {
-    setCurrentSlide((prev) => (prev === slides.length - 1 ? 0 : prev + 1));
+    if (!isAnimating) {
+      setIsAnimating(true);
+      setCurrentSlide((prev) => (prev === slides.length - 1 ? 0 : prev + 1));
+      setTimeout(() => {
+        setIsAnimating(false);
+      }, 1000);
+      resetSlideTimer();
+    }
+  };
+
+  // Create star rating display
+  const renderStars = (rating) => {
+    return (
+      <div className="flex items-center">
+        {[...Array(5)].map((_, i) => (
+          <Star
+            key={i}
+            size={14}
+            className={`${
+              i < Math.floor(rating)
+                ? "text-yellow-400 fill-yellow-400"
+                : i < rating
+                ? "text-yellow-400 fill-yellow-400 opacity-50"
+                : "text-gray-300"
+            }`}
+          />
+        ))}
+        <span className="ml-1 text-white text-xs">{rating}</span>
+      </div>
+    );
   };
 
   return (
@@ -73,192 +146,175 @@ const ModernSlider = () => {
         {slides.map((slide, index) => (
           <div
             key={slide.id}
-            className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
-              index === currentSlide ? "opacity-100 z-10" : "opacity-0 z-0"
+            className={`absolute inset-0 transition-all duration-1000 ease-in-out ${
+              index === currentSlide
+                ? "opacity-100 z-10 scale-100"
+                : "opacity-0 z-0 scale-105"
             }`}
           >
-            <Image
-              src={slide.image}
-              alt={slide.title}
-              fill
-              priority
-              className="object-cover object-center"
-            />
-            <div className="absolute inset-0 bg-gradient-to-r from-black/70 to-transparent"></div>
+            <div
+              className="absolute inset-0 bg-cover bg-center transform transition-transform duration-10000 ease-out"
+              style={{
+                backgroundImage: `url(${slide.image})`,
+                transform: index === currentSlide ? "scale(1.05)" : "scale(1)",
+              }}
+            ></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent"></div>
 
-            {/* Slide Content - Adjusted positioning for better filter visibility */}
-            <div className="absolute left-0 top-0 h-full z-20 flex flex-col justify-center px-4 sm:px-8 md:px-16 w-full md:w-3/4 lg:w-1/2">
-              <div className="max-w-lg mb-16 sm:mb-24 md:mb-32">
-                <h2 className="text-base sm:text-lg md:text-xl text-orange-500 font-medium mb-2">
+            {/* Slide Content */}
+            <div className="absolute left-0 top-0 h-full z-20 flex flex-col justify-center px-8 md:px-16 w-full md:w-2/3 lg:w-1/2">
+              <div
+                className="max-w-lg transform transition-all duration-1000 delay-200"
+                style={{
+                  opacity: index === currentSlide ? 1 : 0,
+                  transform:
+                    index === currentSlide
+                      ? "translateY(0)"
+                      : "translateY(20px)",
+                }}
+              >
+                <div className={`${slide.accent} w-16 h-1 mb-6 rounded`}></div>
+                <h2 className="text-xl text-orange-500 font-medium mb-2 tracking-wide">
                   {slide.subtitle}
                 </h2>
-                <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl text-white font-bold mb-4 md:mb-6 leading-tight">
+                <h1 className="text-4xl sm:text-5xl md:text-6xl text-white font-bold mb-6 leading-tight">
                   {slide.title}
                 </h1>
 
-                <div className="flex flex-col sm:flex-row flex-wrap items-start gap-4 md:gap-5 mb-8 md:mb-16">
-                  <div className="bg-white/10 backdrop-blur-md rounded-lg p-3 sm:p-4 md:p-5 inline-block w-full sm:w-auto">
-                    <div className="text-white font-medium text-base sm:text-lg md:text-xl mb-2 md:mb-3">
-                      {slide.car.model}
-                    </div>
-                    <div className="flex items-center gap-3 md:gap-4">
-                      <span className="text-orange-400 font-bold text-lg sm:text-xl md:text-2xl">
-                        {slide.car.price}
-                      </span>
-                      <div className="bg-orange-500 text-white text-xs font-medium px-2 sm:px-3 py-1 sm:py-1.5 rounded-full">
-                        {slide.car.type}
-                      </div>
-                    </div>
+                <div className="bg-black/30 backdrop-blur-md rounded-lg p-5 mb-6">
+                  <div className="text-white font-semibold text-xl mb-2">
+                    {slide.car.model}
                   </div>
 
-                  <Link
-                    href="/inventory"
-                    className="inline-flex items-center bg-orange-500 hover:bg-orange-600 text-white px-4 sm:px-6 md:px-8 py-2 sm:py-3 md:py-3.5 rounded-md transition-colors shadow-lg font-semibold text-base sm:text-lg self-start sm:self-center"
-                  >
-                    View Inventory
-                    <ArrowRight size={18} className="ml-2" />
-                  </Link>
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {slide.car.features.map((feature, idx) => (
+                      <span
+                        key={idx}
+                        className="bg-white/10 text-white text-xs px-3 py-1 rounded-full"
+                      >
+                        {feature}
+                      </span>
+                    ))}
+                  </div>
+
+                  <div className="flex justify-between items-center mt-2">
+                    <div>
+                      <span className="text-orange-400 font-bold text-2xl">
+                        {slide.car.price}
+                      </span>
+                      <div className="mt-1">
+                        {renderStars(slide.car.rating)}
+                      </div>
+                    </div>
+                    <span
+                      className={`${slide.accent} text-white text-xs px-3 py-1.5 rounded-full flex items-center font-semibold`}
+                    >
+                      {slide.car.type}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-3">
+                  <button className="inline-flex items-center bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-md transition-colors shadow-lg">
+                    <span className="font-medium">View Inventory</span>
+                    <ArrowRight size={16} className="ml-2" />
+                  </button>
+
+                  <button className="inline-flex items-center bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white border border-white/20 px-6 py-3 rounded-md transition-colors">
+                    <span className="font-medium">Book Test Drive</span>
+                  </button>
                 </div>
               </div>
             </div>
           </div>
         ))}
       </div>
-      /* Navigation Controls - Responsive positioning with better visibility on
-      mobile */
-      <div className="absolute bottom-16 sm:bottom-24 md:bottom-32 right-4 sm:right-8 md:right-16 z-30 flex space-x-2 sm:space-x-4">
-        <button
-          onClick={prevSlide}
-          className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 flex items-center justify-center bg-black/30 backdrop-blur-sm text-white rounded-full hover:bg-white hover:text-black transition-colors"
-        >
-          <ChevronLeft size={16} className="sm:hidden" />
-          <ChevronLeft size={20} className="hidden sm:block md:hidden" />
-          <ChevronLeft size={24} className="hidden md:block" />
-        </button>
-        <button
-          onClick={nextSlide}
-          className="w-8 h-8 sm:w-10 sm:h-10 md:w-12 md:h-12 flex items-center justify-center bg-black/30 backdrop-blur-sm text-white rounded-full hover:bg-white hover:text-black transition-colors"
-        >
-          <ChevronRight size={16} className="sm:hidden" />
-          <ChevronRight size={20} className="hidden sm:block md:hidden" />
-          <ChevronRight size={24} className="hidden md:block" />
-        </button>
-      </div>
-      {/* Pagination - Adjusted positioning */}
-      <div className="absolute bottom-16 sm:bottom-24 md:bottom-32 left-4 sm:left-8 md:left-16 z-30 flex items-center space-x-1 sm:space-x-2">
-        {slides.map((_, index) => (
+
+      {/* Controls Container - Now at the bottom with proper spacing */}
+      <div className="absolute bottom-8 left-0 right-0 z-20 flex justify-between px-4 sm:px-8 md:px-16">
+        {/* Enhanced Pagination */}
+        <div className="flex items-center space-x-3">
+          {slides.map((slide, index) => (
+            <button
+              key={index}
+              onClick={() => goToSlide(index)}
+              disabled={isAnimating}
+              className="group flex items-center"
+              aria-label={`Go to slide ${index + 1}`}
+            >
+              <div
+                className={`transition-all duration-300 rounded-full h-2 
+                ${
+                  currentSlide === index
+                    ? `w-8 ${slide.accent}`
+                    : "w-2 bg-white/50 group-hover:bg-white/80"
+                }`}
+              />
+              {currentSlide === index && (
+                <span className="ml-2 text-white text-xs font-medium opacity-80">
+                  0{index + 1}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* Navigation Controls */}
+        <div className="flex space-x-4">
           <button
-            key={index}
-            onClick={() => goToSlide(index)}
-            className={`transition-all duration-300 rounded-full ${
-              currentSlide === index
-                ? "w-6 sm:w-8 h-1.5 sm:h-2 bg-orange-500"
-                : "w-1.5 sm:w-2 h-1.5 sm:h-2 bg-white/50 hover:bg-white/80"
-            }`}
-            aria-label={`Go to slide ${index + 1}`}
-          />
-        ))}
-      </div>
-    </div>
-  );
-};
-
-// Quick Search Component - Made responsive
-const QuickSearch = () => {
-  const [activeType, setActiveType] = useState("All");
-  const vehicleTypes = ["All", "New", "Used", "Certified"];
-
-  return (
-    <div className="bg-white rounded-lg shadow-xl overflow-hidden absolute bottom-0 left-0 right-0 transform translate-y-1/2 mx-auto max-w-5xl">
-      <div className="px-4 sm:px-6 py-4 sm:py-5 border-b border-gray-200">
-        <h2 className="text-lg sm:text-xl font-bold text-gray-900">
-          Find Your Perfect Car
-        </h2>
-      </div>
-
-      {/* Vehicle Types - Scrollable on small screens */}
-      <div className="flex overflow-x-auto border-b border-gray-200 hide-scrollbar">
-        {vehicleTypes.map((type) => (
-          <button
-            key={type}
-            onClick={() => setActiveType(type)}
-            className={`px-3 sm:px-6 py-3 font-medium text-xs sm:text-sm whitespace-nowrap transition-colors ${
-              activeType === type
-                ? "text-orange-500 border-b-2 border-orange-500 -mb-px"
-                : "text-gray-500 hover:text-gray-800"
-            }`}
+            onClick={prevSlide}
+            disabled={isAnimating}
+            className="w-12 h-12 flex items-center justify-center bg-black/30 backdrop-blur-sm text-white rounded-full hover:bg-white hover:text-black transition-colors disabled:opacity-50"
           >
-            {type} Vehicles
+            <ChevronLeft size={24} />
           </button>
-        ))}
-      </div>
-
-      {/* Search Options - Responsive grid with improved visibility */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 p-4 sm:p-6 gap-3 sm:gap-4 bg-white">
-        <div className="space-y-1">
-          <label className="block text-xs sm:text-sm font-medium text-gray-700">
-            Make & Model
-          </label>
-          <select className="w-full p-2 border border-gray-300 rounded-md text-sm">
-            <option>Any Make</option>
-            <option>Tesla</option>
-            <option>BMW</option>
-            <option>Audi</option>
-            <option>Mercedes-Benz</option>
-          </select>
+          <button
+            onClick={nextSlide}
+            disabled={isAnimating}
+            className="w-12 h-12 flex items-center justify-center bg-black/30 backdrop-blur-sm text-white rounded-full hover:bg-white hover:text-black transition-colors disabled:opacity-50"
+          >
+            <ChevronRight size={24} />
+          </button>
         </div>
-
-        <div className="space-y-1">
-          <label className="block text-xs sm:text-sm font-medium text-gray-700">
-            Price Range
-          </label>
-          <select className="w-full p-2 border border-gray-300 rounded-md text-sm">
-            <option>Any Price</option>
-            <option>Under $30,000</option>
-            <option>$30,000 - $50,000</option>
-            <option>$50,000 - $70,000</option>
-            <option>$70,000+</option>
-          </select>
-        </div>
-
-        <div className="space-y-1 sm:col-span-2 md:col-span-1">
-          <label className="block text-xs sm:text-sm font-medium text-gray-700">
-            Body Type
-          </label>
-          <select className="w-full p-2 border border-gray-300 rounded-md text-sm">
-            <option>Any Type</option>
-            <option>SUV</option>
-            <option>Sedan</option>
-            <option>Coupe</option>
-            <option>Truck</option>
-          </select>
-        </div>
-      </div>
-
-      {/* Additional Options & Search Button - Responsive layout */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-gray-50 px-4 sm:px-6 py-3 sm:py-4">
-        <button className="flex items-center text-xs sm:text-sm text-gray-600 hover:text-orange-500 transition-colors">
-          <Plus size={16} className="mr-1" />
-          More Options
-        </button>
-
-        <button className="bg-orange-500 hover:bg-orange-600 text-white px-4 sm:px-6 py-2 sm:py-2.5 rounded-md font-medium flex items-center transition-colors w-full sm:w-auto justify-center">
-          <Search size={16} className="mr-2" />
-          Search Cars
-        </button>
       </div>
     </div>
   );
 };
 
-export default function HeroSection({ id }) {
+const HeroSection = () => {
   return (
-    <section
-      id={id}
-      className="relative w-full h-[70vh] sm:h-[80vh] md:h-[85vh] lg:h-[90vh] mt-16 sm:mt-20"
-    >
-      {/* Main Slider Section */}
-      <ModernSlider />
+    <section className="relative w-full">
+      {/* Main Slider Section with responsive height */}
+      <div className="h-[600px] sm:h-[700px] md:h-[80vh] lg:h-[85vh] mt-16 sm:mt-20">
+        <ModernSlider />
+      </div>
+
+      {/* Featured Vehicles Section Header */}
+      <div className="w-full bg-white py-10">
+        <div className="mx-auto px-4 max-w-6xl">
+          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6">
+            Featured Vehicles
+          </h2>
+
+          {/* Tab placeholder for demonstration */}
+          <div className="flex overflow-x-auto space-x-4 pb-2 border-b border-gray-200">
+            {["SUV", "Hatchback", "Sedan", "MUV", "Luxury"].map((type) => (
+              <button
+                key={type}
+                className={`py-2 px-4 text-sm font-medium whitespace-nowrap ${
+                  type === "SUV"
+                    ? "text-orange-500 border-b-2 border-orange-500"
+                    : "text-gray-500 hover:text-gray-900"
+                }`}
+              >
+                {type}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
     </section>
   );
-}
+};
+
+export default HeroSection;

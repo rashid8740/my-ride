@@ -1,0 +1,160 @@
+// src/app/inventory/data.js
+
+// Filter options
+export const filterOptions = {
+  make: [
+    { label: "Audi", value: "audi", count: 15 },
+    { label: "BMW", value: "bmw", count: 23 },
+    { label: "Mercedes", value: "mercedes", count: 18 },
+    { label: "Tesla", value: "tesla", count: 12 },
+    { label: "Toyota", value: "toyota", count: 28 },
+  ],
+  bodyType: [
+    { label: "SUV", value: "suv", count: 42 },
+    { label: "Sedan", value: "sedan", count: 36 },
+    { label: "Hatchback", value: "hatchback", count: 12 },
+    { label: "Coupe", value: "coupe", count: 8 },
+    { label: "Convertible", value: "convertible", count: 5 },
+  ],
+  year: [
+    { label: "2023", value: "2023", count: 14 },
+    { label: "2022", value: "2022", count: 28 },
+    { label: "2021", value: "2021", count: 35 },
+    { label: "2020", value: "2020", count: 42 },
+    { label: "2019", value: "2019", count: 31 },
+  ],
+  transmission: [
+    { label: "Automatic", value: "automatic", count: 125 },
+    { label: "Manual", value: "manual", count: 15 },
+    { label: "Semi-Automatic", value: "semi-automatic", count: 8 },
+  ],
+  fuel: [
+    { label: "Petrol", value: "petrol", count: 78 },
+    { label: "Diesel", value: "diesel", count: 42 },
+    { label: "Electric", value: "electric", count: 15 },
+    { label: "Hybrid", value: "hybrid", count: 25 },
+  ],
+  features: [
+    { label: "Bluetooth", value: "bluetooth", count: 142 },
+    { label: "Navigation", value: "navigation", count: 98 },
+    { label: "Leather Seats", value: "leather", count: 85 },
+    { label: "Sunroof", value: "sunroof", count: 64 },
+    { label: "Backup Camera", value: "camera", count: 112 },
+  ],
+};
+
+// Mock car data
+export const cars = [
+  {
+    id: 1,
+    title: "2021 BMW X1 xDrive 20d xline",
+    category: "SUV",
+    year: "2021",
+    price: "45,900",
+    mileage: "32,491 km",
+    fuel: "Diesel",
+    transmission: "Automatic",
+    photoCount: "8",
+    featured: true,
+    image:
+      "https://images.unsplash.com/photo-1555215695-3004980ad54e?q=80&w=800&auto=format&fit=crop",
+  },
+  {
+    id: 2,
+    title: "2022 Audi Q5 Sportback",
+    category: "SUV",
+    year: "2022",
+    price: "59,800",
+    mileage: "12,345 km",
+    fuel: "Hybrid",
+    transmission: "Automatic",
+    photoCount: "12",
+    featured: false,
+    image:
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?q=80&w=800&auto=format&fit=crop",
+  },
+  {
+    id: 3,
+    title: "2020 Mercedes-Benz C300 4MATIC",
+    category: "Sedan",
+    year: "2020",
+    price: "42,500",
+    mileage: "28,650 km",
+    fuel: "Petrol",
+    transmission: "Automatic",
+    photoCount: "10",
+    featured: true,
+    image:
+      "https://images.unsplash.com/photo-1580273916550-e323be2ae537?q=80&w=800&auto=format&fit=crop",
+  },
+  {
+    id: 4,
+    title: "2023 Tesla Model Y Long Range",
+    category: "SUV",
+    year: "2023",
+    price: "62,990",
+    mileage: "8,210 km",
+    fuel: "Electric",
+    transmission: "Automatic",
+    photoCount: "14",
+    featured: true,
+    image:
+      "https://images.unsplash.com/photo-1549399542-7e3f8b79c341?q=80&w=800&auto=format&fit=crop",
+  },
+  {
+    id: 5,
+    title: "2021 Porsche 911 Carrera S",
+    category: "Coupe",
+    year: "2021",
+    price: "129,900",
+    mileage: "15,320 km",
+    fuel: "Petrol",
+    transmission: "Semi-Automatic",
+    photoCount: "18",
+    featured: false,
+    image:
+      "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?q=80&w=800&auto=format&fit=crop",
+  },
+  {
+    id: 6,
+    title: "2022 Land Rover Range Rover Sport",
+    category: "SUV",
+    year: "2022",
+    price: "95,750",
+    mileage: "21,800 km",
+    fuel: "Diesel",
+    transmission: "Automatic",
+    photoCount: "15",
+    featured: true,
+    image:
+      "https://images.unsplash.com/photo-1555215695-3004980ad54e?q=80&w=800&auto=format&fit=crop",
+  },
+  {
+    id: 7,
+    title: "2023 Toyota RAV4 Hybrid XLE",
+    category: "SUV",
+    year: "2023",
+    price: "38,200",
+    mileage: "5,120 km",
+    fuel: "Hybrid",
+    transmission: "Automatic",
+    photoCount: "9",
+    featured: false,
+    image:
+      "https://images.unsplash.com/photo-1585011664466-b7bbe92f34ef?q=80&w=800&auto=format&fit=crop",
+  },
+  {
+    id: 8,
+    title: "2020 Honda Accord Touring",
+    category: "Sedan",
+    year: "2020",
+    price: "33,400",
+    mileage: "42,750 km",
+    fuel: "Petrol",
+    transmission: "Automatic",
+    photoCount: "7",
+    featured: false,
+    image:
+      "https://images.unsplash.com/photo-1592198084033-aade902d1aae?q=80&w=800&auto=format&fit=crop",
+  },
+];

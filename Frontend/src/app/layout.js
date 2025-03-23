@@ -1,4 +1,6 @@
+// src/app/layout.js
 import "./globals.css";
+import Navbar from "@/components/layout/Navbar"; // Add this import
 
 export const metadata = {
   title: "Create Next App",
@@ -9,6 +11,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" className="font-sans">
       <body suppressHydrationWarning>
+        <Navbar /> {/* Add this line */}
         <div className="min-w-full overflow-x-hidden">{children}</div>
       </body>
     </html>
