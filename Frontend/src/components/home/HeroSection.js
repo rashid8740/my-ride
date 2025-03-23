@@ -288,31 +288,6 @@ const HeroSection = () => {
       <div className="h-[600px] sm:h-[700px] md:h-[80vh] lg:h-[85vh] mt-16 sm:mt-20">
         <ModernSlider />
       </div>
-
-      {/* Featured Vehicles Section Header */}
-      <div className="w-full bg-white py-10">
-        <div className="mx-auto px-4 max-w-6xl">
-          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6">
-            Featured Vehicles
-          </h2>
-
-          {/* Tab placeholder for demonstration */}
-          <div className="flex overflow-x-auto space-x-4 pb-2 border-b border-gray-200">
-            {["SUV", "Hatchback", "Sedan", "MUV", "Luxury"].map((type) => (
-              <button
-                key={type}
-                className={`py-2 px-4 text-sm font-medium whitespace-nowrap ${
-                  type === "SUV"
-                    ? "text-orange-500 border-b-2 border-orange-500"
-                    : "text-gray-500 hover:text-gray-900"
-                }`}
-              >
-                {type}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
     </section>
   );
 };
