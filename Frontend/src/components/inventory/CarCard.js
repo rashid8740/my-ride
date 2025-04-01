@@ -1,14 +1,46 @@
 // src/components/inventory/CarCard.jsx
+"use client";
+import { useState } from "react";
 import Link from "next/link";
-import { Camera } from "lucide-react";
+import { Camera, Heart } from "lucide-react";
+import { useFavorites } from "@/utils/FavoritesContext";
+import { useAuth } from "@/utils/AuthContext";
 
 export default function CarCard({ car }) {
+  const { isAuthenticated } = useAuth();
+  const { isFavorite, toggleFavorite } = useFavorites();
+  const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
+  
+  const isCarFavorite = isFavorite(car._id || car.id);
+  
+  const handleFavoriteClick = async (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!isAuthenticated) {
+      // Redirect to login if not authenticated
+      window.location.href = '/login';
+      return;
+    }
+    
+    if (isTogglingFavorite) return;
+    
+    try {
+      setIsTogglingFavorite(true);
+      await toggleFavorite(car._id || car.id);
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+    } finally {
+      setIsTogglingFavorite(false);
+    }
+  };
+
   return (
     <div className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all duration-300">
       {/* Car Image with Badges */}
       <div className="relative h-40 sm:h-48 bg-gray-100 overflow-hidden">
         <img
-          src={car.image}
+          src={car.images?.[0]?.url || car.image || "/images/car-placeholder.jpg"}
           alt={car.title}
           className="w-full h-full object-cover"
         />
@@ -25,9 +57,23 @@ export default function CarCard({ car }) {
           <div className="flex items-center gap-1 bg-black/60 text-white text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full">
             <Camera size={12} className="sm:hidden" />
             <Camera size={14} className="hidden sm:block" />
-            <span>{car.photoCount}</span>
+            <span>{car.images?.length || car.photoCount || 0}</span>
           </div>
         </div>
+
+        {/* Favorite button */}
+        <button
+          onClick={handleFavoriteClick}
+          className={`absolute top-2 left-2 w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
+            isCarFavorite
+              ? "bg-orange-500 text-white"
+              : "bg-white/80 backdrop-blur-sm text-gray-700 hover:bg-white"
+          } ${isTogglingFavorite ? "opacity-70" : ""}`}
+          disabled={isTogglingFavorite}
+          aria-label={isCarFavorite ? "Remove from favorites" : "Add to favorites"}
+        >
+          <Heart size={16} fill={isCarFavorite ? "currentColor" : "none"} />
+        </button>
 
         {/* Year Badge */}
         <div className="absolute bottom-0 right-0 bg-orange-500 text-white text-[10px] sm:text-xs font-medium px-2 sm:px-3 py-0.5 sm:py-1 rounded-tl-lg">
@@ -64,7 +110,9 @@ export default function CarCard({ car }) {
               <path d="M12 12l3 2" />
             </svg>
             <span className="whitespace-nowrap overflow-hidden text-ellipsis">
-              {car.mileage}
+              {typeof car.mileage === 'number' 
+                ? `${car.mileage.toLocaleString()} mi` 
+                : car.mileage}
             </span>
           </div>
 
@@ -109,14 +157,16 @@ export default function CarCard({ car }) {
 
         {/* Price */}
         <div className="text-orange-500 font-bold text-base sm:text-xl">
-          ${car.price}
+          ${typeof car.price === 'number' 
+            ? car.price.toLocaleString() 
+            : car.price}
         </div>
       </div>
 
       {/* View Car Button */}
       <div className="px-3 sm:px-4 py-2 sm:py-3 border-t border-gray-100 flex justify-center">
         <Link
-          href={`/cars/${car.id}`}
+          href={`/cars/${car._id || car.id}`}
           className="text-xs sm:text-sm font-medium text-gray-700 border border-gray-300 hover:bg-gray-50 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full transition-colors"
         >
           View Details

@@ -1,10 +1,11 @@
 // src/components/cars/CarListingSection.jsx
 "use client";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useState } from "react";
 import { Camera } from "lucide-react";
+import apiService from "@/utils/api";
 
-// Body Type Tab Component - exact match to the reference
+// Body Type Tab Component
 function BodyTypeTab({ type, isActive, onClick }) {
   return (
     <button
@@ -20,30 +21,37 @@ function BodyTypeTab({ type, isActive, onClick }) {
   );
 }
 
-// Car Card Component - streamlined version to match reference image
+// Car Card Component
 function CarCard({ car }) {
+  // Handle missing image by providing a default
+  const mainImage = car.images && car.images.length > 0
+    ? car.images.find(img => img.isMain)?.url || car.images[0].url
+    : "https://images.unsplash.com/photo-1549399542-7e3f8b79c341?q=80&w=800&auto=format&fit=crop";
+
   return (
     <div className="bg-white rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300">
       {/* Car Image with Badges */}
       <div className="relative h-[150px] xs:h-[160px] sm:h-[180px] bg-gray-100 overflow-hidden">
         <img
-          src={car.image}
+          src={mainImage.startsWith('http') ? mainImage : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}${mainImage}`}
           alt={car.title}
           className="w-full h-full object-cover"
         />
 
-        {/* Top badges in a row - optimized spacing */}
+        {/* Top badges in a row */}
         <div className="absolute top-2 xs:top-3 left-0 right-0 flex justify-between px-2 xs:px-3">
           {/* Featured Badge */}
-          <div className="bg-orange-500 text-white text-[10px] xs:text-xs font-medium px-2 xs:px-3 py-0.5 xs:py-1 rounded-full">
-            Featured
-          </div>
+          {car.isFeatured && (
+            <div className="bg-orange-500 text-white text-[10px] xs:text-xs font-medium px-2 xs:px-3 py-0.5 xs:py-1 rounded-full">
+              Featured
+            </div>
+          )}
 
           {/* Photo Count Badge */}
           <div className="flex items-center gap-1 bg-black/60 text-white text-[10px] xs:text-xs px-1.5 xs:px-2 py-0.5 xs:py-1 rounded-full">
             <Camera size={10} className="xs:hidden" />
             <Camera size={14} className="hidden xs:block" />
-            <span>{car.photoCount}</span>
+            <span>{car.images?.length || 0}</span>
           </div>
         </div>
 
@@ -53,19 +61,19 @@ function CarCard({ car }) {
         </div>
       </div>
 
-      {/* Car Details - Simplified Layout with better text handling */}
+      {/* Car Details */}
       <div className="p-3 xs:p-4 space-y-2 xs:space-y-3">
         {/* Category */}
         <div className="text-orange-500 text-xs xs:text-sm font-medium">
           {car.category}
         </div>
 
-        {/* Title - maintaining line clamp but increasing height slightly */}
+        {/* Title */}
         <h3 className="font-semibold text-gray-900 text-sm xs:text-base sm:text-lg min-h-[2.5em] line-clamp-2">
           {car.title}
         </h3>
 
-        {/* Specs - Restructured in 2-column grid with transmission below */}
+        {/* Specs */}
         <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-xs xs:text-sm text-gray-500">
           {/* Mileage */}
           <div className="flex items-center gap-1">
@@ -83,7 +91,7 @@ function CarCard({ car }) {
               <path d="M12 12l3 2" />
             </svg>
             <span className="whitespace-nowrap overflow-hidden text-ellipsis">
-              {car.mileage}
+              {typeof car.mileage === 'number' ? `${car.mileage.toLocaleString()} kms` : car.mileage}
             </span>
           </div>
 
@@ -107,7 +115,7 @@ function CarCard({ car }) {
             </span>
           </div>
 
-          {/* Transmission - Full width below other specs */}
+          {/* Transmission */}
           <div className="flex items-center gap-1 col-span-2">
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -130,14 +138,14 @@ function CarCard({ car }) {
 
         {/* Price */}
         <div className="text-orange-500 font-bold text-base xs:text-lg sm:text-xl">
-          ${car.price}
+          ${typeof car.price === 'number' ? car.price.toLocaleString() : car.price}
         </div>
       </div>
 
-      {/* View Car Button - Centered */}
+      {/* View Car Button */}
       <div className="px-3 xs:px-4 py-2 xs:py-3 border-t border-gray-100 flex justify-center">
         <Link
-          href={`/cars/${car.id}`}
+          href={`/cars/${car._id}`}
           className="text-xs xs:text-sm font-medium text-gray-700 border border-gray-300 hover:bg-gray-50 px-3 xs:px-5 py-1.5 xs:py-2 rounded-full transition-colors"
         >
           View car
@@ -148,267 +156,140 @@ function CarCard({ car }) {
 }
 
 export default function CarListingSection({ id }) {
-  const [activeTab, setActiveTab] = useState("SUV");
+  const [activeTab, setActiveTab] = useState("All");
+  const [cars, setCars] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   // Body type tabs
-  const bodyTypes = ["SUV", "Hatchback", "Sedan", "MUV", "Luxury"];
+  const bodyTypes = ["All", "SUV", "Hatchback", "Sedan", "MUV", "Luxury"];
 
-  // Mock data for car listings
-  const carListings = [
-    {
-      id: 1,
-      title: "2017 BMW X1 xDrive 20d xline",
-      category: "Sedan",
-      year: "2024",
-      price: "73,000",
-      mileage: "72,491 kms",
-      fuel: "Diesel",
-      transmission: "Automatic",
-      photoCount: "6",
-      image:
-        "https://images.unsplash.com/photo-1585011664466-b7bbe92f34ef?q=80&w=800&auto=format&fit=crop",
-      seller: {
-        name: "Cooper, Kristin",
-        avatar: "https://randomuser.me/api/portraits/women/44.jpg",
-      },
-    },
-    {
-      id: 2,
-      title: "2017 BMW X1 xDrive 20d xline",
-      category: "Sedan",
-      year: "2024",
-      price: "73,000",
-      mileage: "72,491 kms",
-      fuel: "Diesel",
-      transmission: "Automatic",
-      photoCount: "6",
-      image:
-        "https://images.unsplash.com/photo-1549399542-7e3f8b79c341?q=80&w=800&auto=format&fit=crop",
-      seller: {
-        name: "Cooper, Kristin",
-        avatar: "https://randomuser.me/api/portraits/women/44.jpg",
-      },
-    },
-    {
-      id: 3,
-      title: "2017 BMW X1 xDrive 20d xline",
-      category: "Sedan",
-      year: "2024",
-      price: "73,000",
-      mileage: "72,491 kms",
-      fuel: "Diesel",
-      transmission: "Automatic",
-      photoCount: "6",
-      image:
-        "https://images.unsplash.com/photo-1580273916550-e323be2ae537?q=80&w=800&auto=format&fit=crop",
-      seller: {
-        name: "Flores, Juanita",
-        avatar: "https://randomuser.me/api/portraits/women/63.jpg",
-      },
-    },
-    {
-      id: 4,
-      title: "2017 BMW X1 xDrive 20d xline",
-      category: "Sedan",
-      year: "2024",
-      price: "73,000",
-      mileage: "72,491 kms",
-      fuel: "Diesel",
-      transmission: "Automatic",
-      photoCount: "6",
-      image:
-        "https://images.unsplash.com/photo-1549399542-7e3f8b79c341?q=80&w=800&auto=format&fit=crop",
-      seller: {
-        name: "Henry, Arthur",
-        avatar: "https://randomuser.me/api/portraits/men/14.jpg",
-      },
-    },
-    {
-      id: 5,
-      title: "2017 BMW X1 xDrive 20d xline",
-      category: "Sedan",
-      year: "2024",
-      price: "73,000",
-      mileage: "72,491 kms",
-      fuel: "Diesel",
-      transmission: "Automatic",
-      photoCount: "6",
-      image:
-        "https://images.unsplash.com/photo-1552519507-da3b142c6e3d?q=80&w=800&auto=format&fit=crop",
-      seller: {
-        name: "Nguyen, Shane",
-        avatar: "https://randomuser.me/api/portraits/men/28.jpg",
-      },
-    },
-    {
-      id: 6,
-      title: "2017 BMW X1 xDrive 20d xline",
-      category: "Sedan",
-      year: "2024",
-      price: "73,000",
-      mileage: "72,491 kms",
-      fuel: "Diesel",
-      transmission: "Automatic",
-      photoCount: "6",
-      image:
-        "https://images.unsplash.com/photo-1555215695-3004980ad54e?q=80&w=800&auto=format&fit=crop",
-      seller: {
-        name: "Nguyen, Shane",
-        avatar: "https://randomuser.me/api/portraits/men/28.jpg",
-      },
-    },
-    {
-      id: 7,
-      title: "2017 BMW X1 xDrive 20d xline",
-      category: "Sedan",
-      year: "2024",
-      price: "73,000",
-      mileage: "72,491 kms",
-      fuel: "Diesel",
-      transmission: "Automatic",
-      photoCount: "6",
-      image:
-        "https://images.unsplash.com/photo-1585011664466-b7bbe92f34ef?q=80&w=800&auto=format&fit=crop",
-      seller: {
-        name: "Miles, Esther",
-        avatar: "https://randomuser.me/api/portraits/women/33.jpg",
-      },
-    },
-    {
-      id: 8,
-      title: "2017 BMW X1 xDrive 20d xline",
-      category: "Sedan",
-      year: "2024",
-      price: "73,000",
-      mileage: "72,491 kms",
-      fuel: "Diesel",
-      transmission: "Automatic",
-      photoCount: "6",
-      image:
-        "https://images.unsplash.com/photo-1592198084033-aade902d1aae?q=80&w=800&auto=format&fit=crop",
-      seller: {
-        name: "Black, Marvin",
-        avatar: "https://randomuser.me/api/portraits/men/41.jpg",
-      },
-    },
-  ];
+  useEffect(() => {
+    const fetchCars = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        // Use featured cars API for the home page, or filtered cars for other pages
+        const query = activeTab !== "All" ? { category: activeTab } : {};
+        
+        // On home page, get featured cars
+        let response;
+        if (id === "featured-cars") {
+          response = await apiService.cars.getFeatured(6);
+        } else {
+          response = await apiService.cars.getAll({ 
+            ...query,
+            limit: 6,
+            page: 1
+          });
+        }
+        
+        setCars(response.data || []);
+      } catch (err) {
+        console.error('Error fetching cars:', err);
+        setError('Failed to load cars. Please try again later.');
+        
+        // Use fallback data for development
+        if (process.env.NODE_ENV === 'development') {
+          setCars([
+            {
+              _id: 1,
+              title: "2017 BMW X1 xDrive 20d xline",
+              category: "Sedan",
+              year: "2024",
+              price: "73,000",
+              mileage: "72,491 kms",
+              fuel: "Diesel",
+              transmission: "Automatic",
+              images: [{ url: "https://images.unsplash.com/photo-1585011664466-b7bbe92f34ef?q=80&w=800&auto=format&fit=crop" }],
+              isFeatured: true
+            },
+            // More fallback cars...
+          ]);
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchCars();
+  }, [activeTab, id]);
+
+  // Filter handling
+  const handleTabClick = (tab) => {
+    setActiveTab(tab);
+  };
 
   return (
-    <div
-      id={id}
-      className="w-full bg-white py-8 sm:py-10 pt-24 sm:pt-32 relative"
-    >
-      <div className="w-full px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-        {/* Section Title */}
-        <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4 sm:mb-6">
-          Featured Vehicles
-        </h2>
-
-        {/* Tabs Section - Scrollable on mobile */}
-        <div className="flex overflow-x-auto hide-scrollbar border-b border-gray-200 mb-6 sm:mb-8">
-          {bodyTypes.map((type) => (
-            <BodyTypeTab
-              key={type}
-              type={type}
-              isActive={activeTab === type}
-              onClick={() => setActiveTab(type)}
-            />
-          ))}
+    <section id={id} className="py-14 sm:py-20 bg-gray-50">
+      <div className="container mx-auto px-4">
+        {/* Section Header */}
+        <div className="text-center mb-10">
+          <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4">
+            Featured Cars
+          </h2>
+          <p className="text-gray-600 max-w-2xl mx-auto">
+            Explore our selection of premium vehicles - from elegant sedans to
+            powerful SUVs, we have the perfect car waiting for you
+          </p>
         </div>
 
-        {/* Car Cards Grid - 2 columns with optimized spacing */}
-        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-2 xs:gap-3 sm:gap-4 md:gap-6">
-          {carListings.map((car) => (
-            <CarCard key={car.id} car={car} />
-          ))}
+        {/* Tab Navigation */}
+        <div className="border-b border-gray-200 mb-8 overflow-x-auto hide-scrollbar">
+          <div className="flex min-w-max justify-center">
+            {bodyTypes.map((type) => (
+              <BodyTypeTab
+                key={type}
+                type={type}
+                isActive={activeTab === type}
+                onClick={() => handleTabClick(type)}
+              />
+            ))}
+          </div>
         </div>
+
+        {/* Loading State */}
+        {loading && (
+          <div className="flex justify-center items-center py-20">
+            <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-orange-500"></div>
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && !loading && (
+          <div className="text-center py-10">
+            <p className="text-red-500">{error}</p>
+            <button 
+              onClick={() => handleTabClick(activeTab)} 
+              className="mt-4 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600"
+            >
+              Try Again
+            </button>
+          </div>
+        )}
+
+        {/* Car Listings Grid */}
+        {!loading && !error && (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {cars.map((car) => (
+                <CarCard key={car._id} car={car} />
+              ))}
+            </div>
+
+            {/* View All Button */}
+            <div className="text-center mt-10">
+              <Link
+                href="/inventory"
+                className="inline-block px-6 py-3 rounded-full border-2 border-orange-500 text-orange-500 font-medium hover:bg-orange-500 hover:text-white transition-colors"
+              >
+                View All Vehicles
+              </Link>
+            </div>
+          </>
+        )}
       </div>
-
-      {/* Add custom styles for hiding scrollbars while maintaining functionality */}
-      <style jsx global>{`
-        .hide-scrollbar {
-          -ms-overflow-style: none;
-          scrollbar-width: none;
-        }
-        .hide-scrollbar::-webkit-scrollbar {
-          display: none;
-        }
-
-        /* Add xs breakpoint for extra small screens */
-        @media (min-width: 480px) {
-          .xs\\:hidden {
-            display: none;
-          }
-          .xs\\:block {
-            display: block;
-          }
-          .xs\\:h-\\[160px\\] {
-            height: 160px;
-          }
-          .xs\\:p-3 {
-            padding: 0.75rem;
-          }
-          .xs\\:p-4 {
-            padding: 1rem;
-          }
-          .xs\\:px-3 {
-            padding-left: 0.75rem;
-            padding-right: 0.75rem;
-          }
-          .xs\\:px-4 {
-            padding-left: 1rem;
-            padding-right: 1rem;
-          }
-          .xs\\:px-5 {
-            padding-left: 1.25rem;
-            padding-right: 1.25rem;
-          }
-          .xs\\:py-2 {
-            padding-top: 0.5rem;
-            padding-bottom: 0.5rem;
-          }
-          .xs\\:py-3 {
-            padding-top: 0.75rem;
-            padding-bottom: 0.75rem;
-          }
-          .xs\\:text-xs {
-            font-size: 0.75rem;
-            line-height: 1rem;
-          }
-          .xs\\:text-sm {
-            font-size: 0.875rem;
-            line-height: 1.25rem;
-          }
-          .xs\\:text-base {
-            font-size: 1rem;
-            line-height: 1.5rem;
-          }
-          .xs\\:text-lg {
-            font-size: 1.125rem;
-            line-height: 1.75rem;
-          }
-          .xs\\:space-y-3 > :not([hidden]) ~ :not([hidden]) {
-            --tw-space-y-reverse: 0;
-            margin-top: calc(0.75rem * calc(1 - var(--tw-space-y-reverse)));
-            margin-bottom: calc(0.75rem * var(--tw-space-y-reverse));
-          }
-          .xs\\:gap-3 {
-            gap: 0.75rem;
-          }
-          .xs\\:gap-4 {
-            gap: 1rem;
-          }
-          .xs\\:top-3 {
-            top: 0.75rem;
-          }
-          .xs\\:h-4 {
-            height: 1rem;
-          }
-          .xs\\:w-4 {
-            width: 1rem;
-          }
-        }
-      `}</style>
-    </div>
+    </section>
   );
 }

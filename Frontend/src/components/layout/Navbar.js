@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
+import { useAuth } from "@/utils/AuthContext";
 import {
   Search,
   Heart,
@@ -13,6 +14,7 @@ import {
   X,
   ChevronDown,
   Phone,
+  LogOut,
 } from "lucide-react";
 
 // Navigation Item Component with dropdown capability
@@ -147,7 +149,9 @@ function MobileNavItem({ href, label, icon = null, onClick, children = null }) {
 export default function Navbar() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const pathname = usePathname();
+  const { user, isAuthenticated, logout } = useAuth();
 
   // Handle scroll event for navbar appearance
   useEffect(() => {
@@ -248,88 +252,124 @@ export default function Navbar() {
                 />
               </NavItem>
 
-              <NavItem href="/about" label="About Us" />
-              <NavItem href="/blog" label="Blog" />
+              <NavItem href="/about" label="About" />
               <NavItem href="/contact" label="Contact" />
             </div>
           </div>
 
-          {/* Right Icons */}
-          <div className="flex items-center">
-            {/* Search & Favorites */}
-            <div className="flex items-center">
-              <button
-                className="relative w-10 h-10 flex items-center justify-center text-gray-700 hover:text-orange-500 hover:bg-orange-50 rounded-full transition-colors"
-                aria-label="Search"
-              >
-                <Search size={20} />
-              </button>
-              <button
-                className="relative w-10 h-10 flex items-center justify-center text-gray-700 hover:text-orange-500 hover:bg-orange-50 rounded-full transition-colors"
-                aria-label="Favorites"
-              >
-                <Heart size={20} />
-                <span className="absolute -top-0.5 -right-0.5 w-4 h-4 bg-orange-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
-                  3
-                </span>
-              </button>
-            </div>
+          {/* Actions - Desktop */}
+          <div className="hidden lg:flex items-center space-x-1">
+            <Link
+              href="/inventory"
+              className="py-2 px-3 hover:bg-gray-100 rounded-md text-gray-700 transition-colors"
+              aria-label="Search inventory"
+            >
+              <Search size={20} />
+            </Link>
 
-            {/* Login (visible on medium screens and up) */}
-            <div className="hidden md:flex items-center ml-2">
+            {isAuthenticated ? (
+              <>
+                <Link
+                  href="/favorites"
+                  className="py-2 px-3 hover:bg-gray-100 rounded-md text-gray-700 transition-colors relative"
+                  aria-label="Favorites"
+                >
+                  <Heart size={20} />
+                  {/* Example notification badge - replace with actual count */}
+                  <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs w-4 h-4 flex items-center justify-center rounded-full">
+                    0
+                  </span>
+                </Link>
+
+                {/* User dropdown */}
+                <div className="relative">
+                  <button
+                    onClick={() => setUserMenuOpen(!userMenuOpen)}
+                    className="flex items-center py-2 px-3 hover:bg-gray-100 rounded-md text-gray-700 transition-colors"
+                  >
+                    <User size={20} />
+                    <span className="ml-2">{user?.firstName || 'Account'}</span>
+                    <ChevronDown size={14} className="ml-1" />
+                  </button>
+
+                  {userMenuOpen && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-50 py-1">
+                      <div className="px-4 py-2 border-b border-gray-100">
+                        <p className="text-sm font-medium">{user?.fullName || `${user?.firstName} ${user?.lastName}`}</p>
+                        <p className="text-xs text-gray-500">{user?.email}</p>
+                      </div>
+                      <Link
+                        href="/profile"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      >
+                        My Profile
+                      </Link>
+                      <Link
+                        href="/favorites"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      >
+                        My Favorites
+                      </Link>
+                      <Link
+                        href="/dashboard"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      >
+                        Dashboard
+                      </Link>
+                      <hr className="my-1 border-gray-100" />
+                      <button
+                        onClick={() => {
+                          logout();
+                          setUserMenuOpen(false);
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 flex items-center"
+                      >
+                        <LogOut size={14} className="mr-2" />
+                        Sign Out
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </>
+            ) : (
               <Link
                 href="/login"
-                className={`text-gray-700 hover:text-orange-500 hover:bg-orange-50 rounded-full px-3 py-2 flex items-center transition-colors ${
-                  pathname === "/login" ? "bg-orange-50 text-orange-500" : ""
-                }`}
+                className="py-2 px-4 text-sm font-medium rounded-md bg-orange-500 text-white hover:bg-orange-600 transition-colors"
               >
-                <User size={18} className="mr-1.5" />
-                <span className="text-sm font-medium whitespace-nowrap">
-                  Login / Register
-                </span>
+                Login / Register
               </Link>
-            </div>
+            )}
+          </div>
 
-            {/* Add Listing Button (visible on medium screens and up) */}
-            <div className="hidden md:block ml-2">
-              <Link
-                href="/add-listing"
-                className={`${
-                  pathname === "/add-listing"
-                    ? "bg-orange-600"
-                    : "bg-orange-500 hover:bg-orange-600"
-                } text-white px-4 py-2 rounded-full flex items-center transition-colors shadow-sm`}
-              >
-                <Car size={16} className="mr-1.5" />
-                <span className="text-sm font-medium">Sell Your Car</span>
-              </Link>
-            </div>
-
-            {/* Mobile menu button */}
+          {/* Mobile Menu Button */}
+          <div className="lg:hidden">
             <button
-              type="button"
-              className="lg:hidden ml-4 text-gray-700 hover:bg-gray-100 p-2 rounded-md focus:outline-none"
-              aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
             >
-              {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
+              {mobileMenuOpen ? (
+                <X size={24} className="text-gray-700" />
+              ) : (
+                <Menu size={24} className="text-gray-700" />
+              )}
             </button>
           </div>
         </nav>
       </div>
 
-      {/* Mobile Menu - Fixed position with animation */}
-      <div
-        className={`lg:hidden fixed inset-0 z-50 transition-transform duration-300 transform ${
-          mobileMenuOpen ? "translate-x-0" : "translate-x-full"
-        }`}
-        style={{ top: "64px" }} // Match the height of the navbar
-      >
-        <div className="h-full w-full bg-white shadow-xl overflow-y-auto">
-          <div className="px-4 py-6 space-y-1 divide-y divide-gray-200">
-            {/* Navigation Links */}
-            <div className="py-2 space-y-1">
-              <MobileNavItem href="/" label="Home" onClick={closeMobileMenu} />
+      {/* Mobile Menu */}
+      {mobileMenuOpen && (
+        <div className="lg:hidden bg-white border-t border-gray-200 overflow-hidden transition-all duration-300">
+          <div className="container mx-auto px-4 py-3">
+            <div className="space-y-1">
+              <MobileNavItem
+                href="/"
+                label="Home"
+                onClick={closeMobileMenu}
+              />
+
+              {/* Inventory dropdown */}
               <MobileNavItem href="/inventory" label="Inventory">
                 <MobileNavItem
                   href="/inventory/suv"
@@ -358,6 +398,7 @@ export default function Navbar() {
                 />
               </MobileNavItem>
 
+              {/* Services dropdown */}
               <MobileNavItem href="/services" label="Services">
                 <MobileNavItem
                   href="/services/financing"
@@ -378,12 +419,7 @@ export default function Navbar() {
 
               <MobileNavItem
                 href="/about"
-                label="About Us"
-                onClick={closeMobileMenu}
-              />
-              <MobileNavItem
-                href="/blog"
-                label="Blog"
+                label="About"
                 onClick={closeMobileMenu}
               />
               <MobileNavItem
@@ -391,44 +427,57 @@ export default function Navbar() {
                 label="Contact"
                 onClick={closeMobileMenu}
               />
-            </div>
 
-            {/* Actions */}
-            <div className="py-4 space-y-3">
-              <MobileNavItem
-                href="/login"
-                label="Login / Register"
-                icon={<User size={18} />}
-                onClick={closeMobileMenu}
-              />
-              <MobileNavItem
-                href="/add-listing"
-                label="Sell Your Car"
-                icon={<Car size={18} />}
-                onClick={closeMobileMenu}
-              />
-
-              <div className="mt-6 pt-4 border-t border-gray-100">
-                <div className="flex items-center text-sm text-gray-500 mb-2">
-                  <Phone size={14} className="mr-2 text-orange-500" />
-                  <span>+1-800-AUTO-CAR</span>
-                </div>
-                <div className="text-sm text-gray-500">
-                  Business Hours: Mon-Fri 9am - 7pm
-                </div>
+              {/* Mobile-only actions */}
+              <div className="pt-4 mt-4 border-t border-gray-200">
+                {isAuthenticated ? (
+                  <>
+                    <div className="px-3 py-2 mb-2 bg-gray-50 rounded-md">
+                      <p className="text-sm font-medium">{user?.firstName} {user?.lastName}</p>
+                      <p className="text-xs text-gray-500">{user?.email}</p>
+                    </div>
+                    <MobileNavItem
+                      href="/profile"
+                      label="My Profile"
+                      icon={<User size={18} />}
+                      onClick={closeMobileMenu}
+                    />
+                    <MobileNavItem
+                      href="/favorites"
+                      label="My Favorites"
+                      icon={<Heart size={18} />}
+                      onClick={closeMobileMenu}
+                    />
+                    <MobileNavItem
+                      href="/dashboard"
+                      label="Dashboard"
+                      icon={<Car size={18} />}
+                      onClick={closeMobileMenu}
+                    />
+                    <button
+                      onClick={() => {
+                        logout();
+                        closeMobileMenu();
+                      }}
+                      className="w-full text-left flex items-center py-3 text-base font-medium text-red-600"
+                    >
+                      <LogOut size={18} className="mr-3" />
+                      Sign Out
+                    </button>
+                  </>
+                ) : (
+                  <Link
+                    href="/login"
+                    className="block w-full py-3 px-4 text-center font-medium rounded-md bg-orange-500 text-white hover:bg-orange-600 transition-colors"
+                    onClick={closeMobileMenu}
+                  >
+                    Login / Register
+                  </Link>
+                )}
               </div>
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Backdrop - only visible when mobile menu is open */}
-      {mobileMenuOpen && (
-        <div
-          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-40"
-          style={{ top: "64px" }}
-          onClick={closeMobileMenu}
-        ></div>
       )}
     </header>
   );

@@ -1,6 +1,6 @@
 // src/app/inventory/page.js
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Search,
@@ -8,56 +8,120 @@ import {
   Sliders,
   Filter,
   ChevronRight,
+  AlertCircle,
+  Car,
+  SlidersHorizontal
 } from "lucide-react";
 import Footer from "@/components/layout/Footer";
 import CarCard from "@/components/inventory/CarCard";
 import SidebarFilters from "@/components/inventory/SidebarFilters";
 import MobileFilters from "@/components/inventory/MobileFilters";
 import { filterOptions, cars } from "./data";
+import apiService from "@/utils/api";
 
 export default function InventoryPage() {
+  // State for cars data
+  const [cars, setCars] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  
+  // Filters state
   const [filters, setFilters] = useState({
-    make: [],
-    model: [],
-    bodyType: [],
-    year: [],
-    transmission: [],
-    fuel: [],
-    features: [],
+    category: "",
+    minPrice: "",
+    maxPrice: "",
+    minYear: "",
+    maxYear: "",
+    fuel: "",
+    transmission: ""
   });
-  const [priceRange, setPriceRange] = useState([0, 150000]);
-  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
-  const [sortOption, setSortOption] = useState("featured");
-  const [gridView, setGridView] = useState("grid"); // 'grid' or 'list'
-  const [searchQuery, setSearchQuery] = useState("");
+  
+  // Search state
+  const [searchTerm, setSearchTerm] = useState("");
+  
+  // Sort state
+  const [sortBy, setSortBy] = useState("newest");
+  
+  // Mobile filters visibility state
+  const [mobileFiltersVisible, setMobileFiltersVisible] = useState(false);
 
-  // Handle filter update
-  const updateFilter = (category, values) => {
-    setFilters({
-      ...filters,
-      [category]: values,
-    });
+  // Fetch cars data
+  useEffect(() => {
+    const fetchCars = async () => {
+      try {
+        setLoading(true);
+        
+        // Build query parameters from filters
+        const params = {};
+        if (filters.category) params.category = filters.category;
+        if (filters.minPrice) params.minPrice = filters.minPrice;
+        if (filters.maxPrice) params.maxPrice = filters.maxPrice;
+        if (filters.minYear) params.minYear = filters.minYear;
+        if (filters.maxYear) params.maxYear = filters.maxYear;
+        if (filters.fuel) params.fuel = filters.fuel;
+        if (filters.transmission) params.transmission = filters.transmission;
+        if (searchTerm) params.search = searchTerm;
+        
+        // Add sort parameter
+        params.sort = sortBy;
+        
+        const response = await apiService.cars.getAll(params);
+        
+        if (response.status === 'success' && response.data) {
+          setCars(response.data);
+        } else {
+          throw new Error(response.message || 'Failed to load inventory');
+        }
+      } catch (error) {
+        console.error('Error fetching cars:', error);
+        setError(error.message || 'Failed to load inventory');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchCars();
+  }, [filters, searchTerm, sortBy]);
+  
+  // Handle filter changes
+  const handleFilterChange = (e) => {
+    const { name, value } = e.target;
+    setFilters(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
-
-  // Reset all filters
-  const resetFilters = () => {
-    setFilters({
-      make: [],
-      model: [],
-      bodyType: [],
-      year: [],
-      transmission: [],
-      fuel: [],
-      features: [],
-    });
-    setPriceRange([0, 150000]);
-    setSearchQuery("");
+  
+  // Handle search input
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    const searchInput = e.target.elements.search.value;
+    setSearchTerm(searchInput);
   };
-
-  // Active filter count
-  const activeFilterCount =
-    Object.values(filters).flat().length +
-    (priceRange[0] > 0 || priceRange[1] < 150000 ? 1 : 0);
+  
+  // Handle sort change
+  const handleSortChange = (e) => {
+    setSortBy(e.target.value);
+  };
+  
+  // Handle filter reset
+  const handleResetFilters = () => {
+    setFilters({
+      category: "",
+      minPrice: "",
+      maxPrice: "",
+      minYear: "",
+      maxYear: "",
+      fuel: "",
+      transmission: ""
+    });
+    setSearchTerm("");
+  };
+  
+  // Toggle mobile filters
+  const toggleMobileFilters = () => {
+    setMobileFiltersVisible(!mobileFiltersVisible);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -79,8 +143,8 @@ export default function InventoryPage() {
               <input
                 type="text"
                 placeholder="Search by make, model, or keywords..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full py-3 pl-4 pr-12 bg-white/10 backdrop-blur-sm text-white placeholder-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-orange-500"
               />
               <button className="absolute right-3 top-1/2 -translate-y-1/2 text-white">
@@ -111,11 +175,11 @@ export default function InventoryPage() {
             <SidebarFilters
               filterOptions={filterOptions}
               filters={filters}
-              updateFilter={updateFilter}
-              priceRange={priceRange}
-              setPriceRange={setPriceRange}
-              resetFilters={resetFilters}
-              activeFilterCount={activeFilterCount}
+              updateFilter={handleFilterChange}
+              priceRange={[filters.minPrice, filters.maxPrice]}
+              setPriceRange={(range) => setFilters({ ...filters, minPrice: range[0], maxPrice: range[1] })}
+              resetFilters={handleResetFilters}
+              activeFilterCount={Object.values(filters).flat().length}
             />
           </div>
 
@@ -124,16 +188,11 @@ export default function InventoryPage() {
             {/* Mobile Filter Button */}
             <div className="lg:hidden mb-4">
               <button
-                onClick={() => setMobileFiltersOpen(true)}
+                onClick={toggleMobileFilters}
                 className="flex items-center space-x-2 bg-white rounded-lg px-4 py-2 shadow-sm border border-gray-200 text-gray-700"
               >
                 <Filter size={18} />
                 <span className="font-medium">Filters</span>
-                {activeFilterCount > 0 && (
-                  <span className="bg-orange-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                    {activeFilterCount}
-                  </span>
-                )}
               </button>
             </div>
 
@@ -149,77 +208,19 @@ export default function InventoryPage() {
                 <div className="relative">
                   <select
                     className="appearance-none bg-gray-50 border border-gray-200 rounded-md py-2 pl-3 pr-8 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                    value={sortOption}
-                    onChange={(e) => setSortOption(e.target.value)}
+                    value={sortBy}
+                    onChange={handleSortChange}
                   >
-                    <option value="featured">Featured</option>
-                    <option value="price-low">Price: Low to High</option>
-                    <option value="price-high">Price: High to Low</option>
-                    <option value="year-new">Year: Newest First</option>
-                    <option value="mileage-low">Mileage: Low to High</option>
+                    <option value="newest">Newest</option>
+                    <option value="oldest">Oldest</option>
+                    <option value="price-asc">Price: Low to High</option>
+                    <option value="price-desc">Price: High to Low</option>
+                    <option value="mileage-asc">Mileage: Low to High</option>
                   </select>
                   <ChevronDown
                     size={16}
                     className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"
                   />
-                </div>
-
-                {/* Grid View Toggle */}
-                <div className="flex rounded-md overflow-hidden border border-gray-200">
-                  <button
-                    className={`px-3 py-2 ${
-                      gridView === "grid"
-                        ? "bg-orange-500 text-white"
-                        : "bg-white text-gray-700"
-                    }`}
-                    onClick={() => setGridView("grid")}
-                    aria-label="Grid view"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <rect x="3" y="3" width="7" height="7"></rect>
-                      <rect x="14" y="3" width="7" height="7"></rect>
-                      <rect x="14" y="14" width="7" height="7"></rect>
-                      <rect x="3" y="14" width="7" height="7"></rect>
-                    </svg>
-                  </button>
-                  <button
-                    className={`px-3 py-2 ${
-                      gridView === "list"
-                        ? "bg-orange-500 text-white"
-                        : "bg-white text-gray-700"
-                    }`}
-                    onClick={() => setGridView("list")}
-                    aria-label="List view"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      width="16"
-                      height="16"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <line x1="8" y1="6" x2="21" y2="6"></line>
-                      <line x1="8" y1="12" x2="21" y2="12"></line>
-                      <line x1="8" y1="18" x2="21" y2="18"></line>
-                      <line x1="3" y1="6" x2="3.01" y2="6"></line>
-                      <line x1="3" y1="12" x2="3.01" y2="12"></line>
-                      <line x1="3" y1="18" x2="3.01" y2="18"></line>
-                    </svg>
-                  </button>
                 </div>
               </div>
             </div>
@@ -227,14 +228,48 @@ export default function InventoryPage() {
             {/* Car Grid */}
             <div
               className={`grid ${
-                gridView === "grid"
-                  ? "grid-cols-2 sm:grid-cols-2 lg:grid-cols-3"
-                  : "grid-cols-1"
+                mobileFiltersVisible ? "grid-cols-1" : "grid-cols-2 sm:grid-cols-2 lg:grid-cols-3"
               } gap-3 sm:gap-5`}
             >
-              {cars.map((car) => (
-                <CarCard key={car.id} car={car} />
-              ))}
+              {loading ? (
+                <div className="flex items-center justify-center py-16">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500 mx-auto mb-4"></div>
+                    <p className="text-gray-600">Loading inventory...</p>
+                  </div>
+                </div>
+              ) : error ? (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-6 my-4">
+                  <div className="flex items-start">
+                    <AlertCircle className="text-red-500 mr-3 mt-0.5" size={20} />
+                    <div>
+                      <h3 className="font-medium text-red-800">Error Loading Inventory</h3>
+                      <p className="text-red-700 text-sm mt-1">{error}</p>
+                    </div>
+                  </div>
+                </div>
+              ) : cars.length === 0 ? (
+                <div className="bg-white border border-gray-200 rounded-xl p-10 text-center">
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <Car className="text-gray-400" size={32} />
+                  </div>
+                  <h2 className="text-xl font-bold text-gray-800 mb-2">No Vehicles Found</h2>
+                  <p className="text-gray-600 max-w-md mx-auto mb-6">
+                    We couldn't find any vehicles matching your criteria. Try adjusting your filters
+                    or search term.
+                  </p>
+                  <button
+                    onClick={handleResetFilters}
+                    className="inline-flex items-center bg-orange-500 hover:bg-orange-600 text-white font-medium px-6 py-2 rounded-md transition-colors"
+                  >
+                    Reset Filters
+                  </button>
+                </div>
+              ) : (
+                cars.map((car) => (
+                  <CarCard key={car._id} car={car} />
+                ))
+              )}
             </div>
 
             {/* Pagination */}
@@ -265,18 +300,20 @@ export default function InventoryPage() {
       </div>
 
       {/* Mobile Filters Drawer */}
-      <MobileFilters
-        mobileFiltersOpen={mobileFiltersOpen}
-        setMobileFiltersOpen={setMobileFiltersOpen}
-        filterOptions={filterOptions}
-        filters={filters}
-        updateFilter={updateFilter}
-        priceRange={priceRange}
-        setPriceRange={setPriceRange}
-        resetFilters={resetFilters}
-        activeFilterCount={activeFilterCount}
-        carsLength={cars.length}
-      />
+      {mobileFiltersVisible && (
+        <MobileFilters
+          mobileFiltersOpen={mobileFiltersVisible}
+          setMobileFiltersOpen={toggleMobileFilters}
+          filterOptions={filterOptions}
+          filters={filters}
+          updateFilter={handleFilterChange}
+          priceRange={[filters.minPrice, filters.maxPrice]}
+          setPriceRange={(range) => setFilters({ ...filters, minPrice: range[0], maxPrice: range[1] })}
+          resetFilters={handleResetFilters}
+          activeFilterCount={Object.values(filters).flat().length}
+          carsLength={cars.length}
+        />
+      )}
 
       <Footer />
     </div>
