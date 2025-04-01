@@ -23,7 +23,7 @@ export default function CarProductPage({ params }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center pt-22">
+      <div className="min-h-screen flex items-center justify-center pt-20">
         <div className="animate-pulse flex flex-col items-center">
           <div className="w-12 h-12 rounded-full bg-orange-200 mb-4"></div>
           <div className="text-gray-500">Loading vehicle details...</div>
