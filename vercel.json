@@ -2,6 +2,13 @@
   "rewrites": [
     { "source": "/(.*)", "destination": "/" }
   ],
+  "routes": [
+    { "handle": "filesystem" },
+    { "src": "/cars/[0-9]+", "dest": "/" },
+    { "src": "/inventory", "dest": "/" },
+    { "src": "/favorites", "dest": "/" },
+    { "src": "/.*", "dest": "/" }
+  ],
   "buildCommand": "npm run build",
   "outputDirectory": ".next",
   "framework": "nextjs"
