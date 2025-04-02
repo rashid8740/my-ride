@@ -109,13 +109,13 @@ export default function ForgotPassword() {
             <InputField
               id="email"
               label="Email"
-              type="email"
-              placeholder="your@email.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
+                  type="email"
+                  placeholder="your@email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
               icon={<Mail size={18} />}
-            />
+                />
 
             <button
               type="submit"

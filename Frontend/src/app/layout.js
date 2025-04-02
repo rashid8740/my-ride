@@ -2,6 +2,7 @@
 import "./globals.css";
 import { AuthProvider } from "@/utils/AuthContext";
 import { FavoritesProvider } from "@/utils/FavoritesContext";
+import { Toaster } from "react-hot-toast";
 
 export const metadata = {
   title: "My Ride - Car Dealership",
@@ -15,6 +16,7 @@ export default function RootLayout({ children }) {
         <AuthProvider>
           <FavoritesProvider>
             <div className="min-w-full overflow-x-hidden">{children}</div>
+            <Toaster position="top-right" />
           </FavoritesProvider>
         </AuthProvider>
       </body>

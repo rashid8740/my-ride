@@ -1,0 +1,24 @@
+{
+  "name": "my-ride",
+  "version": "1.0.0",
+  "description": "Car dealership application with separate frontend and backend",
+  "main": "index.js",
+  "scripts": {
+    "start": "bash restart.sh",
+    "dev": "bash restart.sh",
+    "start:frontend": "cd Frontend && npm run dev",
+    "start:backend": "cd Backend && npm run dev",
+    "install:all": "npm install && cd Frontend && npm install && cd ../Backend && npm install",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "car-dealership",
+    "mern-stack",
+    "react",
+    "node",
+    "express",
+    "mongodb"
+  ],
+  "author": "",
+  "license": "ISC"
+} 

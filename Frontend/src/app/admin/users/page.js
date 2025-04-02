@@ -1,5 +1,8 @@
 "use client";
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import apiService from '@/utils/api';
 import { 
   Users, 
   Search, 
@@ -20,6 +23,7 @@ import {
 } from 'lucide-react';
 
 export default function UsersPage() {
+  const router = useRouter();
   // State for users data and UI state
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
@@ -47,35 +51,30 @@ export default function UsersPage() {
     const fetchUsers = async () => {
       try {
         setIsLoading(true);
-        // In a real app, this would be a fetch call to your API
-        const response = await fetch('/api/users');
         
-        // For demo purposes, simulate data with a timeout
-        setTimeout(() => {
-          const demoUsers = [
-            { id: '1', firstName: 'John', lastName: 'Doe', email: 'john@example.com', phone: '(555) 123-4567', role: 'user', createdAt: '2023-01-15T08:30:00Z' },
-            { id: '2', firstName: 'Jane', lastName: 'Smith', email: 'jane@example.com', phone: '(555) 234-5678', role: 'user', createdAt: '2023-02-20T10:15:00Z' },
-            { id: '3', firstName: 'Admin', lastName: 'User', email: 'admin@myride.com', phone: '(555) 345-6789', role: 'admin', createdAt: '2022-12-10T14:45:00Z' },
-            { id: '4', firstName: 'Sarah', lastName: 'Johnson', email: 'sarah@example.com', phone: '(555) 456-7890', role: 'user', createdAt: '2023-03-05T16:20:00Z' },
-            { id: '5', firstName: 'Michael', lastName: 'Brown', email: 'michael@example.com', phone: '(555) 567-8901', role: 'user', createdAt: '2023-01-25T09:10:00Z' },
-            { id: '6', firstName: 'David', lastName: 'Wilson', email: 'david@example.com', phone: '(555) 678-9012', role: 'manager', createdAt: '2023-02-18T11:30:00Z' },
-            { id: '7', firstName: 'Emily', lastName: 'Davis', email: 'emily@example.com', phone: '(555) 789-0123', role: 'user', createdAt: '2023-03-10T13:45:00Z' },
-          ];
-          
-          setUsers(demoUsers);
-          
-          // Calculate stats
-          setStatsData({
-            totalUsers: demoUsers.length,
-            activeUsers: demoUsers.filter(user => user.role === 'user').length,
-            adminUsers: demoUsers.filter(user => user.role === 'admin').length,
-            newUsers: demoUsers.filter(user => new Date(user.createdAt) > new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)).length
-          });
-          
-          setIsLoading(false);
-        }, 1000);
+        // Get real data from the API
+        const response = await apiService.users.getAll();
+        const userData = response.data || [];
+        
+        setUsers(userData);
+        
+        // Calculate stats
+        setStatsData({
+          totalUsers: userData.length,
+          activeUsers: userData.filter(user => user.role === 'user').length,
+          adminUsers: userData.filter(user => user.role === 'admin').length,
+          newUsers: userData.filter(user => {
+            const createdAt = new Date(user.createdAt);
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            return createdAt >= thirtyDaysAgo;
+          }).length
+        });
+        
+        setIsLoading(false);
       } catch (err) {
-        setError('Failed to load users data');
+        console.error('Error fetching users:', err);
+        setError('Failed to load users data. Please check if the backend server is running.');
         setIsLoading(false);
       }
     };
@@ -96,10 +95,10 @@ export default function UsersPage() {
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       result = result.filter(user => 
-        user.firstName.toLowerCase().includes(term) || 
-        user.lastName.toLowerCase().includes(term) || 
-        user.email.toLowerCase().includes(term) ||
-        user.phone.includes(term)
+        (user.firstName && user.firstName.toLowerCase().includes(term)) || 
+        (user.lastName && user.lastName.toLowerCase().includes(term)) || 
+        (user.email && user.email.toLowerCase().includes(term)) ||
+        (user.phone && user.phone.includes(term))
       );
     }
     
@@ -150,6 +149,7 @@ export default function UsersPage() {
 
   // Format date for display
   const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
     const date = new Date(dateString);
     return new Intl.DateTimeFormat('en-US', {
       year: 'numeric',
@@ -165,11 +165,19 @@ export default function UsersPage() {
   };
 
   // Handler for confirming user deletion
-  const confirmDelete = () => {
-    // Simulating user deletion
-    setUsers(users.filter(user => user.id !== userToDelete.id));
-    setShowDeleteModal(false);
-    setUserToDelete(null);
+  const confirmDelete = async () => {
+    try {
+      setIsLoading(true);
+      await apiService.users.delete(userToDelete._id);
+      setUsers(users.filter(user => user._id !== userToDelete._id));
+      setShowDeleteModal(false);
+      setUserToDelete(null);
+    } catch (err) {
+      console.error('Error deleting user:', err);
+      setError('Failed to delete user. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Handler for clearing filters
@@ -184,52 +192,39 @@ export default function UsersPage() {
     });
   };
 
-  // Handler for applying filters
-  const applyFiltersAndSort = () => {
-    let result = [...users];
-    
-    // Apply role filter
-    if (filters.role !== 'all') {
-      result = result.filter(user => user.role === filters.role);
-    }
-    
-    // Apply search term
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      result = result.filter(user => 
-        user.firstName.toLowerCase().includes(term) || 
-        user.lastName.toLowerCase().includes(term) || 
-        user.email.toLowerCase().includes(term) ||
-        user.phone.includes(term)
-      );
-    }
-    
-    // Apply sorting
-    if (sortConfig.key) {
-      result.sort((a, b) => {
-        if (a[sortConfig.key] < b[sortConfig.key]) {
-          return sortConfig.direction === 'asc' ? -1 : 1;
-        }
-        if (a[sortConfig.key] > b[sortConfig.key]) {
-          return sortConfig.direction === 'asc' ? 1 : -1;
-        }
-        return 0;
-      });
-    }
-    
-    return result;
+  // Navigate to add user page
+  const handleAddUser = () => {
+    router.push('/admin/users/add');
+  };
+
+  // Navigate to edit user page
+  const handleEditUser = (userId) => {
+    router.push(`/admin/users/edit/${userId}`);
   };
 
   // Handler for user avatar
   const UserAvatar = ({ user }) => {
+    const getInitials = () => {
+      if (user?.firstName && user?.lastName) {
+        return `${user.firstName[0]}${user.lastName[0]}`.toUpperCase();
+      }
+      if (user?.firstName) {
+        return user.firstName[0].toUpperCase();
+      }
+      if (user?.email) {
+        return user.email[0].toUpperCase();
+      }
+      return '?';
+    };
+
     return (
       <div className="flex items-center">
         <div className="h-10 w-10 rounded-full bg-orange-100 flex items-center justify-center text-orange-600 font-semibold text-sm">
-          {user.firstName[0]}{user.lastName[0]}
+          {getInitials()}
         </div>
         <div className="ml-3">
           <p className="text-sm font-medium text-gray-900">{user.firstName} {user.lastName}</p>
-          <p className="text-xs text-gray-500">{user.id}</p>
+          <p className="text-xs text-gray-500">{user._id ? user._id.substring(0, 8) : user.id}</p>
         </div>
       </div>
     );
@@ -275,7 +270,7 @@ export default function UsersPage() {
             </div>
           </div>
           <div className="mt-4 text-xs text-gray-500">
-            Users with regular activity
+            Standard user accounts
           </div>
         </div>
         
@@ -317,7 +312,10 @@ export default function UsersPage() {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-3 md:space-y-0 mb-4">
           <h2 className="text-lg font-medium text-gray-900">Users List</h2>
           <div className="flex items-center space-x-2">
-            <button className="flex items-center px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors">
+            <button 
+              onClick={handleAddUser}
+              className="flex items-center px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg transition-colors"
+            >
               <Plus className="h-4 w-4 mr-1" />
               <span>Add User</span>
             </button>
@@ -445,7 +443,7 @@ export default function UsersPage() {
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredUsers.map((user) => (
-                  <tr key={user.id} className="hover:bg-gray-50">
+                  <tr key={user._id || user.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <UserAvatar user={user} />
                     </td>
@@ -455,10 +453,12 @@ export default function UsersPage() {
                           <Mail className="h-4 w-4 mr-1 text-gray-400" />
                           <span>{user.email}</span>
                         </div>
-                        <div className="flex items-center text-sm text-gray-500 mt-1">
-                          <Phone className="h-4 w-4 mr-1 text-gray-400" />
-                          <span>{user.phone}</span>
-                        </div>
+                        {user.phone && (
+                          <div className="flex items-center text-sm text-gray-500 mt-1">
+                            <Phone className="h-4 w-4 mr-1 text-gray-400" />
+                            <span>{user.phone}</span>
+                          </div>
+                        )}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -475,6 +475,7 @@ export default function UsersPage() {
                         <button 
                           className="text-blue-600 hover:text-blue-800 p-1 rounded-full hover:bg-blue-50"
                           title="Edit user"
+                          onClick={() => handleEditUser(user._id || user.id)}
                         >
                           <Edit className="h-4 w-4" />
                         </button>

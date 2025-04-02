@@ -263,8 +263,8 @@ export default function Navbar() {
               href="/inventory"
               className="py-2 px-3 hover:bg-gray-100 rounded-md text-gray-700 transition-colors"
               aria-label="Search inventory"
-            >
-              <Search size={20} />
+              >
+                <Search size={20} />
             </Link>
 
             {isAuthenticated ? (
@@ -272,13 +272,13 @@ export default function Navbar() {
                 <Link
                   href="/favorites"
                   className="py-2 px-3 hover:bg-gray-100 rounded-md text-gray-700 transition-colors relative"
-                  aria-label="Favorites"
-                >
-                  <Heart size={20} />
+                aria-label="Favorites"
+              >
+                <Heart size={20} />
                   {/* Example notification badge - replace with actual count */}
                   <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs w-4 h-4 flex items-center justify-center rounded-full">
                     0
-                  </span>
+                </span>
                 </Link>
 
                 {/* User dropdown */}
@@ -326,8 +326,8 @@ export default function Navbar() {
                       >
                         <LogOut size={14} className="mr-2" />
                         Sign Out
-                      </button>
-                    </div>
+              </button>
+            </div>
                   )}
                 </div>
               </>
@@ -336,10 +336,10 @@ export default function Navbar() {
                 href="/login"
                 className="py-2 px-4 text-sm font-medium rounded-md bg-orange-500 text-white hover:bg-orange-600 transition-colors"
               >
-                Login / Register
+                  Login / Register
               </Link>
             )}
-          </div>
+            </div>
 
           {/* Mobile Menu Button */}
           <div className="lg:hidden">
@@ -435,14 +435,14 @@ export default function Navbar() {
                     <div className="px-3 py-2 mb-2 bg-gray-50 rounded-md">
                       <p className="text-sm font-medium">{user?.firstName} {user?.lastName}</p>
                       <p className="text-xs text-gray-500">{user?.email}</p>
-                    </div>
-                    <MobileNavItem
+            </div>
+              <MobileNavItem
                       href="/profile"
                       label="My Profile"
-                      icon={<User size={18} />}
-                      onClick={closeMobileMenu}
-                    />
-                    <MobileNavItem
+                icon={<User size={18} />}
+                onClick={closeMobileMenu}
+              />
+              <MobileNavItem
                       href="/favorites"
                       label="My Favorites"
                       icon={<Heart size={18} />}
@@ -451,9 +451,9 @@ export default function Navbar() {
                     <MobileNavItem
                       href="/dashboard"
                       label="Dashboard"
-                      icon={<Car size={18} />}
-                      onClick={closeMobileMenu}
-                    />
+                icon={<Car size={18} />}
+                onClick={closeMobileMenu}
+              />
                     <button
                       onClick={() => {
                         logout();

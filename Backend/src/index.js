@@ -1,88 +1,49 @@
 const express = require('express');
-const mongoose = require('mongoose');
 const cors = require('cors');
+const mongoose = require('mongoose');
 const dotenv = require('dotenv');
-const path = require('path');
 
-// Import routes
-const carRoutes = require('./routes/carRoutes');
-const userRoutes = require('./routes/userRoutes');
-const authRoutes = require('./routes/authRoutes');
-const contactRoutes = require('./routes/contactRoutes');
-const dashboardRoutes = require('./routes/dashboardRoutes');
-
-// Import seed admin function
-const seedAdminUser = require('./utils/seedAdmin');
-
-// Configure environment variables
+// Load environment variables
 dotenv.config();
 
-// Initialize express app
+// Import routes
+const authRoutes = require('./routes/authRoutes');
+const carRoutes = require('./routes/carRoutes');
+const contactRoutes = require('./routes/contactRoutes');
+const userRoutes = require('./routes/userRoutes');
+
+// Create Express app
 const app = express();
 
-// Enhanced CORS configuration
-const corsOptions = {
-  origin: ['http://localhost:3000', process.env.FRONTEND_URL].filter(Boolean),
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  credentials: true,
-  allowedHeaders: ['Content-Type', 'Authorization']
-};
-
-// Apply CORS middleware with options
-app.use(cors(corsOptions));
-
-// Handle preflight requests explicitly
-app.options('*', cors(corsOptions));
-
-// Body parsing middleware
+// Middleware
+app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve uploaded images
-app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
-
-// API Routes
-app.use('/api/cars', carRoutes);
-app.use('/api/users', userRoutes);
+// Define routes
 app.use('/api/auth', authRoutes);
+app.use('/api/cars', carRoutes);
 app.use('/api/contact', contactRoutes);
-app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/users', userRoutes);
 
-// Root route
+// Home route
 app.get('/', (req, res) => {
-  res.send('My Ride API is running');
+  res.json({ message: 'Welcome to My Ride API' });
 });
 
-// Error handling middleware
-app.use((err, req, res, next) => {
-  const statusCode = err.statusCode || 500;
-  res.status(statusCode).json({
-    status: 'error',
-    statusCode,
-    message: err.message || 'Internal Server Error',
-    stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
-  });
-});
-
-// Database connection
-const connectDB = async () => {
-  try {
-    await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/my-ride');
-    console.log('MongoDB connected successfully');
-    
-    // Seed admin user
-    await seedAdminUser();
-  } catch (error) {
+// Connect to MongoDB
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/my-ride';
+mongoose.connect(MONGODB_URI)
+  .then(() => {
+    console.log('Connected to MongoDB');
+  })
+  .catch((error) => {
     console.error('MongoDB connection error:', error);
     process.exit(1);
-  }
-};
+  });
 
 // Start server
 const PORT = process.env.PORT || 5000;
-connectDB().then(() => {
-  app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-    console.log(`API available at http://localhost:${PORT}/api`);
-  });
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
 }); 

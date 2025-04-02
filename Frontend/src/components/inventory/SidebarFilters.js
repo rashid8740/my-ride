@@ -1,85 +1,170 @@
 // src/components/inventory/SidebarFilters.jsx
-import FilterOption from "./FilterOption";
+import { ChevronDown, Tag, Calendar, Fuel, Settings, ArrowRight } from "lucide-react";
+import { useState } from "react";
 import PriceRangeSlider from "./PriceRangeSlider";
+
+// Filter Section with Collapsible Content
+const FilterSection = ({ title, icon: Icon, children, defaultOpen = true }) => {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+  
+  return (
+    <div className="py-4 border-b border-gray-100">
+      <button 
+        className="flex items-center justify-between w-full text-left" 
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        <div className="flex items-center text-sm font-medium text-gray-900">
+          {Icon && <Icon className="h-4 w-4 mr-2 text-gray-500" />}
+          {title}
+        </div>
+        <ChevronDown 
+          className={`h-4 w-4 text-gray-500 transition-transform ${isOpen ? 'transform rotate-180' : ''}`} 
+        />
+      </button>
+      
+      {isOpen && (
+        <div className="mt-3">
+          {children}
+        </div>
+      )}
+    </div>
+  );
+};
 
 export default function SidebarFilters({
   filterOptions,
   filters,
   updateFilter,
-  priceRange,
-  setPriceRange,
-  resetFilters,
-  activeFilterCount,
+  resetFilters
 }) {
   return (
-    <div className="bg-white rounded-lg shadow-sm p-5 sticky top-24">
-      <div className="flex items-center justify-between mb-5">
-        <h2 className="text-lg font-bold text-gray-900">Filters</h2>
-        {activeFilterCount > 0 && (
-          <button
-            onClick={resetFilters}
-            className="text-xs text-orange-500 hover:text-orange-600 font-medium"
-          >
-            Reset All
-          </button>
-        )}
-      </div>
+    <>
+      {/* Category filter */}
+      <FilterSection title="Category" icon={Tag}>
+        <select
+          name="category"
+          value={filters.category}
+          onChange={updateFilter}
+          className="w-full p-2 border border-gray-300 rounded-md text-sm text-gray-700"
+        >
+          <option value="">All Categories</option>
+          <option value="sedan">Sedan</option>
+          <option value="suv">SUV</option>
+          <option value="truck">Truck</option>
+          <option value="coupe">Coupe</option>
+          <option value="convertible">Convertible</option>
+          <option value="hybrid">Hybrid</option>
+          <option value="electric">Electric</option>
+          <option value="luxury">Luxury</option>
+        </select>
+      </FilterSection>
 
       {/* Price Range */}
-      <div className="border-b border-gray-200 py-4">
-        <h3 className="text-base font-semibold text-gray-900 mb-3">
-          Price Range
-        </h3>
-        <PriceRangeSlider
-          min={0}
-          max={150000}
-          value={priceRange}
-          onChange={setPriceRange}
-        />
-      </div>
+      <FilterSection title="Price Range" icon={ArrowRight}>
+        <div className="flex gap-3 mb-3">
+          <div className="flex-1">
+            <label htmlFor="minPrice" className="block text-xs text-gray-500 mb-1">
+              Min Price
+            </label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
+              <input
+                type="number"
+                id="minPrice"
+                name="minPrice"
+                placeholder="0"
+                value={filters.minPrice}
+                onChange={updateFilter}
+                className="w-full pl-6 pr-3 py-2 border border-gray-300 rounded-md text-sm"
+              />
+            </div>
+          </div>
+          <div className="flex-1">
+            <label htmlFor="maxPrice" className="block text-xs text-gray-500 mb-1">
+              Max Price
+            </label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
+              <input
+                type="number"
+                id="maxPrice"
+                name="maxPrice"
+                placeholder="Any"
+                value={filters.maxPrice}
+                onChange={updateFilter}
+                className="w-full pl-6 pr-3 py-2 border border-gray-300 rounded-md text-sm"
+              />
+            </div>
+          </div>
+        </div>
+      </FilterSection>
 
-      {/* Filter Categories */}
-      <FilterOption
-        label="Make"
-        options={filterOptions.make}
-        selected={filters.make}
-        onChange={(values) => updateFilter("make", values)}
-      />
+      {/* Year Range */}
+      <FilterSection title="Year Range" icon={Calendar}>
+        <div className="flex gap-3">
+          <div className="flex-1">
+            <label htmlFor="minYear" className="block text-xs text-gray-500 mb-1">
+              Min Year
+            </label>
+            <input
+              type="number"
+              id="minYear"
+              name="minYear"
+              placeholder="Any"
+              value={filters.minYear}
+              onChange={updateFilter}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+            />
+          </div>
+          <div className="flex-1">
+            <label htmlFor="maxYear" className="block text-xs text-gray-500 mb-1">
+              Max Year
+            </label>
+            <input
+              type="number"
+              id="maxYear"
+              name="maxYear"
+              placeholder="Any"
+              value={filters.maxYear}
+              onChange={updateFilter}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+            />
+          </div>
+        </div>
+      </FilterSection>
 
-      <FilterOption
-        label="Body Type"
-        options={filterOptions.bodyType}
-        selected={filters.bodyType}
-        onChange={(values) => updateFilter("bodyType", values)}
-      />
+      {/* Fuel Type */}
+      <FilterSection title="Fuel Type" icon={Fuel}>
+        <select
+          name="fuel"
+          value={filters.fuel}
+          onChange={updateFilter}
+          className="w-full p-2 border border-gray-300 rounded-md text-sm text-gray-700"
+        >
+          <option value="">All Fuel Types</option>
+          <option value="gasoline">Gasoline</option>
+          <option value="diesel">Diesel</option>
+          <option value="electric">Electric</option>
+          <option value="hybrid">Hybrid</option>
+          <option value="plugin_hybrid">Plug-in Hybrid</option>
+        </select>
+      </FilterSection>
 
-      <FilterOption
-        label="Year"
-        options={filterOptions.year}
-        selected={filters.year}
-        onChange={(values) => updateFilter("year", values)}
-      />
-
-      <FilterOption
-        label="Transmission"
-        options={filterOptions.transmission}
-        selected={filters.transmission}
-        onChange={(values) => updateFilter("transmission", values)}
-      />
-
-      <FilterOption
-        label="Fuel Type"
-        options={filterOptions.fuel}
-        selected={filters.fuel}
-        onChange={(values) => updateFilter("fuel", values)}
-      />
-
-      <FilterOption
-        label="Features"
-        options={filterOptions.features}
-        selected={filters.features}
-        onChange={(values) => updateFilter("features", values)}
-      />
-    </div>
+      {/* Transmission */}
+      <FilterSection title="Transmission" icon={Settings}>
+        <select
+          name="transmission"
+          value={filters.transmission}
+          onChange={updateFilter}
+          className="w-full p-2 border border-gray-300 rounded-md text-sm text-gray-700"
+        >
+          <option value="">All Transmissions</option>
+          <option value="automatic">Automatic</option>
+          <option value="manual">Manual</option>
+          <option value="cvt">CVT</option>
+          <option value="semi-automatic">Semi-Automatic</option>
+        </select>
+      </FilterSection>
+    </>
   );
 }

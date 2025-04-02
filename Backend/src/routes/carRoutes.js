@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const carController = require('../controllers/carController');
 const { isAuthenticated, isDealer, isResourceOwner } = require('../middlewares/authMiddleware');
-const { uploadMultipleImages, handleUploadErrors } = require('../middlewares/uploadMiddleware');
+const { uploadCarImages } = require('../config/cloudinary');
 const Car = require('../models/Car');
 
 // Public routes
@@ -15,8 +15,7 @@ router.post(
   '/',
   isAuthenticated,
   isDealer,
-  uploadMultipleImages,
-  handleUploadErrors,
+  uploadCarImages.array('images', 10),
   carController.createCar
 );
 
@@ -39,8 +38,7 @@ router.post(
   '/:id/images',
   isAuthenticated,
   isResourceOwner(Car),
-  uploadMultipleImages,
-  handleUploadErrors,
+  uploadCarImages.array('images', 10),
   carController.uploadCarImages
 );
 

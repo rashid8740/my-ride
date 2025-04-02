@@ -170,6 +170,8 @@ exports.createCar = async (req, res) => {
   try {
     const {
       title,
+      make,
+      model,
       category,
       year,
       price,
@@ -182,7 +184,9 @@ exports.createCar = async (req, res) => {
       engine,
       doors,
       seats,
-      vin
+      vin,
+      status,
+      stock
     } = req.body;
 
     // Handle features as array
@@ -193,13 +197,18 @@ exports.createCar = async (req, res) => {
         : features;
     }
 
+    // Format title if not provided
+    const formattedTitle = title || `${make} ${model} ${year}`;
+
     // Create car with initial data
     const carData = {
-      title,
+      title: formattedTitle,
+      make,
+      model,
       category,
       year: Number(year),
       price: Number(price),
-      mileage: Number(mileage),
+      mileage: Number(mileage || 0),
       fuel,
       transmission,
       description,
@@ -209,14 +218,17 @@ exports.createCar = async (req, res) => {
       doors: doors ? Number(doors) : undefined,
       seats: seats ? Number(seats) : undefined,
       vin,
+      status: status || 'available',
+      stock: stock ? Number(stock) : 1,
       seller: req.user._id,
       images: []
     };
 
-    // Handle images if uploaded
+    // Handle images if uploaded to Cloudinary
     if (req.files && req.files.length > 0) {
       carData.images = req.files.map((file, index) => ({
-        url: `/uploads/${file.filename}`,
+        url: file.path, // Cloudinary URL
+        publicId: file.filename, // Cloudinary public ID
         isMain: index === 0 // First image is the main image
       }));
     }
@@ -232,7 +244,7 @@ exports.createCar = async (req, res) => {
     console.error('Create car error:', error);
     res.status(500).json({
       status: 'error',
-      message: 'Server error while creating car'
+      message: error.message || 'Server error while creating car'
     });
   }
 };

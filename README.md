@@ -1,125 +1,99 @@
-# MyRide - Car Dealership Website
+# MyRide Car Dealership Application
 
-A modern car dealership website built with Next.js and Express, featuring user authentication, inventory management, and admin dashboard.
+A full-stack car dealership application with a React frontend and Node.js backend.
 
-## Features
+## Project Structure
 
-- 🚗 Complete car inventory management
-- 👤 User accounts and authentication
-- ❤️ Favorite cars functionality
-- 📱 Responsive design for all devices
-- 🌙 Light and dark mode support
-- 📊 Admin dashboard with analytics
-- 🔐 Role-based access control
+This project contains two main directories:
+
+- `Frontend`: A Next.js application for the user interface
+- `Backend`: An Express.js API server for the backend functionality
+
+## Prerequisites
+
+- Node.js (v14 or higher)
+- npm (v6 or higher)
+- MongoDB (v4 or higher)
 
 ## Getting Started
 
-### Prerequisites
-
-- Node.js 16+ and npm
-- MongoDB (local or Atlas)
-
-### Installation
+### First-Time Setup
 
 1. Clone the repository:
-   ```bash
-   git clone https://github.com/yourusername/my-ride.git
+   ```
+   git clone <repo-url>
    cd my-ride
    ```
 
-2. Install dependencies for both frontend and backend:
-   ```bash
+2. Install all dependencies (root, frontend, and backend):
+   ```
    npm run install:all
    ```
 
-3. Create `.env` files:
+3. Create the environment files:
 
-   For Backend:
+   For Backend (Backend/.env):
    ```
    PORT=5000
    MONGODB_URI=mongodb://localhost:27017/my-ride
-   JWT_SECRET=your_jwt_secret
+   JWT_SECRET=myridedealer123secret456key789very000secure
    NODE_ENV=development
-   
-   # Cloudinary (optional for image uploads)
-   CLOUDINARY_CLOUD_NAME=your_cloud_name
-   CLOUDINARY_API_KEY=your_api_key
-   CLOUDINARY_API_SECRET=your_api_secret
+   FRONTEND_URL=http://localhost:3000
    ```
 
-   For Frontend:
+   For Frontend (Frontend/.env.local):
    ```
    NEXT_PUBLIC_API_URL=http://localhost:5000
    ```
 
-4. Run the development server:
-   ```bash
+### Running the Application
+
+1. Start both frontend and backend with one command:
+   ```
    npm run dev
    ```
 
-5. The application will be available at:
-   - Frontend: http://localhost:3000
-   - Backend API: http://localhost:5000
+   This will start:
+   - Frontend on http://localhost:3000
+   - Backend on http://localhost:5000/api
 
-## Admin Access
+2. Admin login credentials:
+   - Email: `admin@myride.com`
+   - Password: `Admin@123`
 
-An admin user is automatically created when you first run the backend server:
+### Starting Individual Services
 
-- **Email**: admin@myride.com
-- **Password**: Admin@123
+- To start only the frontend:
+  ```
+  npm run start:frontend
+  ```
 
-You can log in with these credentials at http://localhost:3000/login to access the admin dashboard.
+- To start only the backend:
+  ```
+  npm run start:backend
+  ```
 
-### Admin Features
+## Features
 
-- **Dashboard**: View key metrics and statistics
-- **User Management**: Create, edit, and manage user accounts
-- **Inventory Management**: Add, edit, and delete car listings
-- **Inquiries Management**: View and respond to customer inquiries
+- User registration and authentication
+- Car listings with search and filter functionality
+- Car details with inquiries
+- Admin dashboard to manage users, inventory, and inquiries
+- Analytics dashboard with data visualization
+- Responsive UI for desktop and mobile devices
 
-## Project Structure
+## Troubleshooting
 
-```
-/
-├── Backend/            # Express.js backend
-│   ├── src/
-│   │   ├── controllers/   # Route controllers
-│   │   ├── middlewares/   # Express middlewares
-│   │   ├── models/        # Mongoose models
-│   │   ├── routes/        # API routes
-│   │   ├── utils/         # Utility functions
-│   │   └── index.js       # Entry point
-│   ├── .env.example       # Example environment variables
-│   └── package.json       # Backend dependencies
-│
-└── Frontend/           # Next.js frontend
-    ├── src/
-    │   ├── app/           # Next.js app router
-    │   ├── components/    # React components
-    │   ├── utils/         # Utility functions
-    │   └── ...
-    ├── public/            # Static assets
-    ├── .env.example       # Example environment variables
-    └── package.json       # Frontend dependencies
-```
+If you encounter any issues:
 
-## Technologies Used
-
-### Backend
-- Express.js - Web framework
-- MongoDB/Mongoose - Database
-- JWT - Authentication
-- Cloudinary - Image storage
-
-### Frontend
-- Next.js - React framework
-- Tailwind CSS - Styling
-- Lucide React - Icons
-- Next.js App Router - Routing
+1. Ensure MongoDB is running locally
+2. Check if the `.env` files are set up correctly
+3. Verify that all dependencies are installed
+4. Make sure ports 3000 and 5000 are available
 
 ## License
 
-This project is licensed under the MIT License.
+This project is licensed under the ISC License.
 
 ## API Endpoints
 
