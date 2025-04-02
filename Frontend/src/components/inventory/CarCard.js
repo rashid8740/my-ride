@@ -1,20 +1,44 @@
 // src/components/inventory/CarCard.jsx
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Camera, Heart, MapPin, ChevronRight, Tag, Award, Clock, Activity, Check, Gauge, Fuel, Settings } from "lucide-react";
+import { useFavorites } from "@/utils/FavoritesContext";
+import { useAuth } from "@/utils/AuthContext";
+import { toast } from "react-hot-toast";
 
 export default function CarCard({ car, listView = false }) {
   const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
   const [hovered, setHovered] = useState(false);
-  const [isFavorite, setIsFavorite] = useState(false);
+  const { isAuthenticated } = useAuth();
+  const { isFavorite, toggleFavorite } = useFavorites();
   
   const handleFavoriteClick = async (e) => {
     e.preventDefault();
     e.stopPropagation();
     
-    // Toggle favorite state locally for now
-    setIsFavorite(!isFavorite);
+    if (!isAuthenticated) {
+      toast.error("Please log in to add favorites");
+      return;
+    }
+    
+    try {
+      setIsTogglingFavorite(true);
+      const result = await toggleFavorite(car.id || car._id);
+      
+      if (result.success) {
+        toast.success(isFavorite(car.id || car._id) 
+          ? "Removed from favorites" 
+          : "Added to favorites");
+      } else {
+        toast.error(result.message || "Failed to update favorites");
+      }
+    } catch (error) {
+      console.error("Error toggling favorite:", error);
+      toast.error("Something went wrong");
+    } finally {
+      setIsTogglingFavorite(false);
+    }
   };
 
   // Status badge configuration
@@ -78,14 +102,14 @@ export default function CarCard({ car, listView = false }) {
           <button
             onClick={handleFavoriteClick}
             className={`absolute bottom-3 right-3 w-9 h-9 rounded-full flex items-center justify-center transition-colors ${
-              isFavorite
+              isFavorite(car.id || car._id)
                 ? "bg-orange-500 text-white"
                 : "bg-white/90 backdrop-blur-sm text-gray-700 hover:bg-white"
             } shadow-md ${isTogglingFavorite ? "opacity-70" : ""}`}
             disabled={isTogglingFavorite}
-            aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
+            aria-label={isFavorite(car.id || car._id) ? "Remove from favorites" : "Add to favorites"}
           >
-            <Heart size={18} fill={isFavorite ? "currentColor" : "none"} />
+            <Heart size={18} fill={isFavorite(car.id || car._id) ? "currentColor" : "none"} />
           </button>
 
           {/* Year Badge */}
@@ -213,14 +237,14 @@ export default function CarCard({ car, listView = false }) {
         <button
           onClick={handleFavoriteClick}
           className={`absolute bottom-3 right-3 w-9 h-9 rounded-full flex items-center justify-center transition-colors ${
-            isFavorite
+            isFavorite(car.id || car._id)
               ? "bg-orange-500 text-white"
               : "bg-white/90 backdrop-blur-sm text-gray-700 hover:bg-white"
           } shadow-md ${isTogglingFavorite ? "opacity-70" : ""}`}
           disabled={isTogglingFavorite}
-          aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
+          aria-label={isFavorite(car.id || car._id) ? "Remove from favorites" : "Add to favorites"}
         >
-          <Heart size={18} fill={isFavorite ? "currentColor" : "none"} />
+          <Heart size={18} fill={isFavorite(car.id || car._id) ? "currentColor" : "none"} />
         </button>
 
         {/* Year Badge */}

@@ -29,6 +29,8 @@ import {
   ArrowRight
 } from "lucide-react";
 import { cars } from "@/app/inventory/data";
+import { toast } from "react-hot-toast";
+import { useFavorites } from "@/utils/FavoritesContext";
 
 // Gallery component for car images
 const CarGallery = ({ images, mainImage, title }) => {
@@ -200,6 +202,8 @@ const CarDetailPage = ({ params }) => {
   const [formSuccess, setFormSuccess] = useState(false);
   const [formError, setFormError] = useState(null);
 
+  const { isAuthenticated, toggleFavorite, isFavorite: contextIsFavorite } = useFavorites();
+
   // Fetch car data from our sample data until backend is working
   useEffect(() => {
     console.log("Fetching car with ID:", id);
@@ -217,13 +221,30 @@ const CarDetailPage = ({ params }) => {
     }, 800);
   }, [id]);
 
-  // Handle favorite toggle
-  const handleFavoriteToggle = () => {
-    setIsTogglingFavorite(true);
-    setTimeout(() => {
-      setIsFavorite(!isFavorite);
+  // Toggle favorite status
+  const handleFavoriteToggle = async () => {
+    if (!isAuthenticated) {
+      toast.error("Please log in to add favorites");
+      return;
+    }
+    
+    try {
+      setIsTogglingFavorite(true);
+      const result = await toggleFavorite(car.id || params.id);
+      
+      if (result.success) {
+        toast.success(contextIsFavorite(car.id || params.id) 
+          ? "Removed from favorites" 
+          : "Added to favorites");
+      } else {
+        toast.error(result.message || "Failed to update favorites");
+      }
+    } catch (error) {
+      console.error("Error toggling favorite:", error);
+      toast.error("Something went wrong");
+    } finally {
       setIsTogglingFavorite(false);
-    }, 300);
+    }
   };
 
   // Handle contact form input changes
@@ -421,14 +442,14 @@ const CarDetailPage = ({ params }) => {
                     <button
                       onClick={handleFavoriteToggle}
                       className={`p-2 rounded-full transition-colors ${
-                        isFavorite
+                        contextIsFavorite(car.id || params.id)
                           ? "text-orange-500 bg-orange-50"
                           : "text-gray-500 hover:bg-gray-100"
                       }`}
                       disabled={isTogglingFavorite}
-                      aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
+                      aria-label={contextIsFavorite(car.id || params.id) ? "Remove from favorites" : "Add to favorites"}
                     >
-                      <Heart size={18} fill={isFavorite ? "currentColor" : "none"} />
+                      <Heart size={18} fill={contextIsFavorite(car.id || params.id) ? "currentColor" : "none"} />
                     </button>
                   </div>
                 </div>

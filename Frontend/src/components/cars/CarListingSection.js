@@ -2,8 +2,12 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ArrowRight, Camera, Heart, Award, Gauge, Fuel, Settings, ChevronRight, MapPin, Tag } from "lucide-react";
+import Image from "next/image";
+import { ArrowRight, Camera, Heart, Award, Gauge, Fuel, Settings, ChevronRight, MapPin, Tag, Check } from "lucide-react";
 import { cars as sampleCars } from "@/app/inventory/data";
+import { useAuth } from "@/utils/AuthContext";
+import { useFavorites } from "@/utils/FavoritesContext";
+import { toast } from "react-hot-toast";
 
 // Body Type Tab Component - exact match to the reference
 function BodyTypeTab({ type, isActive, onClick }) {
@@ -23,16 +27,37 @@ function BodyTypeTab({ type, isActive, onClick }) {
 
 // Car Card Component - identical to inventory page
 function CarCard({ car }) {
-  const [isFavorite, setIsFavorite] = useState(false);
   const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
   const [hovered, setHovered] = useState(false);
+  const { isAuthenticated } = useAuth();
+  const { isFavorite, toggleFavorite } = useFavorites();
   
-  const handleFavoriteClick = (e) => {
+  const handleFavoriteClick = async (e) => {
     e.preventDefault();
     e.stopPropagation();
     
-    // Toggle favorite state locally
-    setIsFavorite(!isFavorite);
+    if (!isAuthenticated) {
+      toast.error("Please log in to add favorites");
+      return;
+    }
+    
+    try {
+      setIsTogglingFavorite(true);
+      const result = await toggleFavorite(car.id || car._id);
+      
+      if (result.success) {
+        toast.success(isFavorite(car.id || car._id) 
+          ? "Removed from favorites" 
+          : "Added to favorites");
+      } else {
+        toast.error(result.message || "Failed to update favorites");
+      }
+    } catch (error) {
+      console.error("Error toggling favorite:", error);
+      toast.error("Something went wrong");
+    } finally {
+      setIsTogglingFavorite(false);
+    }
   };
   
   return (
@@ -69,14 +94,14 @@ function CarCard({ car }) {
         <button
           onClick={handleFavoriteClick}
           className={`absolute bottom-3 right-3 w-9 h-9 rounded-full flex items-center justify-center transition-colors ${
-            isFavorite
+            isFavorite(car.id || car._id)
               ? "bg-orange-500 text-white"
               : "bg-white/90 backdrop-blur-sm text-gray-700 hover:bg-white"
           } shadow-md ${isTogglingFavorite ? "opacity-70" : ""}`}
           disabled={isTogglingFavorite}
-          aria-label={isFavorite ? "Remove from favorites" : "Add to favorites"}
+          aria-label={isFavorite(car.id || car._id) ? "Remove from favorites" : "Add to favorites"}
         >
-          <Heart size={18} fill={isFavorite ? "currentColor" : "none"} />
+          <Heart size={18} fill={isFavorite(car.id || car._id) ? "currentColor" : "none"} />
         </button>
 
         {/* Year Badge */}

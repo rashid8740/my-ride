@@ -252,7 +252,7 @@ const apiService = {
   },
   
   // User endpoints
-  users: {
+  user: {
     async updateProfile(profileData) {
       return apiService.request('/users/profile', {
         method: 'PUT',
