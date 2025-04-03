@@ -2,8 +2,11 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import apiService from './api';
 
-// Create the authentication context
+// Create auth context
 const AuthContext = createContext();
+
+// Session storage key
+const SESSION_AUTH_KEY = 'my-ride-auth-session';
 
 // Custom hook to use the auth context
 export const useAuth = () => {
@@ -17,32 +20,60 @@ export const useAuth = () => {
 // Auth provider component
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Load user from local storage on initial render
+  // Restore auth session from sessionStorage first for better page refreshes
   useEffect(() => {
-    const loadUserFromStorage = async () => {
+    const restoreSession = async () => {
+      setIsLoading(true);
       try {
-        setIsLoading(true);
+        // Try to get user from sessionStorage first (fastest)
+        if (typeof window !== 'undefined') {
+          const sessionUser = sessionStorage.getItem(SESSION_AUTH_KEY);
+          if (sessionUser) {
+            const userData = JSON.parse(sessionUser);
+            setUser(userData);
+            setIsAuthenticated(true);
+            setIsLoading(false);
+            return;
+          }
+        }
+        
+        // Then try to get user from localStorage
         const token = localStorage.getItem('token');
         
         if (token) {
-          // Get user profile from API
-          const userData = await apiService.auth.getProfile();
-          setUser(userData.data);
+          try {
+            // Verify token by getting user profile
+            const response = await apiService.auth.getProfile();
+            
+            if (response.status === 'success' && response.data) {
+              setUser(response.data);
+              setIsAuthenticated(true);
+              // Update session storage to speed up future page loads
+              if (typeof window !== 'undefined') {
+                sessionStorage.setItem(SESSION_AUTH_KEY, JSON.stringify(response.data));
+              }
+            } else {
+              // Invalid token
+              handleLogout();
+            }
+          } catch (error) {
+            console.error('Error verifying auth token:', error);
+            // Token validation failed, clear authentication
+            handleLogout();
+          }
         }
       } catch (error) {
-        console.error('Error loading user:', error);
-        // Clear invalid token
-        localStorage.removeItem('token');
-        setUser(null);
+        console.error('Authentication restoration error:', error);
       } finally {
         setIsLoading(false);
       }
     };
     
-    loadUserFromStorage();
+    restoreSession();
   }, []);
 
   // Register a new user
@@ -68,32 +99,49 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Log in a user
-  const login = async (credentials) => {
+  const handleLogin = async (credentials) => {
+    setIsLoading(true);
+    setError(null);
+    
     try {
-      setIsLoading(true);
-      setError(null);
-      
       const response = await apiService.auth.login(credentials);
       
-      if (response.data && response.data.token) {
-        localStorage.setItem('token', response.data.token);
-        setUser(response.data);
+      if (response.status === 'success') {
+        // Store token
+        localStorage.setItem('token', response.token);
+        
+        // Set user state
+        setUser(response.data.user);
+        setIsAuthenticated(true);
+        
+        // Store user in session storage for better refresh handling
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem(SESSION_AUTH_KEY, JSON.stringify(response.data.user));
+        }
+        
+        return { success: true };
+      } else {
+        throw new Error(response.message || 'Login failed');
       }
-      
-      return response;
     } catch (error) {
-      setError(error.message);
-      throw error;
+      console.error('Login error:', error);
+      setError(error.message || 'Invalid credentials');
+      return { success: false, message: error.message || 'Login failed' };
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Log out a user
-  const logout = () => {
+  const handleLogout = () => {
+    // Clear token and user data
     localStorage.removeItem('token');
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem(SESSION_AUTH_KEY);
+    }
+    
+    // Reset state
     setUser(null);
+    setIsAuthenticated(false);
   };
 
   // Forgot password
@@ -174,13 +222,13 @@ export const AuthProvider = ({ children }) => {
   // Value to be provided by context
   const value = {
     user,
-    isAuthenticated: !!user,
+    isAuthenticated,
     isAdmin,
     isLoading,
     error,
     register,
-    login,
-    logout,
+    login: handleLogin,
+    logout: handleLogout,
     forgotPassword,
     resetPassword,
     verifyEmail,

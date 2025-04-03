@@ -46,9 +46,11 @@ function CarCard({ car }) {
       const result = await toggleFavorite(car.id || car._id);
       
       if (result.success) {
-        toast.success(isFavorite(car.id || car._id) 
-          ? "Removed from favorites" 
-          : "Added to favorites");
+        if (isFavorite(car.id || car._id)) {
+          toast.success("Removed from favorites");
+        } else {
+          toast.success("Added to favorites");
+        }
       } else {
         toast.error(result.message || "Failed to update favorites");
       }
@@ -79,8 +81,8 @@ function CarCard({ car }) {
           {car.featured && (
             <div className="bg-orange-500 text-white text-xs font-medium px-2 py-1 rounded-full flex items-center">
               <Award className="h-3 w-3 mr-1" />
-              Featured
-            </div>
+            Featured
+          </div>
           )}
 
           {/* Photo Count Badge */}
@@ -253,7 +255,7 @@ export default function CarListingSection({ id }) {
             <CarCard key={car.id} car={{...car, featured: true}} />
           ))}
         </div>
-        
+
         {/* View All Vehicles Button */}
         <div className="text-center mt-10">
           <Link

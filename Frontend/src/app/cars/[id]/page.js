@@ -187,7 +187,6 @@ const CarDetailPage = ({ params }) => {
   const [car, setCar] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [isFavorite, setIsFavorite] = useState(false);
   const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   
@@ -202,7 +201,7 @@ const CarDetailPage = ({ params }) => {
   const [formSuccess, setFormSuccess] = useState(false);
   const [formError, setFormError] = useState(null);
 
-  const { isAuthenticated, toggleFavorite, isFavorite: contextIsFavorite } = useFavorites();
+  const { toggleFavorite, isFavorite, isAuthenticated } = useFavorites();
 
   // Fetch car data from our sample data until backend is working
   useEffect(() => {
@@ -220,6 +219,9 @@ const CarDetailPage = ({ params }) => {
       setLoading(false);
     }, 800);
   }, [id]);
+  
+  // Check if car is in favorites (for UI state)
+  const isCarInFavorites = car ? isFavorite(car.id || Number(id)) : false;
 
   // Toggle favorite status
   const handleFavoriteToggle = async () => {
@@ -230,12 +232,20 @@ const CarDetailPage = ({ params }) => {
     
     try {
       setIsTogglingFavorite(true);
-      const result = await toggleFavorite(car.id || params.id);
+      // Make sure we have a valid ID to add
+      const carIdToUse = car.id || Number(params.id);
+      console.log("Toggling favorite for car ID:", carIdToUse);
+      
+      const result = await toggleFavorite(carIdToUse);
       
       if (result.success) {
-        toast.success(contextIsFavorite(car.id || params.id) 
-          ? "Removed from favorites" 
-          : "Added to favorites");
+        // Force a UI update based on the actual current state
+        const isFav = isFavorite(carIdToUse);
+        if (isFav) {
+          toast.success("Added to favorites");
+        } else {
+          toast.success("Removed from favorites");
+        }
       } else {
         toast.error(result.message || "Failed to update favorites");
       }
@@ -442,14 +452,14 @@ const CarDetailPage = ({ params }) => {
                     <button
                       onClick={handleFavoriteToggle}
                       className={`p-2 rounded-full transition-colors ${
-                        contextIsFavorite(car.id || params.id)
+                        isCarInFavorites
                           ? "text-orange-500 bg-orange-50"
                           : "text-gray-500 hover:bg-gray-100"
                       }`}
                       disabled={isTogglingFavorite}
-                      aria-label={contextIsFavorite(car.id || params.id) ? "Remove from favorites" : "Add to favorites"}
+                      aria-label={isCarInFavorites ? "Remove from favorites" : "Add to favorites"}
                     >
-                      <Heart size={18} fill={contextIsFavorite(car.id || params.id) ? "currentColor" : "none"} />
+                      <Heart size={18} fill={isCarInFavorites ? "currentColor" : "none"} />
                     </button>
                   </div>
                 </div>

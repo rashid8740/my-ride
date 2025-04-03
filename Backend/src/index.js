@@ -26,6 +26,11 @@ app.use('/api/cars', carRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/users', userRoutes);
 
+// Health check endpoint
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'ok', message: 'API is running' });
+});
+
 // Home route
 app.get('/', (req, res) => {
   res.json({ message: 'Welcome to My Ride API' });

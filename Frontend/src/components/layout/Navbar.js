@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/utils/AuthContext";
+import { useFavorites } from "@/utils/FavoritesContext";
 import {
   Search,
   Heart,
@@ -152,6 +153,10 @@ export default function Navbar() {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const pathname = usePathname();
   const { user, isAuthenticated, logout } = useAuth();
+  const { favorites } = useFavorites();
+  
+  // Calculate favorites count from actual favorites array
+  const favoritesCount = favorites?.length || 0;
 
   // Handle scroll event for navbar appearance
   useEffect(() => {
@@ -272,13 +277,14 @@ export default function Navbar() {
                 <Link
                   href="/favorites"
                   className="py-2 px-3 hover:bg-gray-100 rounded-md text-gray-700 transition-colors relative"
-                aria-label="Favorites"
-              >
-                <Heart size={20} />
-                  {/* Example notification badge - replace with actual count */}
-                  <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs w-4 h-4 flex items-center justify-center rounded-full">
-                    0
-                </span>
+                  aria-label="Favorites"
+                >
+                  <Heart size={20} />
+                  {favoritesCount > 0 && (
+                    <span className="absolute -top-1.5 -right-1.5 bg-orange-500 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full font-medium">
+                      {favoritesCount > 99 ? "99+" : favoritesCount}
+                    </span>
+                  )}
                 </Link>
 
                 {/* User dropdown */}
@@ -435,25 +441,25 @@ export default function Navbar() {
                     <div className="px-3 py-2 mb-2 bg-gray-50 rounded-md">
                       <p className="text-sm font-medium">{user?.firstName} {user?.lastName}</p>
                       <p className="text-xs text-gray-500">{user?.email}</p>
-            </div>
-              <MobileNavItem
+                    </div>
+                    <MobileNavItem
                       href="/profile"
                       label="My Profile"
-                icon={<User size={18} />}
-                onClick={closeMobileMenu}
-              />
-              <MobileNavItem
+                      icon={<User size={18} />}
+                      onClick={closeMobileMenu}
+                    />
+                    <MobileNavItem
                       href="/favorites"
-                      label="My Favorites"
+                      label={`My Favorites${favoritesCount > 0 ? ` (${favoritesCount})` : ''}`}
                       icon={<Heart size={18} />}
                       onClick={closeMobileMenu}
                     />
                     <MobileNavItem
                       href="/dashboard"
                       label="Dashboard"
-                icon={<Car size={18} />}
-                onClick={closeMobileMenu}
-              />
+                      icon={<Car size={18} />}
+                      onClick={closeMobileMenu}
+                    />
                     <button
                       onClick={() => {
                         logout();
