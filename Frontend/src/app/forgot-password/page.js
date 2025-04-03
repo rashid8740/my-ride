@@ -1,17 +1,21 @@
-"use client";
-
+// src/app/forgot-password/page.js
+// No "use client" here - this is now a Server Component
+import ForgotPassword from "@/components/auth/ForgotPassword";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
-import ForgotPassword from "@/components/auth/ForgotPassword";
+
+// Export metadata for SEO (valid in Server Components)
+export const metadata = {
+  title: "Forgot Password | AutoDecar",
+  description: "Reset your AutoDecar account password",
+};
 
 export default function ForgotPasswordPage() {
   return (
-    <>
+    <main>
       <Navbar />
-      <main>
-        <ForgotPassword />
-      </main>
+      <ForgotPassword />
       <Footer />
-    </>
+    </main>
   );
 }
