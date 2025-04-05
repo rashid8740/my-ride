@@ -64,45 +64,90 @@ export default function FavoritesPage() {
     };
   }, [isAuthenticated, authLoading, router]);
 
-  // If using localStorage, fetch car data from sample data
+  // Get local car data based on favorites IDs - FIX CRITICAL MATCHING ISSUE
   useEffect(() => {
+    // Log favorites first for debugging
+    console.log("=== FAVORITES PAGE DEBUG START ===");
+    console.log("Current favorites state:", JSON.stringify(favorites));
+    
+    // Only proceed if we have favorites
     if (favorites && favorites.length > 0) {
-      // Import the sample data dynamically
+      // Import the sample data
       import("@/app/inventory/data").then((module) => {
         const { cars } = module;
-        console.log("Sample cars loaded:", cars.length);
-        console.log("Trying to match favorites:", favorites);
+        console.log("Sample car data loaded:", cars.length, "cars available");
+        console.log("First few sample car IDs:", cars.slice(0, 3).map(c => ({ id: c.id, title: c.title })));
         
-        // CRITICAL FIX: Normalize all IDs to strings for consistent comparison
-        const favoriteIds = favorites.map(fav => {
-          // Convert any object or primitive to a string ID
-          if (typeof fav === 'object') {
-            return String(fav.id || fav._id || '');
+        // FIXED APPROACH: Force car IDs to be numbers and compare directly
+        const matchedCars = [];
+        
+        favorites.forEach(favorite => {
+          // Extract the ID and convert to a number if possible
+          let favoriteId = favorite;
+          
+          if (typeof favorite === 'object') {
+            favoriteId = favorite.id || favorite._id;
           }
-          return String(fav);
+          
+          // Always try to convert to a number for matching with sample data
+          const numericId = Number(favoriteId);
+          
+          console.log(`Looking for car with ID "${favoriteId}" (numeric: ${numericId}, type: ${typeof favoriteId})`);
+          
+          // Find the car with matching ID in sample data
+          // Try multiple matching strategies to ensure we find the car
+          let matchingCar = null;
+          
+          // Strategy 1: Direct numeric comparison (most reliable)
+          matchingCar = cars.find(car => Number(car.id) === numericId);
+          
+          // Strategy 2: Direct string comparison
+          if (!matchingCar) {
+            matchingCar = cars.find(car => String(car.id) === String(favoriteId));
+          }
+          
+          // Strategy 3: Try matching with ObjectId's last part (for MongoDB IDs)
+          if (!matchingCar && typeof favoriteId === 'string' && favoriteId.length === 24) {
+            // Extract the numeric part from a MongoDB ObjectId
+            const lastPart = favoriteId.slice(-6);
+            if (/^[0-9a-f]+$/.test(lastPart)) {
+              const numFromHex = parseInt(lastPart, 16);
+              matchingCar = cars.find(car => Number(car.id) === numFromHex);
+              
+              if (matchingCar) {
+                console.log(`Found car by ObjectId's last part: ${lastPart} -> ${numFromHex}`);
+              }
+            }
+          }
+          
+          if (matchingCar) {
+            console.log(`✅ FOUND car for ID ${favoriteId}:`, matchingCar.title);
+            // Ensure we don't add duplicates
+            if (!matchedCars.some(c => c.id === matchingCar.id)) {
+              matchedCars.push(matchingCar);
+            }
+          } else {
+            console.log(`❌ NO MATCH for ID ${favoriteId}`);
+          }
         });
         
-        console.log("Favorite IDs to match:", favoriteIds);
+        console.log(`Total matches found: ${matchedCars.length} of ${favorites.length} favorites`);
+        console.log("Matched cars:", matchedCars.map(c => ({ id: c.id, title: c.title })));
+        console.log("=== FAVORITES PAGE DEBUG END ===");
         
-        // Filter cars based on normalized ID strings
-        const matchingCars = cars.filter(car => {
-          // Convert car ID to string for matching
-          const carIdStr = String(car.id);
-          const isMatch = favoriteIds.includes(carIdStr);
-          console.log(`Checking car ${carIdStr} (${car.title}): ${isMatch ? 'MATCH' : 'no match'}`);
-          return isMatch;
-        });
-        
-        console.log("Found matching cars:", matchingCars.length, matchingCars);
-        setLocalCarData(matchingCars);
+        // Update the state with matched cars
+        setLocalCarData(matchedCars);
       });
     } else {
       setLocalCarData([]);
+      console.log("No favorites to display");
+      console.log("=== FAVORITES PAGE DEBUG END ===");
     }
   }, [favorites]);
 
-  // Get the display list for cars - always prefer localCarData if we have it
-  const displayCars = localCarData.length > 0 ? localCarData : favorites.filter(fav => typeof fav === 'object');
+  // Always use local car data for display since we need the full car objects
+  // to show images, details, etc.
+  const displayCars = localCarData;
 
   // Debug the display state
   useEffect(() => {

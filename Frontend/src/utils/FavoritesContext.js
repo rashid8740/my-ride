@@ -23,32 +23,67 @@ export const useFavorites = () => {
 // Favorites provider component
 export const FavoritesProvider = ({ children }) => {
   const [favorites, setFavorites] = useState([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true); // Start with loading state
   const [error, setError] = useState(null);
   const { isAuthenticated, user } = useAuth();
   const [usingLocalStorage, setUsingLocalStorage] = useState(false);
   const [backendAvailable, setBackendAvailable] = useState(true);
 
-  // Initialize favorites from localStorage or API
+  // Load favorites from storage first, then try API
   useEffect(() => {
-    // First, try to load from sessionStorage for immediate display during refreshes
-    const sessionFavs = loadSessionFavoritesSync();
-    if (sessionFavs && sessionFavs.length > 0) {
-      setFavorites(sessionFavs);
-    } else {
-      // Then try localStorage
+    // Immediately load from session/local storage
+    const initialLoad = () => {
+      // First load from session storage (fastest)
+      const sessionFavs = loadSessionFavoritesSync();
+      console.log("Initial session favorites:", sessionFavs);
+      
+      if (sessionFavs && sessionFavs.length > 0) {
+        console.log("Using session favorites on initial load");
+        setFavorites(sessionFavs);
+        setUsingLocalStorage(true);
+        return true;
+      }
+      
+      // If no session favorites, try localStorage
       const localFavs = loadLocalFavoritesSync();
+      console.log("Initial local favorites:", localFavs);
+      
       if (localFavs && localFavs.length > 0) {
+        console.log("Using local favorites on initial load");
         setFavorites(localFavs);
         setUsingLocalStorage(true);
-        // Save to session storage for better refresh handling
+        // Save to session for better performance on subsequent navigations
         saveSessionFavorites(localFavs);
+        return true;
       }
-    }
-
+      
+      return false;
+    };
+    
+    // Run initial load from storage
+    const loadedFromStorage = initialLoad();
+    
     // Then if authenticated, try to load from API
-    if (isAuthenticated && user) {
-      loadFavorites();
+    const loadFromApi = async () => {
+      if (isAuthenticated && user) {
+        try {
+          await loadFavorites();
+        } catch (error) {
+          console.error("Error loading favorites from API:", error);
+          // We already loaded from storage, so no further action needed
+        } finally {
+          setIsLoading(false);
+        }
+      } else {
+        setIsLoading(false);
+      }
+    };
+    
+    loadFromApi();
+    
+    // Set loading to false even if nothing loaded
+    if (!loadedFromStorage && (!isAuthenticated || !user)) {
+      setIsLoading(false);
     }
   }, [isAuthenticated, user]);
 
@@ -61,6 +96,7 @@ export const FavoritesProvider = ({ children }) => {
           headers: { 'Content-Type': 'application/json' }
         });
         setBackendAvailable(response.ok);
+        console.log("Backend availability check:", response.ok ? "✅ Available" : "❌ Unavailable");
       } catch (error) {
         console.log('Backend unavailable:', error);
         setBackendAvailable(false);
@@ -77,10 +113,13 @@ export const FavoritesProvider = ({ children }) => {
 
   // Sync with local storage whenever favorites change
   useEffect(() => {
-    if (usingLocalStorage && favorites.length > 0) {
+    if (favorites.length > 0) {
+      // Always save to both storage types for maximum persistence
       saveLocalFavorites(favorites);
+      saveSessionFavorites(favorites);
+      console.log("Favorites changed, saved to storage:", favorites);
     }
-  }, [favorites, usingLocalStorage]);
+  }, [favorites]);
 
   // Load favorites synchronously from sessionStorage (for immediate display during refreshes)
   const loadSessionFavoritesSync = () => {
@@ -101,7 +140,7 @@ export const FavoritesProvider = ({ children }) => {
   // Save favorites to sessionStorage
   const saveSessionFavorites = (favs) => {
     try {
-      if (typeof window !== 'undefined') {
+      if (typeof window !== 'undefined' && favs && Array.isArray(favs)) {
         sessionStorage.setItem(SESSION_FAVORITES_KEY, JSON.stringify(favs));
       }
     } catch (error) {
@@ -128,13 +167,12 @@ export const FavoritesProvider = ({ children }) => {
   // Save favorites to localStorage
   const saveLocalFavorites = (favs) => {
     try {
-      if (typeof window !== 'undefined') {
+      if (typeof window !== 'undefined' && favs && Array.isArray(favs)) {
+        console.log('Saving to localStorage:', favs);
         localStorage.setItem(LOCAL_FAVORITES_KEY, JSON.stringify(favs));
-        // Also save to session storage for better refresh handling
-        saveSessionFavorites(favs);
       }
     } catch (error) {
-      console.error('Error saving to localStorage:', error);
+      console.error('Error saving to storage:', error);
     }
   };
 
@@ -144,37 +182,46 @@ export const FavoritesProvider = ({ children }) => {
       if (typeof window !== 'undefined') {
         const localFavs = localStorage.getItem(LOCAL_FAVORITES_KEY);
         if (localFavs) {
-          setFavorites(JSON.parse(localFavs));
+          const parsedFavs = JSON.parse(localFavs);
+          setFavorites(parsedFavs);
           setUsingLocalStorage(true);
           // Also update session storage
-          saveSessionFavorites(JSON.parse(localFavs));
+          saveSessionFavorites(parsedFavs);
+          return parsedFavs;
         } else {
           setFavorites([]);
           setUsingLocalStorage(true);
+          return [];
         }
       } else {
         setFavorites([]);
         setUsingLocalStorage(true);
+        return [];
       }
     } catch (error) {
       console.error('Error loading from localStorage:', error);
       setFavorites([]);
       setUsingLocalStorage(true);
+      return [];
     }
   };
 
   // Load user's favorites from the API
   const loadFavorites = async () => {
     if (!backendAvailable) {
-      loadLocalFavorites();
-      return;
+      const localFavs = loadLocalFavorites();
+      console.log("Backend unavailable, using local favorites:", localFavs);
+      return localFavs;
     }
 
     try {
       setIsLoading(true);
       setError(null);
       
+      console.log("Loading favorites from API...");
       const response = await apiService.user.getFavorites();
+      console.log("API favorites response:", response);
+      
       if (response.data) {
         setFavorites(response.data);
         setUsingLocalStorage(false);
@@ -182,7 +229,11 @@ export const FavoritesProvider = ({ children }) => {
         // Also update localStorage and sessionStorage for persistence
         saveLocalFavorites(response.data);
         saveSessionFavorites(response.data);
+        
+        console.log("Loaded favorites from API:", response.data);
+        return response.data;
       }
+      return [];
     } catch (error) {
       console.error('Error loading favorites:', error);
       setError('Failed to load favorites from server. Using local data instead.');
@@ -195,77 +246,115 @@ export const FavoritesProvider = ({ children }) => {
         },
       });
       // Fall back to localStorage
-      loadLocalFavorites();
+      const localFavs = loadLocalFavorites();
       setBackendAvailable(false);
+      return localFavs;
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Check if a car is in favorites
+  // Check if a car is in favorites - improved version
   const isFavorite = (carId) => {
     if (!favorites || favorites.length === 0) return false;
     
-    // Always work with string version of IDs for comparison
-    const normalizedId = String(carId);
-    console.log(`Checking if ${normalizedId} is in favorites`);
+    // Normalize to number if possible
+    let numericId = null;
+    if (typeof carId === 'number') {
+      numericId = carId; 
+    } else if (typeof carId === 'string' && /^\d+$/.test(carId)) {
+      numericId = parseInt(carId, 10);
+    }
     
-    // Check against all possible formats
+    console.log(`Checking if ${carId} (${typeof carId}) is favorite, numeric: ${numericId}`);
+    console.log("Current favorites:", favorites);
+    
     const result = favorites.some(fav => {
-      if (typeof fav === 'object') {
-        const favIdStr1 = String(fav._id || '');
-        const favIdStr2 = String(fav.id || '');
-        return favIdStr1 === normalizedId || favIdStr2 === normalizedId;
-      } else {
-        const favIdStr = String(fav || '');
-        return favIdStr === normalizedId;
+      // Object type favorite (from API)
+      if (typeof fav === 'object' && fav !== null) {
+        const favId = fav.id || fav._id;
+        const match = favId === carId || 
+                     (numericId !== null && (favId === numericId || Number(favId) === numericId)) ||
+                     String(favId) === String(carId);
+        if (match) console.log(`Match found: object with ID ${favId}`);
+        return match;
+      } 
+      // Number type (from local storage)
+      else if (typeof fav === 'number' && numericId !== null) {
+        const match = fav === numericId;
+        if (match) console.log(`Match found: number ${fav} === ${numericId}`);
+        return match;
       }
+      // String type
+      else if (typeof fav === 'string') {
+        // Try numeric comparison if both can be numbers
+        if (numericId !== null && /^\d+$/.test(fav)) {
+          const match = parseInt(fav, 10) === numericId;
+          if (match) console.log(`Match found: string "${fav}" as number === ${numericId}`);
+          return match;
+        }
+        // String comparison
+        const match = String(fav) === String(carId);
+        if (match) console.log(`Match found: string "${fav}" === "${carId}"`);
+        return match;
+      }
+      // Fallback
+      return String(fav) === String(carId);
     });
     
-    console.log(`Is ${normalizedId} in favorites? ${result}`);
+    console.log(`isFavorite result for ${carId}: ${result}`);
     return result;
   };
 
   // Add a car to favorites
   const addToFavorites = async (carId) => {
-    // CRITICAL FIX: Always use a consistent string format for IDs
-    const normalizedId = String(carId);
-    console.log("Raw Adding to favorites, ID:", carId, "type:", typeof carId);
-    console.log("Normalized Adding to favorites, ID:", normalizedId);
+    // Normalize to number for sample data
+    let idToStore = carId;
+    if (typeof carId === 'string' && /^\d+$/.test(carId)) {
+      idToStore = parseInt(carId, 10);
+    }
     
-    // Check if it's already a favorite with normalized ID
-    if (isFavorite(normalizedId)) {
+    console.log(`Adding to favorites: ID ${idToStore} (${typeof idToStore})`);
+    
+    // Check if already in favorites
+    if (isFavorite(idToStore)) {
       console.log("Already in favorites, skipping");
       return { success: true };
     }
     
-    // Always update local state immediately with the normalized ID for better UX
-    const newFavorites = [...favorites, normalizedId];
-    console.log("New favorites:", newFavorites);
+    // Update local state immediately with the new favorite
+    const newFavorites = [...favorites, idToStore];
+    console.log("Setting favorites to:", newFavorites);
     setFavorites(newFavorites);
+    
+    // Save to storage
     saveLocalFavorites(newFavorites);
     saveSessionFavorites(newFavorites);
     
+    // If not authenticated or backend unavailable, just use local storage
     if (!isAuthenticated || !backendAvailable) {
       setUsingLocalStorage(true);
+      console.log("Using local storage for favorites");
       return { success: true };
     }
 
     // For MongoDB, convert the ID to a compatible format
-    const mongoCompatibleId = ensureMongoId(normalizedId);
-
     try {
       setIsLoading(true);
       setError(null);
+      
+      const mongoCompatibleId = ensureMongoId(idToStore);
+      console.log("Using MongoDB-compatible ID:", mongoCompatibleId);
       
       try {
         const response = await apiService.user.addToFavorites(mongoCompatibleId);
         
         if (response.status === 'success') {
-          // Reload favorites to get updated list
-          await loadFavorites();
+          // Reload favorites from API but don't wait
+          loadFavorites().catch(console.error);
           return { success: true };
         } else {
+          console.warn("API responded with an error:", response.message);
           throw new Error(response.message || 'Failed to add to favorites');
         }
       } catch (apiError) {
@@ -294,50 +383,68 @@ export const FavoritesProvider = ({ children }) => {
 
   // Remove a car from favorites
   const removeFromFavorites = async (carId) => {
-    // CRITICAL FIX: Always use a consistent string format for IDs
-    const normalizedId = String(carId);
-    console.log("Raw Removing from favorites, ID:", carId, "type:", typeof carId);
-    console.log("Normalized Removing from favorites, ID:", normalizedId);
+    // Normalize to number for sample data
+    let idToRemove = carId;
+    if (typeof carId === 'string' && /^\d+$/.test(carId)) {
+      idToRemove = parseInt(carId, 10);
+    }
     
-    // Always update local state immediately for better UX
+    console.log(`Removing from favorites: ID ${idToRemove} (${typeof idToRemove})`);
+    
+    // Make sure it's actually in favorites
+    if (!isFavorite(idToRemove)) {
+      console.log("Not in favorites, nothing to remove");
+      return { success: true };
+    }
+    
+    // Update local state immediately by filtering out the removed favorite
     const newFavorites = favorites.filter(fav => {
       if (typeof fav === 'object') {
-        return String(fav._id || '') !== normalizedId && String(fav.id || '') !== normalizedId;
+        const favId = fav.id || fav._id;
+        return favId !== idToRemove && String(favId) !== String(idToRemove);
+      } else if (typeof fav === 'number' && typeof idToRemove === 'number') {
+        return fav !== idToRemove;
       } else {
-        return String(fav) !== normalizedId;
+        return String(fav) !== String(idToRemove);
       }
     });
     
-    console.log("New favorites after removal:", newFavorites);
+    console.log("Setting favorites to:", newFavorites);
     setFavorites(newFavorites);
+    
+    // Save to storage
     saveLocalFavorites(newFavorites);
     saveSessionFavorites(newFavorites);
     
+    // If not authenticated or backend unavailable, just use local storage
     if (!isAuthenticated || !backendAvailable) {
       setUsingLocalStorage(true);
+      console.log("Using local storage for favorites");
       return { success: true };
     }
 
     // For MongoDB, convert the ID to a compatible format
-    const mongoCompatibleId = ensureMongoId(normalizedId);
-
     try {
       setIsLoading(true);
       setError(null);
+      
+      const mongoCompatibleId = ensureMongoId(idToRemove);
+      console.log("Using MongoDB-compatible ID:", mongoCompatibleId);
       
       try {
         const response = await apiService.user.removeFromFavorites(mongoCompatibleId);
         
         if (response.status === 'success') {
-          // Reload favorites to get updated list
-          await loadFavorites();
+          // Reload favorites from API but don't wait
+          loadFavorites().catch(console.error);
           return { success: true };
         } else {
+          console.warn("API responded with an error:", response.message);
           throw new Error(response.message || 'Failed to remove from favorites');
         }
       } catch (apiError) {
         console.error('API Error removing from favorites:', apiError);
-        // Already updated localStorage above
+        // Already saved to local storage above
         setUsingLocalStorage(true);
         setBackendAvailable(false);
         toast('Removed from local favorites (server unavailable)', {
@@ -400,18 +507,23 @@ export const FavoritesProvider = ({ children }) => {
 
   // Toggle favorite status
   const toggleFavorite = async (carId) => {
-    console.log("Toggle favorite for carId:", carId);
+    // Normalize to number for sample data
+    let idToToggle = carId;
+    if (typeof carId === 'string' && /^\d+$/.test(carId)) {
+      idToToggle = parseInt(carId, 10);
+    }
     
-    // Make sure we have a normalized ID
-    const normalizedId = String(carId);
-    console.log("Using normalized ID:", normalizedId);
+    console.log(`Toggling favorite: ID ${idToToggle} (${typeof idToToggle})`);
     
-    if (isFavorite(normalizedId)) {
-      console.log("Car is in favorites, removing it");
-      return await removeFromFavorites(normalizedId);
+    // Check current favorite status
+    const isCurrentlyFavorite = isFavorite(idToToggle);
+    console.log(`Is currently favorite? ${isCurrentlyFavorite}`);
+    
+    // Toggle based on current state
+    if (isCurrentlyFavorite) {
+      return await removeFromFavorites(idToToggle);
     } else {
-      console.log("Car is not in favorites, adding it");
-      return await addToFavorites(normalizedId);
+      return await addToFavorites(idToToggle);
     }
   };
 
