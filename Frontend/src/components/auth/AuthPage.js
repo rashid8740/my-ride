@@ -89,7 +89,13 @@ const LoginForm = ({ onToggle }) => {
       setIsSubmitting(true);
       setError("");
       
-      await login({ email, password });
+      console.log("Attempting login with:", email);
+      const result = await login({ email, password });
+      console.log("Login result:", result);
+      
+      if (!result.success) {
+        throw new Error(result.message || "Login failed.");
+      }
       
       // Save to local storage if remember me is checked
       if (rememberMe) {
@@ -98,9 +104,11 @@ const LoginForm = ({ onToggle }) => {
         localStorage.removeItem("rememberedEmail");
       }
       
+      console.log("Login successful, redirecting to home page");
       // Redirect to home page
       router.push("/");
     } catch (err) {
+      console.error("Login error in form:", err);
       setError(err.message || "Login failed. Please check your credentials.");
       
       // If it's admin login and we got a network error, check backend connectivity

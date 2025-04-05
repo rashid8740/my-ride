@@ -11,9 +11,10 @@ const apiService = {
   async request(endpoint, options = {}) {
     const url = `${API_URL}/api${endpoint}`;
     
-    // For debugging - log URL and options for login requests
-    if (endpoint === '/auth/login') {
-      console.log('Login request to:', url);
+    // For debugging - log URL and options for important requests
+    if (endpoint.includes('/auth/login')) {
+      console.log('API Request to:', url);
+      console.log('Request options:', {...options, body: options.body ? '[REDACTED]' : undefined});
     }
     
     // Default headers
@@ -34,39 +35,43 @@ const apiService = {
     };
     
     try {
-      // For debugging - log login attempts
-      if (endpoint === '/auth/login') {
-        console.log('Attempting login with config:', JSON.stringify({
-          method: config.method,
-          headers: config.headers,
-          bodyLength: config.body ? config.body.length : 0
-        }));
-      }
-      
+      // Send the request
       const response = await fetch(url, config);
       
-      // For debugging - log login response
-      if (endpoint === '/auth/login') {
+      // For debugging - log important responses
+      if (endpoint.includes('/auth/login')) {
         console.log('Login response status:', response.status);
+        console.log('Login response headers:', Object.fromEntries([...response.headers]));
       }
+      
+      // Clone response for raw access if parsing fails
+      const clonedResponse = response.clone();
       
       // Parse JSON response
       let data;
       try {
         data = await response.json();
         
-        // For debugging - log login response data structure
-        if (endpoint === '/auth/login') {
-          console.log('Login response data structure:', Object.keys(data));
+        // For debugging - log important response data
+        if (endpoint.includes('/auth/login')) {
+          console.log('Login response data:', {
+            status: data.status,
+            message: data.message,
+            dataStructure: data.data ? Object.keys(data.data) : 'no data field',
+            hasToken: data.token ? 'yes' : (data.data?.token ? 'in data.token' : 'no token found')
+          });
         }
       } catch (jsonError) {
         console.error('Failed to parse JSON response:', jsonError);
+        // Try to get raw text for better debugging
+        const rawText = await clonedResponse.text();
+        console.error('Raw response text:', rawText.substring(0, 500));
         throw new Error('Invalid response from server. Please try again later.');
       }
       
       // Handle API errors
       if (!response.ok) {
-        throw new Error(data.message || 'Something went wrong');
+        throw new Error(data.message || `Server error (${response.status})`);
       }
       
       return data;

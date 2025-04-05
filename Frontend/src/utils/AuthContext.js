@@ -104,24 +104,34 @@ export const AuthProvider = ({ children }) => {
     setError(null);
     
     try {
+      console.log("Attempting login with credentials:", {...credentials, password: '****'});
       const response = await apiService.auth.login(credentials);
+      console.log("Login response:", response);
       
-      if (response.status === 'success') {
+      // Check if we have a token in the response
+      if (response.token || (response.data && response.data.token)) {
+        // Get the token from wherever it is in the response
+        const token = response.token || response.data.token;
+        
         // Store token
-        localStorage.setItem('token', response.token);
+        localStorage.setItem('token', token);
+        
+        // Get user data
+        const userData = response.data?.user || response.user || response.data;
         
         // Set user state
-        setUser(response.data.user);
+        setUser(userData);
         setIsAuthenticated(true);
         
         // Store user in session storage for better refresh handling
         if (typeof window !== 'undefined') {
-          sessionStorage.setItem(SESSION_AUTH_KEY, JSON.stringify(response.data.user));
+          sessionStorage.setItem(SESSION_AUTH_KEY, JSON.stringify(userData));
         }
         
         return { success: true };
       } else {
-        throw new Error(response.message || 'Login failed');
+        console.error("No token in response:", response);
+        throw new Error(response.message || 'Login failed - no token received');
       }
     } catch (error) {
       console.error('Login error:', error);
