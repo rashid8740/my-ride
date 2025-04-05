@@ -46,39 +46,59 @@ export default function UsersPage() {
     newUsers: 0
   });
 
+  // Define fetchUsers function outside useEffect so it can be referenced elsewhere
+  const fetchUsers = async () => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      // Get real data from the API
+      const response = await apiService.users.getAll();
+      const userData = response.data || [];
+      
+      setUsers(userData);
+      
+      // Calculate stats
+      setStatsData({
+        totalUsers: userData.length,
+        activeUsers: userData.filter(user => user.role === 'user').length,
+        adminUsers: userData.filter(user => user.role === 'admin').length,
+        newUsers: userData.filter(user => {
+          const createdAt = new Date(user.createdAt);
+          const thirtyDaysAgo = new Date();
+          thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+          return createdAt >= thirtyDaysAgo;
+        }).length
+      });
+      
+      setIsLoading(false);
+    } catch (err) {
+      console.error('Error fetching users:', err);
+      
+      // Set more specific error message based on error type
+      if (err.message && err.message.includes('Network error')) {
+        setError('Failed to load users data. Please check if the backend server is running.');
+      } else if (err.message && err.message.includes('MongoDB connection error')) {
+        setError('Database connection issue. Please contact the administrator.');
+      } else {
+        setError('Failed to load users data. Please try again later.');
+      }
+      
+      // Set empty state values
+      setUsers([]);
+      setStatsData({
+        totalUsers: 0,
+        activeUsers: 0,
+        adminUsers: 0,
+        newUsers: 0
+      });
+      
+      setIsLoading(false);
+    }
+  };
+
   // Fetch users data
   useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        setIsLoading(true);
-        
-        // Get real data from the API
-        const response = await apiService.users.getAll();
-        const userData = response.data || [];
-        
-        setUsers(userData);
-        
-        // Calculate stats
-        setStatsData({
-          totalUsers: userData.length,
-          activeUsers: userData.filter(user => user.role === 'user').length,
-          adminUsers: userData.filter(user => user.role === 'admin').length,
-          newUsers: userData.filter(user => {
-            const createdAt = new Date(user.createdAt);
-            const thirtyDaysAgo = new Date();
-            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-            return createdAt >= thirtyDaysAgo;
-          }).length
-        });
-        
-        setIsLoading(false);
-      } catch (err) {
-        console.error('Error fetching users:', err);
-        setError('Failed to load users data. Please check if the backend server is running.');
-        setIsLoading(false);
-      }
-    };
-
     fetchUsers();
   }, []);
 
@@ -521,6 +541,30 @@ export default function UsersPage() {
                 Delete
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {error && (
+        <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="flex items-center">
+            <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
+            <p className="text-red-700">{error}</p>
+          </div>
+          <div className="mt-2 flex justify-end">
+            <button 
+              onClick={() => {
+                setIsLoading(true);
+                setError(null);
+                setTimeout(() => {
+                  fetchUsers();
+                }, 500);
+              }}
+              className="px-4 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-md text-sm font-medium flex items-center"
+            >
+              <Loader2 className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+              Retry
+            </button>
           </div>
         </div>
       )}
