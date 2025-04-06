@@ -1,5 +1,7 @@
 const mongoose = require('mongoose');
 
+// Contact schema fields: name, email, phone, subject, message, car (ref: 'Car'), status, etc.
+// Note: This schema does not have a 'user' field, only 'assignedTo' references a User
 const contactSchema = new mongoose.Schema({
   name: {
     type: String,
@@ -37,8 +39,8 @@ const contactSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['New', 'In Progress', 'Resolved', 'Closed'],
-    default: 'New'
+    enum: ['new', 'inProgress', 'resolved', 'closed'],
+    default: 'new'
   },
   assignedTo: {
     type: mongoose.Schema.Types.ObjectId,

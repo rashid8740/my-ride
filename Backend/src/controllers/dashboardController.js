@@ -16,8 +16,7 @@ exports.getDashboardStats = async (req, res) => {
     const recentInquiries = await Contact.find()
       .sort({ createdAt: -1 })
       .limit(5)
-      .populate('car', 'make model year images')
-      .populate('user', 'firstName lastName email');
+      .populate('car', 'make model year images');
     
     // Get recent users
     const recentUsers = await User.find()
