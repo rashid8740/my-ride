@@ -51,40 +51,52 @@ const ActivityItem = ({ icon, title, description, time, type = "neutral" }) => {
 const StatCard = ({ title, value, change, icon, color, subtext, trend = "up", onClick }) => {
   const getBgColor = () => {
     switch(color) {
-      case "green": return "from-green-500 to-green-600";
-      case "yellow": return "from-yellow-500 to-yellow-600";
-      case "orange": return "from-orange-500 to-orange-600";
-      case "blue": return "from-blue-500 to-blue-600";
-      case "purple": return "from-purple-500 to-purple-600";
-      default: return "from-orange-500 to-orange-600";
+      case "green": return "from-green-50 to-green-100 border-green-200";
+      case "yellow": return "from-yellow-50 to-yellow-100 border-yellow-200";
+      case "orange": return "from-orange-50 to-orange-100 border-orange-200";
+      case "blue": return "from-blue-50 to-blue-100 border-blue-200";
+      case "purple": return "from-purple-50 to-purple-100 border-purple-200";
+      default: return "from-orange-50 to-orange-100 border-orange-200";
+    }
+  };
+
+  const getIconColor = () => {
+    switch(color) {
+      case "green": return "text-green-600";
+      case "yellow": return "text-yellow-600";
+      case "orange": return "text-orange-600";
+      case "blue": return "text-blue-600";
+      case "purple": return "text-purple-600";
+      default: return "text-orange-600";
     }
   };
   
   return (
-    <div onClick={onClick} className={`bg-white rounded-xl shadow-sm overflow-hidden transition transform hover:shadow-md ${onClick ? 'cursor-pointer hover:scale-[1.01]' : ''}`}>
-      <div className="p-6">
-        <div className="flex items-center">
-          <div className={`rounded-full p-3 bg-gradient-to-br ${getBgColor()} text-white mr-4`}>
+    <div 
+      onClick={onClick} 
+      className={`bg-white rounded-xl shadow-sm overflow-hidden transition transform hover:shadow-md border ${onClick ? 'cursor-pointer hover:scale-[1.01]' : ''}`}
+    >
+      <div className={`p-6 bg-gradient-to-br ${getBgColor()}`}>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-medium text-gray-600">{title}</h3>
+          <div className={`p-2 rounded-lg ${getIconColor()} bg-white/70 backdrop-blur-sm`}>
             {icon}
           </div>
-          <div className="flex-1">
-            <p className="text-sm font-medium text-gray-500">{title}</p>
-            <div className="flex items-center">
-              <p className="text-2xl font-bold text-gray-900">{value}</p>
-              {change && (
-                <div className={`ml-2 flex items-center text-xs font-medium ${trend === "up" ? "text-green-600" : "text-red-600"}`}>
-                  {trend === "up" ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}
-                  {change}
-                </div>
-              )}
+        </div>
+        <div className="flex flex-col">
+          <p className="text-3xl font-bold text-gray-900 mb-1.5">{value}</p>
+          {change && (
+            <div className={`flex items-center text-sm font-medium ${trend === "up" ? "text-green-600" : "text-red-600"}`}>
+              {trend === "up" ? <TrendingUp className="h-3.5 w-3.5 mr-1" /> : <TrendingDown className="h-3.5 w-3.5 mr-1" />}
+              {change}
             </div>
-            {subtext && <p className="text-xs text-gray-500 mt-0.5">{subtext}</p>}
-          </div>
+          )}
+          {subtext && <p className="text-xs text-gray-500 mt-0.5">{subtext}</p>}
         </div>
       </div>
       {onClick && (
-        <div className="bg-gray-50 px-6 py-2 border-t border-gray-100">
-          <Link href={typeof onClick === 'string' ? onClick : '#'} className="flex items-center justify-between text-xs font-medium text-orange-500 hover:text-orange-600">
+        <div className="px-6 py-2 border-t border-gray-100">
+          <Link href={typeof onClick === 'string' ? onClick : '#'} className="flex items-center justify-between text-xs font-medium text-gray-500 hover:text-orange-600 transition-colors">
             <span>View details</span>
             <ChevronRight className="h-3 w-3" />
           </Link>
@@ -110,10 +122,13 @@ const ProgressBar = ({ value, max, color = "orange" }) => {
   };
   
   return (
-    <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+    <div className="w-full h-2.5 bg-gray-200 rounded-full overflow-hidden">
       <div 
-        className={`h-full ${getBarColor()}`} 
-        style={{ width: `${percentage}%` }}
+        className={`h-full ${getBarColor()} rounded-full`} 
+        style={{ 
+          width: `${percentage}%`,
+          transition: 'width 1s ease-in-out'
+        }}
       ></div>
     </div>
   );
@@ -276,35 +291,20 @@ export default function AdminDashboard() {
   return (
     <div>
       <div className="mb-8">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-            <p className="text-gray-500">Welcome back, {user?.firstName}. Here's what's happening today.</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Dashboard</h1>
+            <p className="text-gray-600">Welcome back, <span className="font-semibold text-gray-800">{user?.firstName}</span>. Here's your business overview.</p>
           </div>
-          <div className="mt-4 md:mt-0 flex space-x-2">
-            <button className="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-orange-500 flex items-center">
-              <Calendar className="h-4 w-4 mr-2" />
-              Today
-            </button>
-            <button className="px-4 py-2 bg-orange-500 rounded-lg text-sm font-medium text-white hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-500 flex items-center">
-              <ArrowUpRight className="h-4 w-4 mr-2" />
-              Export
-            </button>
-          </div>
-        </div>
-        
-        {/* Dashboard Alerts */}
-        <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-6">
-          <div className="flex">
-            <div className="flex-shrink-0">
-              <ShieldCheck className="h-5 w-5 text-orange-500" />
+          <div className="mt-4 md:mt-0 flex flex-wrap sm:flex-nowrap gap-3">
+            <div className="bg-orange-50 px-4 py-2 rounded-xl border border-orange-100 flex items-center">
+              <Calendar className="h-4 w-4 text-orange-500 mr-2" />
+              <span className="text-sm font-medium text-gray-700">{new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
             </div>
-            <div className="ml-3">
-              <h3 className="text-sm font-medium text-orange-800">Pro tip</h3>
-              <div className="mt-1 text-sm text-orange-700">
-                <p>Complete your dealership profile to attract more customers. Your profile is 70% complete. <a href="#" className="font-medium underline hover:text-orange-800">Complete now</a></p>
-              </div>
-            </div>
+            <button className="px-4 py-2 bg-orange-500 rounded-xl text-sm font-medium text-white hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition-colors shadow-sm flex items-center gap-2">
+              <ArrowUpRight className="h-4 w-4" />
+              <span>Export Report</span>
+            </button>
           </div>
         </div>
       </div>
@@ -347,36 +347,54 @@ export default function AdminDashboard() {
       </div>
       
       {/* Sales Goal */}
-      <div className="bg-white rounded-xl shadow-sm p-6 mb-8">
+      <div className="bg-white rounded-xl shadow-sm p-6 mb-8 border border-gray-100">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
           <div>
-            <h2 className="text-lg font-semibold text-gray-900">Monthly Sales Goal</h2>
+            <h2 className="text-lg font-semibold text-gray-900 mb-1">Monthly Sales Goal</h2>
             <p className="text-sm text-gray-500">Progress toward this month's target</p>
           </div>
-          <div className="mt-2 md:mt-0">
-            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-orange-100 text-orange-800">
-              <Tag className="h-3.5 w-3.5 mr-1" />
+          <div className="mt-3 md:mt-0">
+            <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-orange-100 text-orange-800 shadow-sm">
+              <Tag className="h-3.5 w-3.5 mr-1.5" />
               Q2 Goal
             </span>
           </div>
         </div>
         
-        <div className="flex flex-col md:flex-row md:items-end md:justify-between mb-2">
-          <div className="text-3xl font-bold text-gray-900">KSh {currentSales.toLocaleString()} <span className="text-sm font-normal text-gray-500">of KSh {salesGoal.toLocaleString()}</span></div>
-          <div className="mt-2 md:mt-0 text-sm text-gray-500">{Math.round(salesPercentage)}% to goal</div>
+        <div className="mb-4 bg-gradient-to-r from-orange-50 to-orange-100 p-5 rounded-xl border border-orange-200">
+          <div className="flex flex-col md:flex-row md:items-end md:justify-between">
+            <div>
+              <div className="text-sm text-gray-500 mb-1">Current sales</div>
+              <div className="text-3xl font-bold text-gray-900">KSh {currentSales.toLocaleString()}</div>
+            </div>
+            <div className="mt-4 md:mt-0 md:text-right">
+              <div className="text-sm text-gray-500 mb-1">Target</div>
+              <div className="text-xl font-semibold text-gray-700">KSh {salesGoal.toLocaleString()}</div>
+            </div>
+          </div>
+          
+          <div className="mt-4">
+            <div className="flex justify-between mb-1.5">
+              <div className="text-xs font-medium text-gray-500">Progress</div>
+              <div className="text-xs font-semibold text-orange-600">{Math.round(salesPercentage)}%</div>
+            </div>
+            <ProgressBar value={currentSales} max={salesGoal} color="orange" />
+          </div>
         </div>
         
-        <ProgressBar value={currentSales} max={salesGoal} color="orange" />
-        
-        <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
           {stats.salesByMonth.map((month, index) => (
-            <div key={month.month} className="flex items-center">
-              <div className="w-2 h-8 bg-orange-500 rounded-sm mr-2" style={{
-                opacity: 0.4 + (index / stats.salesByMonth.length) * 0.6
-              }}></div>
-              <div>
-                <div className="text-sm font-medium text-gray-700">{month.month}</div>
-                <div className="text-xs text-gray-500">KSh {month.amount.toLocaleString()}</div>
+            <div key={month.month} className="flex flex-col p-3 bg-gray-50 rounded-lg border border-gray-100">
+              <div className="text-sm font-medium text-gray-700 mb-1">{month.month}</div>
+              <div className="text-lg font-semibold text-gray-900">KSh {month.amount.toLocaleString()}</div>
+              <div className="mt-2 bg-gray-200 h-1 w-full rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-orange-500 rounded-full" 
+                  style={{
+                    width: `${(month.amount / Math.max(...stats.salesByMonth.map(m => m.amount))) * 100}%`,
+                    opacity: 0.6 + (index / stats.salesByMonth.length) * 0.4
+                  }}
+                ></div>
               </div>
             </div>
           ))}
