@@ -81,13 +81,6 @@ exports.deleteFile = (filePath) => {
   }
 };
 
-// Configure Cloudinary
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET
-});
-
 // Create Cloudinary storage for different types of uploads
 const createCloudinaryStorage = (folder) => {
   return new CloudinaryStorage({
@@ -95,17 +88,53 @@ const createCloudinaryStorage = (folder) => {
     params: {
       folder: `my-ride/${folder}`,
       allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
-      transformation: [
-        { width: 1200, height: 800, crop: 'limit' }
-      ]
+      // Remove transformations that might be causing issues
+      format: 'auto'
     }
   });
 };
 
-// Multer storages for different upload types
-const carImageStorage = createCloudinaryStorage('cars');
-const avatarStorage = createCloudinaryStorage('avatars');
-const logoStorage = createCloudinaryStorage('logos');
+// Declare carImageStorage variable before conditional
+let carImageStorage;
+let avatarStorage;
+let logoStorage;
+
+// Initialize Cloudinary if environment variables are set
+if (process.env.CLOUDINARY_CLOUD_NAME && 
+    process.env.CLOUDINARY_API_KEY && 
+    process.env.CLOUDINARY_API_SECRET) {
+  console.log('Cloudinary configuration found - enabling cloud storage');
+  
+  // Set up Cloudinary configuration
+  cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+    secure: true, // Use HTTPS
+    timeout: 60000 // Increase timeout to 60 seconds
+  });
+  
+  // Set up storage for car images - simplified configuration
+  carImageStorage = new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: {
+      folder: 'my-ride/cars',
+      format: 'auto',
+      public_id: (req, file) => `car-${Date.now()}-${Math.round(Math.random() * 1e6)}`
+      // Removed transformation to avoid issues
+    }
+  });
+  
+  // Initialize other storage types
+  avatarStorage = createCloudinaryStorage('avatars');
+  logoStorage = createCloudinaryStorage('logos');
+} else {
+  console.log('No Cloudinary config found - using local storage');
+  // Fallback to local storage
+  carImageStorage = storage;
+  avatarStorage = storage;
+  logoStorage = storage;
+}
 
 // File size limit (10MB)
 const fileSize = 10 * 1024 * 1024;

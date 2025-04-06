@@ -5,36 +5,36 @@ const dotenv = require('dotenv');
 
 dotenv.config();
 
-// Configure Cloudinary
+// Configure Cloudinary with improved timeout
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+  secure: true,
+  timeout: 60000 // 60 seconds timeout
 });
 
-// Set up storage for car images
+// Set up storage for car images with simplified config
 const carStorage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
     folder: 'my-ride/cars',
-    format: async (req, file) => 'auto', // Automatically detect format
+    format: 'auto', // Auto detect format
     public_id: (req, file) => {
-      // Generate a unique public_id based on car ID and timestamp
+      // Generate a unique public_id based on timestamp
       const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
       return `car-${uniqueSuffix}`;
-    },
-    transformation: [
-      { width: 1200, crop: 'limit' }, // Set max width while maintaining aspect ratio
-      { quality: 'auto' } // Auto optimize quality
-    ]
+    }
+    // Removed transformations to avoid upload issues
   }
 });
 
-// Create multer upload instances for different use cases
+// Create multer upload instances with extended timeout
 const uploadCarImages = multer({ 
   storage: carStorage,
   limits: {
     fileSize: 10 * 1024 * 1024, // 10MB limit
+    fieldSize: 10 * 1024 * 1024 // 10MB field size limit
   },
   fileFilter: (req, file, cb) => {
     // Accept only image files
@@ -48,7 +48,9 @@ const uploadCarImages = multer({
 // Utility function to delete images from Cloudinary
 const deleteImage = async (publicId) => {
   try {
+    console.log('Attempting to delete image with publicId:', publicId);
     const result = await cloudinary.uploader.destroy(publicId);
+    console.log('Cloudinary deletion result:', result);
     return result;
   } catch (error) {
     console.error('Error deleting image from Cloudinary:', error);

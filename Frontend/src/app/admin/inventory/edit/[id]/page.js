@@ -439,11 +439,19 @@ export default function EditCarPage({ params }) {
             console.log(`FormData contains: ${pair[0]}, ${pair[1].name}`);
           }
           
-          // Set loading state for upload
-          toast.loading('Uploading images...', { id: 'imageUpload' });
+          // Set loading state for upload with longer timeout
+          toast.loading('Uploading images... This may take up to 60 seconds for large files.', { 
+            id: 'imageUpload',
+            duration: 60000 // Allow for 60-second timeout
+          });
           
-          // Upload images directly to backend API
-          const imageUploadResponse = await fetch(`${baseApiUrl}/api/cars/${id}/images`, {
+          // Create a timeout promise to handle long uploads
+          const timeout = new Promise((_, reject) => {
+            setTimeout(() => reject(new Error('Upload timed out after 60 seconds')), 60000);
+          });
+          
+          // Upload images directly to backend API with fetch timeout
+          const fetchPromise = fetch(`${baseApiUrl}/api/cars/${id}/images`, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`
@@ -452,6 +460,9 @@ export default function EditCarPage({ params }) {
             },
             body: formData
           });
+          
+          // Race between fetch and timeout
+          const imageUploadResponse = await Promise.race([fetchPromise, timeout]);
           
           const responseText = await imageUploadResponse.text();
           console.log('Raw image upload response:', responseText);
@@ -462,6 +473,7 @@ export default function EditCarPage({ params }) {
             console.log('Parsed image upload response:', uploadResult);
           } catch (e) {
             console.error('Error parsing JSON response:', e);
+            toast.error('Invalid server response format', { id: 'imageUpload' });
             throw new Error(`Invalid server response: ${responseText}`);
           }
           
