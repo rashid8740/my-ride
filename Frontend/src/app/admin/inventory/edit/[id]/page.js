@@ -98,6 +98,10 @@ export default function EditCarPage({ params }) {
     doors: '',
     bodyType: '',
     color: '',
+    interiorColor: '',
+    vin: '039884', // Default VIN for Kenya
+    stock: '',
+    trim: '',
     features: [],
     description: '',
     condition: '',
@@ -187,7 +191,7 @@ export default function EditCarPage({ params }) {
           category: carData.category || '',
           color: carData.color || carData.exteriorColor || '',
           interiorColor: carData.interiorColor || '',
-          vin: carData.vin || '',
+          vin: carData.vin?.length > 10 ? '039884' : (carData.vin || '039884'),
           stock: carData.stock || '',
           trim: carData.trim || '',
           length: carData.length || '',
@@ -328,9 +332,9 @@ export default function EditCarPage({ params }) {
       setErrorMessage('');
       
       // Validation - Check required fields are filled
-      if (!formData.make || !formData.model || !formData.year || !formData.price) {
-        setErrorMessage('Please fill in all required fields');
-        toast.error('Please fill in all required fields');
+      if (!formData.make || !formData.model || !formData.year || !formData.price || !formData.vin) {
+        setErrorMessage('Please fill in all required fields including VIN');
+        toast.error('Please fill in all required fields including VIN');
         setIsLoading(false);
         return;
       }
@@ -352,6 +356,10 @@ export default function EditCarPage({ params }) {
         model: formData.model,
         year: parseInt(formData.year),
         price: parseFloat(formData.price),
+        priceCurrency: 'KSh',
+        priceFormatted: `KSh ${parseFloat(formData.price).toLocaleString()}`,
+        msrp: formData.msrp ? parseFloat(formData.msrp) : undefined,
+        msrpFormatted: formData.msrp ? `KSh ${parseFloat(formData.msrp).toLocaleString()}` : undefined,
         mileage: formData.mileage ? parseInt(formData.mileage) : undefined,
         transmission: formData.transmission,
         fuelType: formData.fuelType,
@@ -770,7 +778,7 @@ export default function EditCarPage({ params }) {
           </div>
           <div>
             <label htmlFor="vin" className={labelClass}>
-              VIN (Vehicle Identification Number)
+              VIN (Vehicle Identification Number) <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
@@ -778,9 +786,10 @@ export default function EditCarPage({ params }) {
               name="vin"
               value={formData.vin}
               onChange={handleInputChange}
-              className={`${inputBaseClass} focus:border-blue-500`}
-              placeholder="Enter vehicle identification number"
+              className={`${inputBaseClass} focus:border-blue-500 font-medium`}
+              placeholder="Enter vehicle chassis/VIN number (e.g., 039884)"
             />
+            <p className="text-xs text-gray-500 mt-1">Enter the short VIN format commonly used in Kenya</p>
           </div>
           <div>
             <label htmlFor="stock" className={labelClass}>
@@ -831,7 +840,7 @@ export default function EditCarPage({ params }) {
           
           <div>
             <label htmlFor="length" className={labelClass}>
-              Length (in)
+              Length (mm)
             </label>
             <input
               type="text"
@@ -840,12 +849,12 @@ export default function EditCarPage({ params }) {
               value={formData.length}
               onChange={handleInputChange}
               className={inputBaseClass}
-              placeholder="e.g., 185.7 in"
+              placeholder="e.g., 4700 mm"
             />
           </div>
           <div>
             <label htmlFor="width" className={labelClass}>
-              Width (in)
+              Width (mm)
             </label>
             <input
               type="text"
@@ -854,12 +863,12 @@ export default function EditCarPage({ params }) {
               onChange={handleInputChange}
               value={formData.width}
               className={inputBaseClass}
-              placeholder="e.g., 74.4 in"
+              placeholder="e.g., 1850 mm"
             />
           </div>
           <div>
             <label htmlFor="height" className={labelClass}>
-              Height (in)
+              Height (mm)
             </label>
             <input
               type="text"
@@ -868,12 +877,12 @@ export default function EditCarPage({ params }) {
               value={formData.height}
               onChange={handleInputChange}
               className={inputBaseClass}
-              placeholder="e.g., 65.3 in"
+              placeholder="e.g., 1650 mm"
             />
           </div>
           <div>
             <label htmlFor="cargoCapacity" className={labelClass}>
-              Cargo Capacity (cu ft)
+              Cargo Capacity (L)
             </label>
             <input
               type="text"
@@ -882,12 +891,12 @@ export default function EditCarPage({ params }) {
               value={formData.cargoCapacity}
               onChange={handleInputChange}
               className={inputBaseClass}
-              placeholder="e.g., 28.7 cu ft"
+              placeholder="e.g., 500 L"
             />
           </div>
           <div>
             <label htmlFor="fuelCapacity" className={labelClass}>
-              Fuel Capacity (gal)
+              Fuel Capacity (L)
             </label>
             <input
               type="text"
@@ -896,7 +905,7 @@ export default function EditCarPage({ params }) {
               value={formData.fuelCapacity}
               onChange={handleInputChange}
               className={inputBaseClass}
-              placeholder="e.g., 17.7 gal"
+              placeholder="e.g., 60 L"
             />
           </div>
         </div>
@@ -930,9 +939,53 @@ export default function EditCarPage({ params }) {
       { category: "Exterior", features: ["Alloy Wheels", "Fog Lights", "LED Headlights", "Panoramic Roof", "Power Liftgate", "Roof Rack", "Tinted Windows", "Running Boards", "Sunroof", "Tow Hitch", "Power Folding Mirrors", "Chrome Accents", "Rear Spoiler"] },
       { category: "Convenience", features: ["Push Button Start", "Power Windows", "Power Locks", "Cruise Control", "Adaptive Cruise Control", "Rain-Sensing Wipers", "Auto-Dimming Mirror", "Automatic Headlights", "Power Outlets", "Keyless Entry", "Hands-Free Trunk", "Memory Settings"] },
       { category: "Driver Assistance", features: ["Automatic Emergency Braking", "Forward Collision Warning", "Pedestrian Detection", "Traffic Sign Recognition", "Driver Attention Monitor", "360-Degree Camera", "Adaptive Headlights", "Self-Parking System", "Traffic Jam Assist", "Night Vision", "Rear Cross Traffic Alert"] },
-      { category: "Engine Specs", features: ["2.0L Turbo", "2.5L Inline-4", "3.0L V6", "3.5L V6", "4.0L V8", "5.0L V8", "Hybrid", "Electric", "Diesel"] },
-      { category: "Dimensions", features: ["Cargo Capacity: 20+ cu ft", "Cargo Capacity: 30+ cu ft", "Cargo Capacity: 40+ cu ft", "Cargo Capacity: 50+ cu ft", "Fuel Capacity: 15+ gal", "Fuel Capacity: 18+ gal", "Fuel Capacity: 20+ gal"] },
-      { category: "Drivetrain", features: ["Front-Wheel Drive", "Rear-Wheel Drive", "All-Wheel Drive", "Four-Wheel Drive", "Part-Time 4WD", "Selectable 4WD"] }
+      { category: "Engine Specs", features: [
+        "1.5L Engine", 
+        "1.6L Engine", 
+        "1.8L Engine", 
+        "2.0L Engine", 
+        "2.2L Diesel", 
+        "2.5L Engine", 
+        "3.0L Engine", 
+        "V6 Engine", 
+        "V8 Engine",
+        "Turbo Charged",
+        "Direct Injection",
+        "Common Rail"
+      ]},
+      { category: "Dimensions", features: [
+        "Length: 4000-4500 mm", 
+        "Length: 4501-5000 mm", 
+        "Length: 5001+ mm",
+        "Width: 1700-1800 mm", 
+        "Width: 1801-1900 mm", 
+        "Width: 1901+ mm",
+        "Height: 1500-1600 mm", 
+        "Height: 1601-1700 mm", 
+        "Height: 1701+ mm",
+        "Cargo Capacity: 300+ L", 
+        "Cargo Capacity: 500+ L", 
+        "Cargo Capacity: 800+ L",
+        "Fuel Capacity: 40+ L", 
+        "Fuel Capacity: 60+ L", 
+        "Fuel Capacity: 80+ L"
+      ]},
+      { category: "Drivetrain", features: ["Front-Wheel Drive", "Rear-Wheel Drive", "All-Wheel Drive", "Four-Wheel Drive", "Part-Time 4WD", "Selectable 4WD"] },
+      { category: "Kenyan Market", features: [
+        "Right-Hand Drive", 
+        "Duty Paid", 
+        "Locally Used", 
+        "First Owner", 
+        "Japanese Import", 
+        "UK Import", 
+        "Dubai Import", 
+        "South Africa Import",
+        "Negotiable",
+        "Fixed Price",
+        "Trade-In Welcome",
+        "Bank Financing Available",
+        "Comprehensive Insurance Available"
+      ]}
     ];
     
     // Get all features from all categories for search
@@ -960,17 +1013,17 @@ export default function EditCarPage({ params }) {
     
     // Add new vehicle specs section
     const vehicleSpecs = [
-      { label: "Engine", options: ["2.0L Turbo", "2.5L Inline-4", "3.0L V6", "3.5L V6", "4.0L V8", "5.0L V8", "Hybrid", "Electric", "Diesel"] },
-      { label: "Horsepower", options: ["150-200 hp", "201-250 hp", "251-300 hp", "301-350 hp", "351-400 hp", "400+ hp"] },
-      { label: "Torque", options: ["150-200 lb-ft", "201-250 lb-ft", "251-300 lb-ft", "301-350 lb-ft", "351-400 lb-ft", "400+ lb-ft"] },
+      { label: "Engine", options: ["1.5L Engine", "1.6L Engine", "1.8L Engine", "2.0L Engine", "2.2L Diesel", "2.5L Engine", "3.0L Engine", "V6 Engine", "V8 Engine"] },
+      { label: "Horsepower", options: ["100-150 hp", "151-200 hp", "201-250 hp", "251-300 hp", "301-350 hp", "351+ hp"] },
+      { label: "Torque", options: ["150-200 Nm", "201-250 Nm", "251-300 Nm", "301-350 Nm", "351-400 Nm", "400+ Nm"] },
       { label: "Transmission", options: ["Manual", "Automatic", "CVT", "Dual-Clutch", "Semi-Automatic"] },
       { label: "Drivetrain", options: ["Front-Wheel Drive", "Rear-Wheel Drive", "All-Wheel Drive", "Four-Wheel Drive"] },
       { label: "Dimensions", options: [
-        "Length: 170-180 in", "Length: 181-190 in", "Length: 191-200 in", "Length: 200+ in",
-        "Width: 70-75 in", "Width: 76-80 in", "Width: 81-85 in", "Width: 85+ in",
-        "Height: 55-60 in", "Height: 61-65 in", "Height: 66-70 in", "Height: 70+ in",
-        "Cargo Capacity: 20+ cu ft", "Cargo Capacity: 30+ cu ft", "Cargo Capacity: 40+ cu ft",
-        "Fuel Capacity: 15+ gal", "Fuel Capacity: 18+ gal", "Fuel Capacity: 20+ gal"
+        "Length: 4000-4500 mm", "Length: 4501-5000 mm", "Length: 5001+ mm",
+        "Width: 1700-1800 mm", "Width: 1801-1900 mm", "Width: 1901+ mm",
+        "Height: 1500-1600 mm", "Height: 1601-1700 mm", "Height: 1701+ mm",
+        "Cargo Capacity: 300+ L", "Cargo Capacity: 500+ L", "Cargo Capacity: 800+ L",
+        "Fuel Capacity: 40+ L", "Fuel Capacity: 60+ L", "Fuel Capacity: 80+ L"
       ]}
     ];
     
@@ -1300,36 +1353,46 @@ export default function EditCarPage({ params }) {
           {/* Price */}
           <div>
             <label htmlFor="price" className={labelClass}>
-              Price <span className="text-red-500">*</span>
+              Price (KSh) <span className="text-red-500">*</span>
             </label>
-            <input
-              type="number"
-              id="price"
-              name="price"
-              value={formData.price}
-              onChange={handleInputChange}
-              className={inputBaseClass}
-              min="0"
-              step="0.01"
-              required
-            />
+            <div className="relative">
+              <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500 font-medium">
+                KSh
+              </span>
+              <input
+                type="number"
+                id="price"
+                name="price"
+                value={formData.price}
+                onChange={handleInputChange}
+                className={`${inputBaseClass} pl-12`}
+                min="0"
+                step="1000"
+                required
+              />
+            </div>
           </div>
           
           {/* MSRP */}
           <div>
             <label htmlFor="msrp" className={labelClass}>
-              MSRP
+              MSRP (KSh)
             </label>
-            <input
-              type="number"
-              id="msrp"
-              name="msrp"
-              value={formData.msrp}
-              onChange={handleInputChange}
-              className={inputBaseClass}
-              min="0"
-              step="0.01"
-            />
+            <div className="relative">
+              <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500 font-medium">
+                KSh
+              </span>
+              <input
+                type="number"
+                id="msrp"
+                name="msrp"
+                value={formData.msrp}
+                onChange={handleInputChange}
+                className={`${inputBaseClass} pl-12`}
+                min="0"
+                step="1000"
+              />
+            </div>
           </div>
           
           {/* Mileage */}
@@ -1381,11 +1444,11 @@ export default function EditCarPage({ params }) {
               className={selectBaseClass}
             >
               <option value="">Select Fuel Type</option>
-              <option value="Gasoline">Gasoline</option>
+              <option value="Petrol">Petrol</option>
               <option value="Diesel">Diesel</option>
               <option value="Hybrid">Hybrid</option>
               <option value="Electric">Electric</option>
-              <option value="Flex Fuel">Flex Fuel</option>
+              <option value="LPG">LPG</option>
             </select>
           </div>
           
