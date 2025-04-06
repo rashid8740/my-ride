@@ -17,7 +17,7 @@ exports.submitInquiry = async (req, res) => {
       message,
       car,
       dealership,
-      status: 'New'
+      status: 'new'
     });
     
     // In a production app, would send notification email to admin/dealer
@@ -44,8 +44,7 @@ exports.submitInquiry = async (req, res) => {
 exports.getAllInquiries = async (req, res) => {
   try {
     const inquiries = await Contact.find()
-      .populate('car', 'make model year price images')
-      .populate('user', 'firstName lastName email');
+      .populate('car', 'make model year price images');
     
     res.status(200).json({
       status: 'success',
@@ -67,8 +66,7 @@ exports.getAllInquiries = async (req, res) => {
 exports.getInquiryById = async (req, res) => {
   try {
     const inquiry = await Contact.findById(req.params.id)
-      .populate('car', 'make model year price images')
-      .populate('user', 'firstName lastName email');
+      .populate('car', 'make model year price images');
     
     if (!inquiry) {
       return res.status(404).json({
