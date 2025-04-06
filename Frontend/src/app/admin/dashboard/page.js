@@ -149,50 +149,96 @@ export default function AdminDashboard() {
         setIsLoading(true);
         setError(null);
         
-        // In a real app, you would fetch from the dashboard endpoint
-        const dashboardData = await apiService.dashboard.getStats();
+        console.log('Fetching dashboard data...');
+        // Add retry logic for dashboard stats
+        let attempts = 0;
+        const maxAttempts = 3;
+        let dashboardData;
         
-        // If that's not available yet, fall back to fetching from multiple endpoints
-        if (!dashboardData) {
+        while (attempts < maxAttempts) {
+          try {
+            console.log(`Attempt ${attempts + 1} to fetch dashboard stats`);
+            dashboardData = await apiService.dashboard.getStats();
+            console.log('Dashboard data received:', dashboardData);
+            break; // Successfully got data, exit loop
+          } catch (statsError) {
+            console.error(`Attempt ${attempts + 1} failed:`, statsError);
+            attempts++;
+            
+            if (attempts >= maxAttempts) {
+              console.log('Max attempts reached, falling back to alternative data sources');
+              throw statsError; // Will be caught by outer try/catch
+            }
+            
+            // Wait before retrying
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
+        }
+        
+        // If dashboard data is successfully fetched
+        if (dashboardData && dashboardData.data) {
+          console.log('Using dashboard data:', dashboardData.data);
+          setStats({
+            ...stats,
+            totalUsers: dashboardData.data.totalUsers || 0,
+            totalCars: dashboardData.data.totalCars || 0,
+            totalInquiries: dashboardData.data.totalInquiries || 0,
+            recentInquiries: dashboardData.data.recentInquiries || [],
+            recentUsers: dashboardData.data.recentUsers || [],
+            lowStockCars: dashboardData.data.lowStockCars || []
+          });
+        } else {
+          // Fall back to fetching from multiple endpoints
+          console.log('Falling back to fetching from multiple endpoints');
           const [usersResponse, carsResponse, inquiriesResponse] = await Promise.all([
-            apiService.users.getAll(),
-            apiService.cars.getAll(),
-            apiService.contact.getAll()
+            apiService.users.getAll().catch(err => {
+              console.error('Failed to fetch users:', err);
+              return { data: [] };
+            }),
+            apiService.cars.getAll().catch(err => {
+              console.error('Failed to fetch cars:', err);
+              return { data: [] };
+            }),
+            apiService.contact.getAll().catch(err => {
+              console.error('Failed to fetch inquiries:', err);
+              return { data: [] };
+            })
           ]);
           
           // Extract the recent inquiries (last 5)
           const recentInquiries = inquiriesResponse.data
-            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-            .slice(0, 5);
+            ? inquiriesResponse.data
+                .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+                .slice(0, 5)
+            : [];
             
           // Extract the recent users (last 5)
           const recentUsers = usersResponse.data
-            .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-            .slice(0, 5);
+            ? usersResponse.data
+                .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+                .slice(0, 5)
+            : [];
             
           // Extract cars with low stock (less than 3 units)
           const lowStockCars = carsResponse.data
-            .filter(car => car.stock < 3)
-            .slice(0, 5);
+            ? carsResponse.data
+                .filter(car => car.stock < 3)
+                .slice(0, 5)
+            : [];
             
           setStats({
             ...stats,
-            totalUsers: usersResponse.data.length,
-            totalCars: carsResponse.data.length,
-            totalInquiries: inquiriesResponse.data.length,
+            totalUsers: usersResponse.data?.length || 0,
+            totalCars: carsResponse.data?.length || 0,
+            totalInquiries: inquiriesResponse.data?.length || 0,
             recentInquiries,
             recentUsers,
             lowStockCars
           });
-        } else {
-          setStats({
-            ...stats,
-            ...dashboardData.data
-          });
         }
       } catch (err) {
         console.error('Error fetching dashboard data:', err);
-        setError('Failed to load dashboard data. Please try again later.');
+        setError('Failed to load dashboard data. Please try again later. Error: ' + (err.message || 'Unknown error'));
       } finally {
         setIsLoading(false);
       }
@@ -531,11 +577,11 @@ export default function AdminDashboard() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">
-                        ${car.price.toLocaleString()}
+                        KSh {car.price.toLocaleString()}
                       </div>
                       {car.msrp && car.msrp > car.price && (
                         <div className="text-xs text-gray-500 line-through">
-                          MSRP: ${car.msrp.toLocaleString()}
+                          MSRP: KSh {car.msrp.toLocaleString()}
                         </div>
                       )}
                     </td>

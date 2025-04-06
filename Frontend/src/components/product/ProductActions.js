@@ -70,7 +70,7 @@ export default function ProductActions({ car }) {
             <div>
               <div className="text-gray-500 text-sm">Fair Market Price</div>
               <div className="text-3xl font-bold text-gray-900">
-                $
+                KSh
                 {car.discountedPrice
                   ? (typeof car.discountedPrice === 'number' 
                       ? car.discountedPrice.toLocaleString() 
@@ -86,7 +86,7 @@ export default function ProductActions({ car }) {
             <div className="flex items-center text-green-600">
               <Check size={16} className="mr-1" />
               <span>
-                ${(
+                KSh {(
                   (typeof car.price === 'number' ? car.price : parseFloat(car.price?.toString().replace(/[^\d.-]/g, '') || '0')) - 
                   (typeof car.discountedPrice === 'number' ? car.discountedPrice : parseFloat(car.discountedPrice.toString().replace(/[^\d.-]/g, '') || '0'))
                 ).toLocaleString()} below
@@ -432,7 +432,7 @@ export default function ProductActions({ car }) {
                   {vehicle.title}
                 </h3>
                 <div className="flex items-center text-sm text-gray-500 mb-1">
-                  <span>${vehicle.price.toLocaleString()}</span>
+                  <span>KSh {vehicle.price.toLocaleString()}</span>
                   <span className="mx-1.5">•</span>
                   <span>{vehicle.mileage.toLocaleString()} mi</span>
                 </div>

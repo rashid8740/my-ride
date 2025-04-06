@@ -36,6 +36,34 @@ import { toast } from 'react-hot-toast';
 const CarListItem = ({ car, onEdit, onDelete, onView }) => {
   const [showActions, setShowActions] = useState(false);
   
+  // Helper function to get the first image URL safely
+  const getFirstImageUrl = (car) => {
+    // Case 1: Check for images array with objects containing url property
+    if (car.images && Array.isArray(car.images) && car.images.length > 0) {
+      const firstImage = car.images[0];
+      if (typeof firstImage === 'string') {
+        return firstImage;
+      } else if (firstImage && typeof firstImage === 'object') {
+        if (firstImage.url) return firstImage.url;
+        if (firstImage.secure_url) return firstImage.secure_url;
+      }
+    }
+    
+    // Case 2: Check for single image property
+    if (car.image && typeof car.image === 'string') {
+      return car.image;
+    }
+    
+    // Case 3: Check for imageUrl property
+    if (car.imageUrl && typeof car.imageUrl === 'string') {
+      return car.imageUrl;
+    }
+    
+    return null;
+  };
+  
+  const imageUrl = getFirstImageUrl(car);
+  
   const statusColors = {
     available: 'bg-green-100 text-green-800 border-green-200',
     reserved: 'bg-blue-100 text-blue-800 border-blue-200',
@@ -59,9 +87,9 @@ const CarListItem = ({ car, onEdit, onDelete, onView }) => {
       <td className="px-6 py-4 whitespace-nowrap">
         <div className="flex items-center">
           <div className="h-16 w-24 bg-gray-100 rounded-md flex-shrink-0 overflow-hidden border border-gray-200">
-            {car.images && car.images.length > 0 ? (
+            {imageUrl ? (
               <img
-                src={car.images[0].url}
+                src={imageUrl}
                 alt={car.make + ' ' + car.model}
                 className="h-16 w-24 object-cover"
               />
@@ -83,11 +111,15 @@ const CarListItem = ({ car, onEdit, onDelete, onView }) => {
         </div>
       </td>
       <td className="px-6 py-4 whitespace-nowrap">
-        <div className="text-base font-semibold text-gray-900">${car.price.toLocaleString()}</div>
+        <div className="text-base font-semibold text-gray-900">
+          KSh {typeof car.price === 'number' 
+            ? car.price.toLocaleString() 
+            : (car.price || '0')}
+        </div>
         {car.msrp && car.msrp > car.price && (
           <div className="text-xs text-gray-500 line-through mt-1 flex items-center">
             <Wallet className="h-3 w-3 mr-1 text-gray-400" />
-            MSRP: ${car.msrp.toLocaleString()}
+            MSRP: KSh {typeof car.msrp === 'number' ? car.msrp.toLocaleString() : car.msrp}
           </div>
         )}
       </td>
@@ -200,7 +232,7 @@ const InventoryFilters = ({ filters, availableMakes, handleFilterChange, clearFi
           <label htmlFor="minPrice" className="block text-sm font-medium text-gray-700 mb-1">Min Price</label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <span className="text-gray-500 sm:text-sm">$</span>
+              <span className="text-gray-500 sm:text-sm">KSh</span>
             </div>
             <input
               type="number"
@@ -209,7 +241,7 @@ const InventoryFilters = ({ filters, availableMakes, handleFilterChange, clearFi
               placeholder="0"
               value={filters.minPrice}
               onChange={handleFilterChange}
-              className="w-full rounded-lg border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 pl-7 pr-3 py-2"
+              className="w-full rounded-lg border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 pl-12 pr-3 py-2"
             />
           </div>
         </div>
@@ -218,7 +250,7 @@ const InventoryFilters = ({ filters, availableMakes, handleFilterChange, clearFi
           <label htmlFor="maxPrice" className="block text-sm font-medium text-gray-700 mb-1">Max Price</label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <span className="text-gray-500 sm:text-sm">$</span>
+              <span className="text-gray-500 sm:text-sm">KSh</span>
             </div>
             <input
               type="number"
@@ -227,7 +259,7 @@ const InventoryFilters = ({ filters, availableMakes, handleFilterChange, clearFi
               placeholder="Any"
               value={filters.maxPrice}
               onChange={handleFilterChange}
-              className="w-full rounded-lg border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 pl-7 pr-3 py-2"
+              className="w-full rounded-lg border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 pl-12 pr-3 py-2"
             />
           </div>
         </div>
@@ -274,9 +306,31 @@ export default function AdminInventory() {
   const [selectedCar, setSelectedCar] = useState(null);
   const [availableMakes, setAvailableMakes] = useState([]);
 
-  // Fetch vehicles when component mounts
+  // Fetch vehicles when component mounts or when user navigates back to page
   useEffect(() => {
+    // Set up a navigation event listener to force refresh when returning to this page
+    const handleRouteChange = (url) => {
+      if (url === '/admin/inventory') {
+        console.log('Returned to inventory page, refreshing data...');
+        fetchVehicles();
+      }
+    };
+    
+    // Listen for route changes
+    const pushState = window.history.pushState;
+    window.history.pushState = function() {
+      const result = pushState.apply(this, arguments);
+      handleRouteChange(window.location.pathname);
+      return result;
+    };
+    
+    // Initially fetch vehicles
     fetchVehicles();
+    
+    // Clean up
+    return () => {
+      window.history.pushState = pushState;
+    };
   }, []);
 
   const fetchVehicles = async () => {
@@ -284,18 +338,78 @@ export default function AdminInventory() {
       setIsLoading(true);
       setError(null);
       
-      const response = await apiService.cars.getAll();
-      if (response.data) {
-        setVehicles(response.data);
+      console.log("Fetching vehicles from API...");
+      
+      // Try to get data from the backend first
+      let vehicleData = [];
+      
+      try {
+        const response = await fetch('/api/cars');
+        const result = await response.json();
         
-        // Extract unique makes for filter dropdown
-        const makes = [...new Set(response.data.map(car => car.make).filter(Boolean))];
-        setAvailableMakes(makes.sort());
-      } else {
-        throw new Error("Failed to fetch vehicles");
+        console.log("API response:", result);
+        
+        if (result && result.data && Array.isArray(result.data)) {
+          vehicleData = result.data;
+          console.log(`Fetched ${vehicleData.length} vehicles from API`);
+        }
+      } catch (apiError) {
+        console.error("Error fetching from API:", apiError);
+        // Fall back to sample data for demo purposes if API fails
+        vehicleData = [];
       }
+      
+      // If no vehicles were found from the API, use sample data
+      if (vehicleData.length === 0) {
+        console.log("No vehicles found in API, using sample data");
+        // This is where you would add sample data for demonstration
+        // vehicleData = sampleCars;
+      }
+      
+      console.log(`Processing ${vehicleData.length} vehicles`);
+      
+      // Map through the data and ensure images are processed properly
+      const processedVehicles = vehicleData.map(car => {
+        // Create a copy of the car
+        const processedCar = { ...car };
+        
+        // Process images if they exist
+        if (car.images && Array.isArray(car.images)) {
+          // Check if images are already in the correct format
+          const hasUrlProperty = car.images.length > 0 && typeof car.images[0] === 'object' && car.images[0].url;
+          
+          if (!hasUrlProperty) {
+            // Convert string URLs to objects with url property
+            processedCar.images = car.images.map(img => {
+              if (typeof img === 'string') return { url: img };
+              return img;
+            });
+          }
+        } else {
+          // Initialize empty images array if none exists
+          processedCar.images = [];
+        }
+        
+        // If no stock property exists, default to 1
+        if (!processedCar.stock && processedCar.stock !== 0) {
+          processedCar.stock = 1;
+        }
+        
+        // If no status property exists, default to 'available'
+        if (!processedCar.status) {
+          processedCar.status = 'available';
+        }
+        
+        return processedCar;
+      });
+      
+      setVehicles(processedVehicles);
+      
+      // Extract unique makes for filter dropdown
+      const makes = [...new Set(processedVehicles.map(car => car.make).filter(Boolean))];
+      setAvailableMakes(makes.sort());
     } catch (err) {
-      console.error('Error fetching vehicles:', err);
+      console.error('Error processing vehicles:', err);
       setError('Failed to load vehicles. Please try again later.');
       toast.error('Could not load inventory data');
     } finally {
@@ -304,7 +418,10 @@ export default function AdminInventory() {
   };
 
   const handleViewCar = (car) => {
-    router.push(`/cars/${car._id}`);
+    console.log("Viewing car details for:", car);
+    // Use the correct property for the ID depending on whether it's from the API or sample data
+    const carId = car._id || car.id;
+    router.push(`/cars/${carId}`);
   };
 
   const handleEditCar = (car) => {
@@ -366,8 +483,15 @@ export default function AdminInventory() {
   const filteredVehicles = vehicles.filter(car => {
     if (filters.make && car.make !== filters.make) return false;
     if (filters.status && car.status !== filters.status) return false;
-    if (filters.minPrice && car.price < parseInt(filters.minPrice)) return false;
-    if (filters.maxPrice && car.price > parseInt(filters.maxPrice)) return false;
+    
+    // Handle price filtering for both string and number types
+    const carPrice = typeof car.price === 'number' 
+      ? car.price 
+      : parseInt(car.price?.toString().replace(/[^\d]/g, '') || '0');
+      
+    if (filters.minPrice && carPrice < parseInt(filters.minPrice)) return false;
+    if (filters.maxPrice && carPrice > parseInt(filters.maxPrice)) return false;
+    
     if (filters.search) {
       const searchLower = filters.search.toLowerCase();
       return (
@@ -383,11 +507,12 @@ export default function AdminInventory() {
     let bValue = b[sortBy];
     
     if (sortBy === 'price' || sortBy === 'year' || sortBy === 'stock') {
-      aValue = Number(aValue);
-      bValue = Number(bValue);
+      // Convert to number, handle string prices with commas
+      aValue = typeof aValue === 'number' ? aValue : parseFloat(aValue?.toString().replace(/[^\d.-]/g, '') || '0');
+      bValue = typeof bValue === 'number' ? bValue : parseFloat(bValue?.toString().replace(/[^\d.-]/g, '') || '0');
     } else if (typeof aValue === 'string') {
       aValue = aValue.toLowerCase();
-      bValue = bValue.toLowerCase();
+      bValue = bValue?.toLowerCase() || '';
     }
     
     if (aValue < bValue) return sortOrder === 'asc' ? -1 : 1;
