@@ -112,7 +112,7 @@ function SimpleLoanCalculator() {
                 value={carPrice}
                 onChange={(e) => handleNumberInput(e, setCarPrice)}
                 className="w-full pl-7 sm:pl-8 pr-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg sm:rounded-xl focus:ring-1 focus:ring-orange-500 focus:border-orange-500 focus:outline-none transition-all text-gray-800"
-                placeholder="Enter vehicle price"
+                placeholder="Enter price in KSh"
               />
             </div>
           </div>

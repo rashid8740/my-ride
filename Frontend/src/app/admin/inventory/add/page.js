@@ -82,9 +82,9 @@ const FormStepper = ({ steps, currentStep }) => {
 };
 
 // Update input classes for better visibility
-const inputBaseClass = "block w-full px-4 py-2.5 rounded-md border-2 border-gray-300 shadow-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 sm:text-sm bg-white text-gray-900";
-const selectBaseClass = "block w-full px-4 py-2.5 rounded-md border-2 border-gray-300 shadow-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 sm:text-sm bg-white text-gray-900";
-const textareaBaseClass = "block w-full px-4 py-2.5 rounded-md border-2 border-gray-300 shadow-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 sm:text-sm bg-white text-gray-900";
+const inputBaseClass = "block w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-1 focus:ring-orange-500 focus:border-orange-500 focus:outline-none transition-all text-gray-800";
+const selectBaseClass = "block w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-1 focus:ring-orange-500 focus:border-orange-500 focus:outline-none transition-all text-gray-800 appearance-none";
+const textareaBaseClass = "block w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-1 focus:ring-orange-500 focus:border-orange-500 focus:outline-none transition-all text-gray-800";
 
 export default function AddVehiclePage() {
   const router = useRouter();
@@ -491,7 +491,8 @@ export default function AddVehiclePage() {
               onChange={handleChange}
               min="0"
               step="1"
-              className="block w-full pl-12 px-4 py-2.5 rounded-md border-2 border-gray-300 shadow-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 sm:text-sm bg-white text-gray-900"
+              className="block w-full pl-12 px-4 py-3 border border-gray-300 rounded-xl focus:ring-1 focus:ring-orange-500 focus:border-orange-500 focus:outline-none transition-all text-gray-800"
+              placeholder="Enter price in KSh"
               required
             />
           </div>
@@ -513,7 +514,8 @@ export default function AddVehiclePage() {
               onChange={handleChange}
               min="0"
               step="1"
-              className="block w-full pl-12 px-4 py-2.5 rounded-md border-2 border-gray-300 shadow-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 sm:text-sm bg-white text-gray-900"
+              className="block w-full pl-12 px-4 py-3 border border-gray-300 rounded-xl focus:ring-1 focus:ring-orange-500 focus:border-orange-500 focus:outline-none transition-all text-gray-800"
+              placeholder="Enter MSRP in KSh"
             />
           </div>
         </div>

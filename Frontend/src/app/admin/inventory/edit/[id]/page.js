@@ -33,9 +33,9 @@ const baseApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
 // Form styling classes
 const labelClass = "block text-sm font-medium text-gray-700 mb-1";
 const inputClass = "block w-full p-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500";
-const inputBaseClass = "block w-full px-4 py-2.5 rounded-md border-2 border-gray-300 shadow-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 sm:text-sm bg-white text-gray-900 transition-colors";
-const selectBaseClass = "block w-full px-4 py-2.5 rounded-md border-2 border-gray-300 shadow-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 sm:text-sm bg-white text-gray-900 transition-colors";
-const textareaBaseClass = "block w-full px-4 py-2.5 rounded-md border-2 border-gray-300 shadow-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 sm:text-sm bg-white text-gray-900 transition-colors";
+const inputBaseClass = "block w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-1 focus:ring-orange-500 focus:border-orange-500 focus:outline-none transition-all text-gray-800";
+const selectBaseClass = "block w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-1 focus:ring-orange-500 focus:border-orange-500 focus:outline-none transition-all text-gray-800 appearance-none";
+const textareaBaseClass = "block w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-1 focus:ring-orange-500 focus:border-orange-500 focus:outline-none transition-all text-gray-800";
 
 // Step components for progress tracking
 const FormStep = ({ title, icon, active, completed, number }) => {
@@ -786,7 +786,7 @@ export default function EditCarPage({ params }) {
               name="vin"
               value={formData.vin}
               onChange={handleInputChange}
-              className={`${inputBaseClass} focus:border-blue-500 font-medium`}
+              className={`${inputBaseClass} font-medium`}
               placeholder="Enter vehicle chassis/VIN number (e.g., 039884)"
             />
             <p className="text-xs text-gray-500 mt-1">Enter the short VIN format commonly used in Kenya</p>
@@ -1368,6 +1368,7 @@ export default function EditCarPage({ params }) {
                 className={`${inputBaseClass} pl-12`}
                 min="0"
                 step="1000"
+                placeholder="Enter price in KSh"
                 required
               />
             </div>
@@ -1391,6 +1392,7 @@ export default function EditCarPage({ params }) {
                 className={`${inputBaseClass} pl-12`}
                 min="0"
                 step="1000"
+                placeholder="Enter MSRP in KSh"
               />
             </div>
           </div>
