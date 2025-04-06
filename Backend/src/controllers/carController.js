@@ -396,8 +396,17 @@ exports.uploadCarImages = async (req, res) => {
     
     // Add new images - use Cloudinary URLs if available
     const newImages = req.files.map((file, index) => {
+      // Check if the image path already has Cloudinary transformations
+      let imageUrl = file.path || `/uploads/${file.filename}`;
+      
+      // If it's a Cloudinary URL but doesn't have quality parameters, add them
+      if (imageUrl.includes('cloudinary.com') && !imageUrl.includes('q_auto')) {
+        // Insert quality parameters after upload/ in the URL
+        imageUrl = imageUrl.replace('/upload/', '/upload/q_auto:best,f_auto/');
+      }
+      
       const imgObj = {
-        url: file.path || `/uploads/${file.filename}`, // Use path for Cloudinary or generate local path
+        url: imageUrl,
         publicId: file.filename || `image-${Date.now()}-${index}`,
         isMain: car.images.length === 0 && index === 0 // First image is main only if no existing images
       };

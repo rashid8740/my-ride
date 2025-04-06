@@ -24,7 +24,11 @@ const carStorage = new CloudinaryStorage({
       // Generate a unique public_id based on timestamp
       const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
       return `car-${uniqueSuffix}`;
-    }
+    },
+    // Add quality settings without format transformation
+    transformation: [
+      { quality: "auto:best", fetch_format: "auto" }
+    ]
   }
 });
 

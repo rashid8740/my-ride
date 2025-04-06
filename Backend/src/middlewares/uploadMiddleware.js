@@ -87,8 +87,11 @@ const createCloudinaryStorage = (folder) => {
     cloudinary: cloudinary,
     params: {
       folder: `my-ride/${folder}`,
-      allowed_formats: ['jpg', 'jpeg', 'png', 'webp']
-      // Remove format: 'auto' to avoid extension errors
+      allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
+      // Add quality parameters for better images
+      transformation: [
+        { quality: "auto:best" }
+      ]
     }
   });
 };
@@ -113,13 +116,17 @@ if (process.env.CLOUDINARY_CLOUD_NAME &&
     timeout: 60000 // Increase timeout to 60 seconds
   });
   
-  // Set up storage for car images - simplified configuration
+  // Set up storage for car images - with quality settings
   carImageStorage = new CloudinaryStorage({
     cloudinary: cloudinary,
     params: {
       folder: 'my-ride/cars',
       // No format option to avoid extension errors
-      public_id: (req, file) => `car-${Date.now()}-${Math.round(Math.random() * 1e6)}`
+      public_id: (req, file) => `car-${Date.now()}-${Math.round(Math.random() * 1e6)}`,
+      // Add quality parameters for high-quality images
+      transformation: [
+        { width: 1600, crop: "limit", quality: "auto:best" }
+      ]
     }
   });
   
