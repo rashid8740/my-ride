@@ -18,6 +18,15 @@ exports.getDashboardStats = async (req, res) => {
       .limit(5)
       .populate('car', 'make model year images');
     
+    console.log('Recent inquiries for dashboard:', recentInquiries.map(inq => ({
+      id: inq._id,
+      name: inq.name,
+      subject: inq.subject,
+      hasCarRef: !!inq.car,
+      vehicleInfo: inq.vehicleInfo,
+      status: inq.status
+    })));
+    
     // Get recent users
     const recentUsers = await User.find()
       .sort({ createdAt: -1 })

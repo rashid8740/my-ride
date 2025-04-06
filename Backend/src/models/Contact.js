@@ -33,6 +33,10 @@ const contactSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Car'
   },
+  vehicleInfo: {
+    type: String,
+    trim: true
+  },
   dealership: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Dealership'

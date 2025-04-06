@@ -55,6 +55,66 @@ const StatusBadge = ({ status }) => {
   );
 };
 
+const InquiryRow = ({ inquiry, onView, onDelete }) => {
+  // Format date
+  const formattedDate = new Date(inquiry.createdAt).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  });
+  
+  // Get vehicle info from either car reference or vehicleInfo field
+  const vehicleInfo = inquiry.car ? 
+    `${inquiry.car.year} ${inquiry.car.make} ${inquiry.car.model}` : 
+    (inquiry.vehicleInfo || 'Not specified');
+  
+  // Determine badge color based on status
+  let statusBadgeColor = 'bg-blue-100 text-blue-800';
+  if (inquiry.status === 'inProgress') {
+    statusBadgeColor = 'bg-yellow-100 text-yellow-800';
+  } else if (inquiry.status === 'resolved') {
+    statusBadgeColor = 'bg-green-100 text-green-800';
+  }
+  
+  return (
+    <tr className="hover:bg-gray-50">
+      <td className="px-6 py-4 whitespace-nowrap">
+        <div className="flex items-center">
+          <div className="ml-2">
+            <div className="text-sm font-medium text-gray-900">{inquiry.name}</div>
+            <div className="text-sm text-gray-500">{inquiry.email}</div>
+          </div>
+        </div>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap">
+        <div className="text-sm text-gray-900">{vehicleInfo}</div>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap">
+        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusBadgeColor}`}>
+          {inquiry.status.charAt(0).toUpperCase() + inquiry.status.slice(1)}
+        </span>
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+        {formattedDate}
+      </td>
+      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+        <button 
+          onClick={() => onView(inquiry)}
+          className="text-orange-600 hover:text-orange-900 mr-4"
+        >
+          View
+        </button>
+        <button 
+          onClick={() => onDelete(inquiry)}
+          className="text-red-600 hover:text-red-900"
+        >
+          Delete
+        </button>
+      </td>
+    </tr>
+  );
+};
+
 export default function AdminInquiries() {
   const { user } = useAuth();
   const router = useRouter();
@@ -470,83 +530,7 @@ export default function AdminInquiries() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredInquiries.length > 0 ? (
                   filteredInquiries.map(inquiry => (
-                    <tr key={inquiry._id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center">
-                          <div className="h-8 w-8 rounded-full bg-orange-100 flex items-center justify-center flex-shrink-0">
-                            <User className="h-4 w-4 text-orange-600" />
-                          </div>
-                          <div className="ml-3">
-                            <div className="text-sm font-medium text-gray-900">
-                              {inquiry.name}
-                            </div>
-                            <div className="flex flex-col sm:flex-row sm:space-x-2 text-xs text-gray-500">
-                              <span className="flex items-center">
-                                <Mail className="h-3 w-3 mr-1" />
-                                {inquiry.email}
-                              </span>
-                              {inquiry.phone && (
-                                <span className="flex items-center mt-1 sm:mt-0">
-                                  <Phone className="h-3 w-3 mr-1" />
-                                  {inquiry.phone}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex items-center text-sm text-gray-900">
-                          {inquiry.vehicle ? (
-                            <>
-                              <Car className="h-4 w-4 text-gray-500 mr-2" />
-                              {inquiry.vehicle}
-                            </>
-                          ) : (
-                            <span className="text-gray-500">Not specified</span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm text-gray-900 line-clamp-2">
-                          {inquiry.message}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <StatusBadge status={inquiry.status} />
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm text-gray-500 flex items-center">
-                          <Calendar className="h-3.5 w-3.5 text-gray-400 mr-1.5" />
-                          {new Date(inquiry.createdAt).toLocaleDateString()}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-right">
-                        <button
-                          onClick={() => handleViewInquiry(inquiry)}
-                          className="text-blue-500 hover:text-blue-700 inline-flex items-center text-sm font-medium mr-3"
-                        >
-                          <Eye className="h-4 w-4" />
-                          <span className="sr-only">View</span>
-                        </button>
-                        {inquiry.status !== 'resolved' && (
-                          <button
-                            onClick={() => router.push(`/admin/inquiries/reply/${inquiry._id}`)}
-                            className="text-orange-500 hover:text-orange-700 inline-flex items-center text-sm font-medium mr-3"
-                          >
-                            <Reply className="h-4 w-4" />
-                            <span className="sr-only">Reply</span>
-                          </button>
-                        )}
-                        <button
-                          onClick={() => handleDeleteClick(inquiry)}
-                          className="text-red-500 hover:text-red-700 inline-flex items-center text-sm font-medium"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                          <span className="sr-only">Delete</span>
-                        </button>
-                      </td>
-                    </tr>
+                    <InquiryRow key={inquiry._id} inquiry={inquiry} onView={handleViewInquiry} onDelete={handleDeleteClick} />
                   ))
                 ) : (
                   <tr>

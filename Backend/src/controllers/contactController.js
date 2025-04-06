@@ -6,7 +6,13 @@ const User = require('../models/User');
 // @access  Public
 exports.submitInquiry = async (req, res) => {
   try {
-    const { name, email, phone, subject, message, car, dealership } = req.body;
+    const { name, email, phone, subject, message, vehicle, vehicleId } = req.body;
+    
+    console.log('Received inquiry submission:', {
+      name, email, phone, subject, 
+      vehicleId, vehicle,
+      messageLength: message ? message.length : 0
+    });
     
     // Create new contact inquiry
     const contact = await Contact.create({
@@ -15,9 +21,15 @@ exports.submitInquiry = async (req, res) => {
       phone,
       subject,
       message,
-      car,
-      dealership,
-      status: 'new'
+      car: vehicleId, // Set car reference if vehicleId is provided
+      vehicleInfo: vehicle, // Store vehicle text info even if no ID
+      status: 'new' // Use lowercase status to match the schema
+    });
+    
+    console.log('Created new inquiry:', {
+      id: contact._id,
+      car: contact.car,
+      status: contact.status
     });
     
     // In a production app, would send notification email to admin/dealer
