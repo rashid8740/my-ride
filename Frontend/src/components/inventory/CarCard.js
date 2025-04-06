@@ -13,31 +13,27 @@ export default function CarCard({ car, listView = false }) {
   const { isAuthenticated } = useAuth();
   const { isFavorite, toggleFavorite } = useFavorites();
   
-  const handleFavoriteClick = async (e) => {
+  const handleFavoriteToggle = async (e) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     if (!isAuthenticated) {
       toast.error("Please log in to add favorites");
       return;
     }
-    
+
     try {
-      setIsTogglingFavorite(true);
       const result = await toggleFavorite(car.id || car._id);
       
-      if (result.success) {
-        toast.success(isFavorite(car.id || car._id) 
-          ? "Removed from favorites" 
-          : "Added to favorites");
-      } else {
+      if (result && result.status === 'success') {
+        // Notification already handled by the FavoritesContext
+        return;
+      } else if (result && result.status === 'error') {
         toast.error(result.message || "Failed to update favorites");
       }
     } catch (error) {
       console.error("Error toggling favorite:", error);
       toast.error("Something went wrong");
-    } finally {
-      setIsTogglingFavorite(false);
     }
   };
 
@@ -61,6 +57,36 @@ export default function CarCard({ car, listView = false }) {
     );
   };
 
+  // Helper function to safely get an image URL from car data
+  const getImageUrl = (car) => {
+    // Case 1: Check for images array with objects containing url property
+    if (car.images && Array.isArray(car.images) && car.images.length > 0) {
+      const firstImage = car.images[0];
+      if (typeof firstImage === 'string') {
+        return firstImage;
+      } else if (firstImage && typeof firstImage === 'object') {
+        if (firstImage.url) return firstImage.url;
+        if (firstImage.secure_url) return firstImage.secure_url;
+      }
+    }
+    
+    // Case 2: Check for single image property
+    if (car.image && typeof car.image === 'string') {
+      return car.image;
+    }
+    
+    // Case 3: Check for imageUrl property
+    if (car.imageUrl && typeof car.imageUrl === 'string') {
+      return car.imageUrl;
+    }
+    
+    // Default placeholder
+    return "/images/car-placeholder.jpg";
+  };
+
+  // Use the helper function for the image
+  const carImageUrl = getImageUrl(car);
+
   // Grid view layout
   if (!listView) {
     return (
@@ -72,7 +98,7 @@ export default function CarCard({ car, listView = false }) {
         {/* Car Image with Badges */}
         <div className="relative h-48 sm:h-52 bg-gray-100 overflow-hidden">
           <img
-            src={car.images?.[0]?.url || car.image || "/images/car-placeholder.jpg"}
+            src={carImageUrl}
             alt={car.title || `${car.year} ${car.make} ${car.model}`}
             className={`w-full h-full object-cover transition-transform duration-500 ${hovered ? 'scale-105' : 'scale-100'}`}
           />
@@ -100,7 +126,7 @@ export default function CarCard({ car, listView = false }) {
 
           {/* Favorite button */}
           <button
-            onClick={handleFavoriteClick}
+            onClick={handleFavoriteToggle}
             className={`absolute bottom-3 right-3 w-9 h-9 rounded-full flex items-center justify-center transition-colors ${
               isFavorite(car.id || car._id)
                 ? "bg-orange-500 text-white"
@@ -137,14 +163,14 @@ export default function CarCard({ car, listView = false }) {
           {/* Price */}
           <div className="flex justify-between items-center">
             <div className="text-orange-500 font-bold text-xl">
-              ${typeof car.price === 'number' 
+              KSh {typeof car.price === 'number' 
                 ? car.price.toLocaleString() 
                 : car.price}
             </div>
             
             {car.msrp && car.msrp > car.price && (
               <div className="text-xs text-gray-500 line-through">
-                MSRP: ${car.msrp.toLocaleString()}
+                MSRP: KSh {car.msrp.toLocaleString()}
               </div>
             )}
           </div>
@@ -207,7 +233,7 @@ export default function CarCard({ car, listView = false }) {
       {/* Car Image with Badges */}
       <div className="relative h-60 md:w-80 md:h-auto bg-gray-100 overflow-hidden flex-shrink-0">
         <img
-          src={car.images?.[0]?.url || car.image || "/images/car-placeholder.jpg"}
+          src={carImageUrl}
           alt={car.title || `${car.year} ${car.make} ${car.model}`}
           className={`w-full h-full object-cover transition-transform duration-500 ${hovered ? 'scale-105' : 'scale-100'}`}
         />
@@ -235,7 +261,7 @@ export default function CarCard({ car, listView = false }) {
 
         {/* Favorite button */}
         <button
-          onClick={handleFavoriteClick}
+          onClick={handleFavoriteToggle}
           className={`absolute bottom-3 right-3 w-9 h-9 rounded-full flex items-center justify-center transition-colors ${
             isFavorite(car.id || car._id)
               ? "bg-orange-500 text-white"
@@ -307,17 +333,17 @@ export default function CarCard({ car, listView = false }) {
         {/* Price */}
           <div>
             <div className="text-orange-500 font-bold text-2xl">
-              ${typeof car.price === 'number' 
+              KSh {typeof car.price === 'number' 
                 ? car.price.toLocaleString() 
                 : car.price}
             </div>
             
             {car.msrp && car.msrp > car.price && (
               <div className="text-sm text-gray-500 line-through">
-                MSRP: ${car.msrp.toLocaleString()}
-        </div>
+                MSRP: KSh {car.msrp.toLocaleString()}
+              </div>
             )}
-      </div>
+          </div>
 
           {/* Button */}
         <Link

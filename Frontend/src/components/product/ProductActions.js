@@ -17,7 +17,13 @@ import {
 } from "lucide-react";
 
 export default function ProductActions({ car }) {
-  const [loanAmount] = useState(car.discountedPrice || car.price);
+  const [loanAmount] = useState(
+    typeof car.discountedPrice === 'number' 
+      ? car.discountedPrice 
+      : typeof car.price === 'number' 
+        ? car.price 
+        : parseFloat((car.price || '0').toString().replace(/[^\d.-]/g, ''))
+  );
   const [downPayment, setDownPayment] = useState(5000);
   const [interestRate, setInterestRate] = useState(4.9);
   const [loanTerm, setLoanTerm] = useState(60);
@@ -66,8 +72,12 @@ export default function ProductActions({ car }) {
               <div className="text-3xl font-bold text-gray-900">
                 $
                 {car.discountedPrice
-                  ? car.discountedPrice.toLocaleString()
-                  : car.price.toLocaleString()}
+                  ? (typeof car.discountedPrice === 'number' 
+                      ? car.discountedPrice.toLocaleString() 
+                      : parseFloat(car.discountedPrice.toString().replace(/[^\d.-]/g, '') || '0').toLocaleString())
+                  : (typeof car.price === 'number' 
+                      ? car.price.toLocaleString() 
+                      : parseFloat(car.price?.toString().replace(/[^\d.-]/g, '') || '0').toLocaleString())}
               </div>
             </div>
           </div>
@@ -76,7 +86,10 @@ export default function ProductActions({ car }) {
             <div className="flex items-center text-green-600">
               <Check size={16} className="mr-1" />
               <span>
-                ${(car.price - car.discountedPrice).toLocaleString()} below
+                ${(
+                  (typeof car.price === 'number' ? car.price : parseFloat(car.price?.toString().replace(/[^\d.-]/g, '') || '0')) - 
+                  (typeof car.discountedPrice === 'number' ? car.discountedPrice : parseFloat(car.discountedPrice.toString().replace(/[^\d.-]/g, '') || '0'))
+                ).toLocaleString()} below
                 market average
               </span>
             </div>
@@ -103,13 +116,13 @@ export default function ProductActions({ car }) {
 
           {/* Monthly payment display */}
           <div className="text-3xl font-bold text-gray-900 mb-2">
-            ${Math.round(calculateMonthlyPayment()).toLocaleString()}
+            KSh {Math.round(calculateMonthlyPayment()).toLocaleString()}
             <span className="text-lg font-normal text-gray-600">/mo</span>
           </div>
 
           {/* Default values */}
           <div className="text-sm text-gray-600 mb-4">
-            ${downPayment.toLocaleString()} down, {loanTerm} months,{" "}
+            KSh {downPayment.toLocaleString()} down, {loanTerm} months,{" "}
             {interestRate}% APR
           </div>
 
@@ -129,7 +142,7 @@ export default function ProductActions({ car }) {
                 </label>
                 <div className="relative">
                   <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">
-                    $
+                    KSh
                   </span>
                   <input
                     type="text"

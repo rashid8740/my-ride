@@ -79,10 +79,10 @@ function SimpleLoanCalculator() {
   const formatCurrency = (value) => {
     return new Intl.NumberFormat("en-US", {
       style: "currency",
-      currency: "USD",
+      currency: "KES",
       minimumFractionDigits: 0,
       maximumFractionDigits: 2,
-    }).format(value);
+    }).format(value).replace("KES", "KSh");
   };
 
   return (
@@ -105,7 +105,7 @@ function SimpleLoanCalculator() {
             </label>
             <div className="relative">
               <span className="absolute inset-y-0 left-0 flex items-center pl-3 sm:pl-4 text-gray-500">
-                $
+                KSh
               </span>
               <input
                 type="text"

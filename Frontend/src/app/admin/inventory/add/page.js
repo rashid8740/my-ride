@@ -1,5 +1,5 @@
 "use client";
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { 
@@ -89,35 +89,31 @@ const textareaBaseClass = "block w-full px-4 py-2.5 rounded-md border-2 border-g
 export default function AddVehiclePage() {
   const router = useRouter();
   
+  const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState({
     make: '',
     model: '',
     year: new Date().getFullYear(),
-    trim: '',
     price: '',
-    msrp: '',
     mileage: '',
+    trim: '',
     vin: '',
-    status: 'available',
-    stock: 1,
-    fuelType: '',
-    transmission: '',
-    description: '',
-    features: [],
-    location: '',
+    stock: '',
+    msrp: '',
     category: '',
+    color: '',
+    fuel: '',
+    transmission: '',
+    features: []
   });
-  
-  const [images, setImages] = useState([]);
-  const [newFeature, setNewFeature] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState(null);
-  const [successMessage, setSuccessMessage] = useState('');
-  const [currentStep, setCurrentStep] = useState(0);
   const [selectedImages, setSelectedImages] = useState([]);
-  const [imagePreviews, setImagePreviews] = useState([]);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [images, setImages] = useState([]);
+  const [newFeature, setNewFeature] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+  const [imagePreviews, setImagePreviews] = useState([]);
   
   // Form sections
   const formSections = [
@@ -140,34 +136,30 @@ export default function AddVehiclePage() {
   
   // Handle image selection
   const handleImageSelect = (e) => {
-    if (e.target.files && e.target.files.length > 0) {
-      const files = Array.from(e.target.files);
-      setSelectedImages(files);
-
-      // Create image previews
-      const newPreviews = files.map(file => URL.createObjectURL(file));
-      setImagePreviews(newPreviews);
+    const files = Array.from(e.target.files);
+    if (files.length > 0) {
+      // Add the new files to the selected images array
+      setSelectedImages(prevImages => [...prevImages, ...files]);
+      // Clear the input value so the same file can be selected again if needed
+      e.target.value = '';
     }
   };
   
-  // Remove image from selection
+  // Function to remove an image from the selected images
   const removeImage = (index) => {
-    setImages(prev => {
-      const newImages = [...prev];
-      // Revoke the object URL to avoid memory leaks
-      URL.revokeObjectURL(newImages[index].preview);
-      newImages.splice(index, 1);
-      return newImages;
-    });
+    setSelectedImages(prevImages => prevImages.filter((_, i) => i !== index));
   };
   
-  // Add a new feature
+  // Add a new feature - completely rewritten
   const addFeature = () => {
     if (newFeature.trim()) {
+      // Update the features array
       setFormData(prev => ({
         ...prev,
         features: [...prev.features, newFeature.trim()]
       }));
+      
+      // Clear the input
       setNewFeature('');
     }
   };
@@ -183,86 +175,174 @@ export default function AddVehiclePage() {
   // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setError(null);
-
+    
+    if (loading) return;
+    
     try {
-      // Validate required fields
+      setLoading(true);
+      setError('');
+      setUploadProgress(5);
+      
+      // Validation - Check required fields are filled
       if (!formData.make || !formData.model || !formData.year || !formData.price) {
         setError('Please fill in all required fields');
         setLoading(false);
         return;
       }
-
-      // Create a vehicle object
+      
+      // Prepare vehicle data object
       const vehicleData = {
-        ...formData,
-        features: formData.features || [],
+        title: `${formData.year} ${formData.make} ${formData.model}`,
+        make: formData.make,
+        model: formData.model,
         year: parseInt(formData.year),
-        price: parseInt(formData.price),
+        price: parseFloat(formData.price),
         mileage: formData.mileage ? parseInt(formData.mileage) : 0,
-        stock: formData.stock ? parseInt(formData.stock) : 1,
-        msrp: formData.msrp ? parseInt(formData.msrp) : null,
+        stock: formData.stock ? formData.stock : '',
+        msrp: formData.msrp ? parseFloat(formData.msrp) : undefined,
+        fuel: formData.fuel || formData.fuelType || '',
+        transmission: formData.transmission || '',
+        vin: formData.vin || '',
+        description: formData.description || '',
+        trim: formData.trim || '',
+        category: formData.category || '',
+        status: formData.status || 'available',
+        features: formData.features || [],
+        images: []
       };
-
+      
+      console.log('Submitting vehicle data:', vehicleData);
+      
       // Handle image uploads if any images are selected
       if (selectedImages.length > 0) {
         setUploadProgress(5); // Start progress
         
         // Create FormData objects for each image
-        const uploadPromises = selectedImages.map(async (image) => {
+        const uploadPromises = selectedImages.map(async (image, index) => {
           const formData = new FormData();
           formData.append('file', image);
           
-          const response = await fetch('/api/upload', {
-            method: 'POST',
-            body: formData,
-          });
+          console.log(`Uploading image ${index + 1}/${selectedImages.length}: ${image.name}`);
           
-          if (!response.ok) {
-            throw new Error(`Failed to upload image: ${response.statusText}`);
+          try {
+            const response = await fetch('/api/upload', {
+              method: 'POST',
+              body: formData,
+            });
+            
+            if (!response.ok) {
+              const errorData = await response.json();
+              console.error("Upload error response:", errorData);
+              throw new Error(errorData.details || errorData.error || `Failed to upload image: ${response.statusText}`);
+            }
+            
+            const data = await response.json();
+            console.log(`Image ${index + 1} uploaded successfully:`, data);
+            
+            // Return a standardized object with url property
+            if (data.url) {
+              return { url: data.url };
+            } else if (data.urls && data.urls.length > 0) {
+              // If multiple URLs are returned, use the first one
+              return { url: data.urls[0] };
+            } else {
+              throw new Error('No image URL returned from upload');
+            }
+          } catch (error) {
+            console.error(`Error uploading image ${index + 1}:`, error);
+            throw error; // Re-throw to be caught by the Promise.all
           }
-          
-          return response.json();
         });
         
         // Update progress as uploads complete
         setUploadProgress(30);
         
-        // Wait for all uploads to complete
-        const uploadResults = await Promise.all(uploadPromises);
-        setUploadProgress(70);
+        try {
+          // Wait for all uploads to complete
+          const uploadResults = await Promise.all(uploadPromises);
+          setUploadProgress(70);
+          
+          // Add the image objects directly to the vehicle data
+          // Each uploadResult is already in the format { url: "..." }
+          vehicleData.images = uploadResults;
+          
+          console.log(`Added ${vehicleData.images.length} images to vehicle data:`, vehicleData.images);
+        } catch (uploadError) {
+          console.error("Error uploading images:", uploadError);
+          throw new Error(`Image upload failed: ${uploadError.message}`);
+        }
+      }
+      
+      // Get auth token from localStorage
+      const token = localStorage.getItem('token');
+      
+      // Submit the vehicle data
+      setUploadProgress(80);
+      
+      try {
+        console.log('Sending vehicle data to API:', JSON.stringify(vehicleData));
         
-        // Add the Cloudinary URLs to the vehicle data
-        vehicleData.images = uploadResults.map(result => result.url);
+        // Submit via our API route
+        const response = await fetch('/api/cars', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': token ? `Bearer ${token}` : ''
+          },
+          body: JSON.stringify(vehicleData),
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ 
+            message: `Server error: ${response.status} ${response.statusText}` 
+          }));
+          throw new Error(errorData.message || `Failed to add vehicle: ${response.statusText}`);
+        }
+        
+        // Get the created vehicle data
+        const createdVehicle = await response.json();
+        console.log('Vehicle created successfully:', createdVehicle);
+        
+        setUploadProgress(100);
+        
+        // Show success message with more details
+        toast.success(`Vehicle added successfully! ID: ${createdVehicle.data?._id || 'N/A'}`);
+        
+        // Clear form data for a fresh start if the user adds another vehicle
+        setFormData({
+          make: '',
+          model: '',
+          year: new Date().getFullYear(),
+          price: '',
+          mileage: '',
+          trim: '',
+          vin: '',
+          stock: '',
+          msrp: '',
+          category: '',
+          color: '',
+          fuel: '',
+          transmission: '',
+          features: []
+        });
+        
+        // Clear selected images
+        setSelectedImages([]);
+        
+        // Redirect to inventory page after a short delay
+        setTimeout(() => {
+          router.push('/admin/inventory');
+        }, 1500);
+      } catch (err) {
+        console.error('Error adding vehicle:', err);
+        // Check for network errors
+        if (err.name === 'TypeError' && err.message.includes('fetch')) {
+          setError('Network error: Could not connect to the server. Please check your connection and try again.');
+        } else {
+          setError(err.message || 'An error occurred while adding the vehicle');
+        }
+        setUploadProgress(0);
       }
-      
-      // Submit the vehicle data to the API
-      const response = await fetch('/api/vehicles', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(vehicleData),
-      });
-
-      setUploadProgress(90);
-
-      if (!response.ok) {
-        throw new Error(`Failed to add vehicle: ${response.statusText}`);
-      }
-
-      setUploadProgress(100);
-      
-      // Show success message and redirect
-      toast.success('Vehicle added successfully!');
-      setTimeout(() => {
-        router.push('/admin/inventory');
-      }, 1500);
-    } catch (err) {
-      console.error('Error adding vehicle:', err);
-      setError(err.message || 'An error occurred while adding the vehicle');
-      setUploadProgress(0);
     } finally {
       setLoading(false);
     }
@@ -397,11 +477,11 @@ export default function AddVehiclePage() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <label htmlFor="price" className="block text-sm font-semibold text-gray-800 mb-2">
-            Price ($)<span className="text-red-500">*</span>
+            Price (KSh)<span className="text-red-500">*</span>
           </label>
           <div className="mt-1 relative rounded-md shadow-sm">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <span className="text-gray-500 sm:text-sm">$</span>
+              <span className="text-gray-500 sm:text-sm">KSh</span>
             </div>
             <input
               type="number"
@@ -411,7 +491,7 @@ export default function AddVehiclePage() {
               onChange={handleChange}
               min="0"
               step="1"
-              className="block w-full pl-7 px-4 py-2.5 rounded-md border-2 border-gray-300 shadow-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 sm:text-sm bg-white text-gray-900"
+              className="block w-full pl-12 px-4 py-2.5 rounded-md border-2 border-gray-300 shadow-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 sm:text-sm bg-white text-gray-900"
               required
             />
           </div>
@@ -419,11 +499,11 @@ export default function AddVehiclePage() {
         
         <div>
           <label htmlFor="msrp" className="block text-sm font-semibold text-gray-800 mb-2">
-            MSRP ($)
+            MSRP (KSh)
           </label>
           <div className="mt-1 relative rounded-md shadow-sm">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <span className="text-gray-500 sm:text-sm">$</span>
+              <span className="text-gray-500 sm:text-sm">KSh</span>
             </div>
             <input
               type="number"
@@ -433,7 +513,7 @@ export default function AddVehiclePage() {
               onChange={handleChange}
               min="0"
               step="1"
-              className="block w-full pl-7 px-4 py-2.5 rounded-md border-2 border-gray-300 shadow-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 sm:text-sm bg-white text-gray-900"
+              className="block w-full pl-12 px-4 py-2.5 rounded-md border-2 border-gray-300 shadow-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 sm:text-sm bg-white text-gray-900"
             />
           </div>
         </div>
@@ -571,87 +651,83 @@ export default function AddVehiclePage() {
       setIsDragging(false);
       
       if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-        const fileInput = document.getElementById('image-upload');
-        fileInput.files = e.dataTransfer.files;
+        const filesArray = Array.from(e.dataTransfer.files);
+        const imageFiles = filesArray.filter(file => file.type.startsWith('image/'));
         
-        // Trigger the onChange event manually
-        const event = new Event('change', { bubbles: true });
-        fileInput.dispatchEvent(event);
+        if (imageFiles.length > 0) {
+          // Create a fake event object with the files
+          onImageSelect({ target: { files: imageFiles } });
+        }
       }
     };
     
     return (
       <div
+        className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
+          isDragging ? 'border-orange-500 bg-orange-50' : 'border-gray-300 hover:border-orange-400'
+        }`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        className={`border-2 border-dashed rounded-lg p-10 text-center ${
-          isDragging ? 'border-orange-500 bg-orange-50' : 'border-gray-300 bg-white'
-        } transition-colors duration-200 hover:bg-gray-50 cursor-pointer`}
+        onClick={() => document.getElementById('vehicle-images').click()}
       >
-        <Upload className="mx-auto h-12 w-12 text-orange-400" />
-        <p className="mt-2 text-sm text-gray-700 font-medium">
-          Drag and drop images here, or{' '}
-          <label htmlFor="image-upload" className="font-bold text-orange-600 hover:text-orange-500 cursor-pointer underline">
-            browse
-          </label>
-        </p>
-        <p className="mt-1 text-xs text-gray-500">PNG, JPG, WEBP up to 10MB</p>
         <input
-          id="image-upload"
           type="file"
+          id="vehicle-images"
+          name="images"
           accept="image/*"
           multiple
+          className="hidden"
           onChange={onImageSelect}
-          className="sr-only"
         />
+        <Camera className="h-10 w-10 mx-auto text-gray-400 mb-3" />
+        <p className="text-sm font-medium text-gray-900 mb-1">
+          Drag &amp; drop vehicle images or click to browse
+        </p>
+        <p className="text-xs text-gray-500">
+          Support for multiple images (JPG, PNG, GIF) up to 5MB each
+        </p>
       </div>
     );
   };
 
-  // Update the renderImagePreviews function for better presentation
+  // Render selected image previews
   const renderImagePreviews = () => {
-    if (imagePreviews.length === 0) {
-      return null;
+    if (selectedImages.length === 0) {
+      return (
+        <div className="text-center py-8 text-gray-500">
+          No images selected
+        </div>
+      );
     }
 
     return (
-      <div className="mt-8 bg-white p-4 rounded-lg border border-gray-200">
-        <h3 className="text-base font-medium text-gray-700 mb-3 flex items-center">
-          <Camera className="h-5 w-5 mr-2 text-orange-500" />
-          Selected Images ({imagePreviews.length})
-        </h3>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-          {imagePreviews.map((preview, index) => (
-            <div key={index} className="relative group rounded-lg overflow-hidden shadow-sm border border-gray-200">
-              <div className="aspect-w-16 aspect-h-9">
-                <img
-                  src={preview}
-                  alt={`Preview ${index + 1}`}
-                  className="object-cover w-full h-full"
-                />
-              </div>
-              <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all duration-200"></div>
-              <button
-                type="button"
-                onClick={() => {
-                  // Remove the image from both arrays
-                  setSelectedImages(selectedImages.filter((_, i) => i !== index));
-                  setImagePreviews(imagePreviews.filter((_, i) => i !== index));
-                }}
-                className="absolute top-2 right-2 bg-red-600 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity shadow-md hover:bg-red-700"
-                aria-label="Remove image"
-              >
-                <X size={14} />
-              </button>
-              {index === 0 && (
-                <span className="absolute bottom-2 left-2 bg-orange-500 text-white text-xs px-2 py-0.5 rounded-full">
-                  Main Image
-                </span>
-              )}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 my-4">
+        {selectedImages.map((image, index) => (
+          <div key={index} className="relative group">
+            <div className="aspect-square rounded-lg overflow-hidden border border-gray-200 bg-gray-50">
+              <img
+                src={URL.createObjectURL(image)}
+                alt={`Vehicle preview ${index + 1}`}
+                className="w-full h-full object-cover"
+                onLoad={() => URL.revokeObjectURL(image.preview)}
+              />
             </div>
-          ))}
-        </div>
+            <button
+              type="button"
+              onClick={() => removeImage(index)}
+              className="absolute top-2 right-2 bg-red-500 text-white w-6 h-6 rounded-full flex items-center justify-center shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
+              aria-label="Remove image"
+            >
+              <X size={14} />
+            </button>
+            {index === 0 && (
+              <div className="absolute top-2 left-2 bg-blue-500 text-white text-xs py-1 px-2 rounded shadow-md">
+                Main Image
+              </div>
+            )}
+          </div>
+        ))}
       </div>
     );
   };
@@ -735,68 +811,259 @@ export default function AddVehiclePage() {
     }
   };
   
-  // Update the AddFeaturesSection component
+  // Update the AddFeaturesSection component with a completely new approach
   const AddFeaturesSection = () => {
-    return (
-      <div className="space-y-6">
-        <div className="bg-white rounded-lg border border-gray-200 p-5">
-          <div className="flex items-end space-x-2">
-            <div className="flex-grow">
-              <label htmlFor="newFeature" className="block text-sm font-semibold text-gray-800 mb-2">
-                Add Feature
-              </label>
-              <input
-                type="text"
-                id="newFeature"
-                value={newFeature}
-                onChange={(e) => setNewFeature(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && newFeature.trim()) {
-                    e.preventDefault();
-                    addFeature();
-                  }
-                }}
-                className={inputBaseClass}
-                placeholder="e.g., Bluetooth, Sunroof, Heated Seats"
-              />
-            </div>
-            <button
-              type="button"
-              onClick={addFeature}
-              disabled={!newFeature.trim()}
-              className="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center"
-            >
-              <Plus className="h-4 w-4 mr-1" />
-              Add
-            </button>
-          </div>
+    const [newFeature, setNewFeature] = useState('');
+    const [featureSearch, setFeatureSearch] = useState('');
+    const [activeCategory, setActiveCategory] = useState(null);
 
-          {formData.features.length > 0 && (
-            <div className="mt-6">
-              <h4 className="text-sm font-medium text-gray-700 mb-3 flex items-center">
-                <Tag className="h-4 w-4 mr-1 text-orange-500" />
-                Added Features ({formData.features.length})
-              </h4>
-              <div className="flex flex-wrap gap-2 p-4 bg-gray-50 rounded-md">
-                {formData.features.map((feature, index) => (
-                  <div
-                    key={index}
-                    className="inline-flex items-center bg-white px-3 py-1.5 rounded-full text-sm font-medium text-gray-800 border border-gray-300 group shadow-sm hover:shadow-md transition-shadow"
+    // Predefined feature categories with common options
+    const predefinedFeatures = [
+      { category: "Safety", features: ["Airbags", "ABS", "Stability Control", "Backup Camera", "Blind Spot Monitor", "Lane Departure Warning", "Parking Sensors", "Collision Warning", "Hill Start Assist", "Child Safety Locks", "ISOFIX", "Emergency Brake Assist"] },
+      { category: "Technology", features: ["Bluetooth Connection", "Navigation System", "Apple CarPlay", "Android Auto", "Wireless Charging", "Premium Sound System", "Touchscreen Display", "Keyless Entry", "Remote Start", "Heads-Up Display", "WiFi Hotspot", "USB Ports", "Satellite Radio", "Voice Recognition"] },
+      { category: "Comfort", features: ["Leather Seats", "Heated Seats", "Ventilated Seats", "Power Seats", "Memory Seats", "Dual-Zone Climate Control", "Climate Control", "Sunroof", "Moonroof", "Panoramic Roof", "Heated Steering Wheel", "Lumbar Support", "Third Row Seating", "Rear Window Shades"] },
+      { category: "Performance", features: ["Turbo Engine", "All-Wheel Drive", "Sport Mode", "Paddle Shifters", "Performance Tires", "Sport Suspension", "Traction Control", "Launch Control", "Limited Slip Differential", "Performance Exhaust", "Adjustable Drive Modes", "Hill Descent Control"] },
+      { category: "Exterior", features: ["Alloy Wheels", "Fog Lights", "LED Headlights", "Panoramic Roof", "Power Liftgate", "Roof Rack", "Tinted Windows", "Running Boards", "Sunroof", "Tow Hitch", "Power Folding Mirrors", "Chrome Accents", "Rear Spoiler"] },
+      { category: "Convenience", features: ["Push Button Start", "Power Windows", "Power Locks", "Cruise Control", "Adaptive Cruise Control", "Rain-Sensing Wipers", "Auto-Dimming Mirror", "Automatic Headlights", "Power Outlets", "Keyless Entry", "Hands-Free Trunk", "Memory Settings"] },
+      { category: "Driver Assistance", features: ["Automatic Emergency Braking", "Forward Collision Warning", "Pedestrian Detection", "Traffic Sign Recognition", "Driver Attention Monitor", "360-Degree Camera", "Adaptive Headlights", "Self-Parking System", "Traffic Jam Assist", "Night Vision", "Rear Cross Traffic Alert"] },
+      { category: "Engine Specs", features: ["2.0L Turbo", "2.5L Inline-4", "3.0L V6", "3.5L V6", "4.0L V8", "5.0L V8", "Hybrid", "Electric", "Diesel"] },
+      { category: "Dimensions", features: ["Cargo Capacity: 20+ cu ft", "Cargo Capacity: 30+ cu ft", "Cargo Capacity: 40+ cu ft", "Cargo Capacity: 50+ cu ft", "Fuel Capacity: 15+ gal", "Fuel Capacity: 18+ gal", "Fuel Capacity: 20+ gal"] },
+      { category: "Drivetrain", features: ["Front-Wheel Drive", "Rear-Wheel Drive", "All-Wheel Drive", "Four-Wheel Drive", "Part-Time 4WD", "Selectable 4WD"] }
+    ];
+    
+    // Get all features from all categories for search
+    const allFeatures = predefinedFeatures.reduce((acc, category) => {
+      return [...acc, ...category.features];
+    }, []);
+    
+    // Filter features based on search
+    const filteredFeatures = featureSearch.trim()
+      ? allFeatures.filter(feature => 
+          feature.toLowerCase().includes(featureSearch.toLowerCase()))
+      : [];
+    
+    const handleAddPredefinedFeature = (feature) => {
+      if (!formData.features.includes(feature)) {
+        setFormData(prev => ({
+          ...prev,
+          features: [...prev.features, feature]
+        }));
+        toast.success(`Added: ${feature}`);
+      } else {
+        toast.error("Feature already added");
+      }
+    };
+    
+    // Add new vehicle specs section
+    const vehicleSpecs = [
+      { label: "Engine", options: ["2.0L Turbo", "2.5L Inline-4", "3.0L V6", "3.5L V6", "4.0L V8", "5.0L V8", "Hybrid", "Electric", "Diesel"] },
+      { label: "Horsepower", options: ["150-200 hp", "201-250 hp", "251-300 hp", "301-350 hp", "351-400 hp", "400+ hp"] },
+      { label: "Torque", options: ["150-200 lb-ft", "201-250 lb-ft", "251-300 lb-ft", "301-350 lb-ft", "351-400 lb-ft", "400+ lb-ft"] },
+      { label: "Transmission", options: ["Manual", "Automatic", "CVT", "Dual-Clutch", "Semi-Automatic"] },
+      { label: "Drivetrain", options: ["Front-Wheel Drive", "Rear-Wheel Drive", "All-Wheel Drive", "Four-Wheel Drive"] },
+      { label: "Dimensions", options: [
+        "Length: 170-180 in", "Length: 181-190 in", "Length: 191-200 in", "Length: 200+ in",
+        "Width: 70-75 in", "Width: 76-80 in", "Width: 81-85 in", "Width: 85+ in",
+        "Height: 55-60 in", "Height: 61-65 in", "Height: 66-70 in", "Height: 70+ in",
+        "Cargo Capacity: 20+ cu ft", "Cargo Capacity: 30+ cu ft", "Cargo Capacity: 40+ cu ft",
+        "Fuel Capacity: 15+ gal", "Fuel Capacity: 18+ gal", "Fuel Capacity: 20+ gal"
+      ]}
+    ];
+
+    // Handle adding a custom feature
+    const handleAddFeature = () => {
+      if (newFeature.trim()) {
+        setFormData(prev => ({
+          ...prev,
+          features: [...prev.features, newFeature.trim()]
+        }));
+        setNewFeature('');
+      }
+    };
+
+    return (
+      <div>
+        
+        {/* Add new feature */}
+        <div className="mb-4 flex">
+          <input
+            type="text"
+            value={newFeature}
+            onChange={(e) => setNewFeature(e.target.value)}
+            className={`${inputBaseClass} flex-grow`}
+            placeholder="Add a custom feature"
+          />
+          <button
+            type="button"
+            onClick={handleAddFeature}
+            disabled={!newFeature.trim()}
+            className={`ml-2 px-4 py-2 rounded-md ${
+              !newFeature.trim()
+                ? 'bg-gray-300 cursor-not-allowed'
+                : 'bg-orange-500 hover:bg-orange-600 text-white'
+            }`}
+          >
+            Add
+          </button>
+        </div>
+        
+        {/* Feature search */}
+        <div className="mb-4">
+          <label htmlFor="featureSearch" className="block text-sm font-medium text-gray-700 mb-1">
+            Search Features
+          </label>
+          <div className="relative">
+            <input
+              type="text"
+              id="featureSearch"
+              value={featureSearch}
+              onChange={(e) => setFeatureSearch(e.target.value)}
+              className={inputBaseClass}
+              placeholder="Type to search for features..."
+            />
+            {featureSearch.trim() && filteredFeatures.length > 0 && (
+              <div className="absolute z-10 w-full mt-1 bg-white rounded-md shadow-lg border border-gray-200 max-h-60 overflow-y-auto p-2">
+                <div className="flex flex-wrap gap-2">
+                  {filteredFeatures.map((feature, index) => (
+                    <button
+                      key={index}
+                      onClick={() => {
+                        handleAddPredefinedFeature(feature);
+                        setFeatureSearch('');
+                      }}
+                      className={`text-sm py-1 px-3 rounded-full transition-colors ${
+                        formData.features.includes(feature)
+                          ? 'bg-green-100 text-green-800 border border-green-200'
+                          : 'bg-white text-orange-700 border border-orange-200 hover:bg-orange-100'
+                      }`}
+                    >
+                      {feature}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+        
+        {/* Category tabs */}
+        <div className="mb-2 flex flex-wrap gap-1">
+          {predefinedFeatures.map((category, idx) => (
+            <button
+              key={idx}
+              type="button"
+              onClick={() => setActiveCategory(activeCategory === idx ? null : idx)}
+              className={`text-xs py-1 px-3 rounded-md transition-colors ${
+                activeCategory === idx
+                  ? 'bg-orange-500 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              {category.category}
+            </button>
+          ))}
+        </div>
+        
+        {/* Predefined features */}
+        <div className="mb-8 bg-orange-50 rounded-lg p-4 border border-orange-100">
+          <h4 className="text-sm font-medium text-orange-800 mb-3">
+            {activeCategory !== null 
+              ? `${predefinedFeatures[activeCategory].category} Features` 
+              : 'Select a category above or search for features'}
+          </h4>
+          
+          <div className="space-y-4">
+            {activeCategory !== null && (
+              <div className="flex flex-wrap gap-2">
+                {predefinedFeatures[activeCategory].features.map((feature, featureIdx) => (
+                  <button
+                    key={featureIdx}
+                    type="button"
+                    onClick={() => handleAddPredefinedFeature(feature)}
+                    className={`text-sm py-1 px-3 rounded-full transition-colors ${
+                      formData.features.includes(feature)
+                        ? 'bg-green-100 text-green-800 border border-green-200'
+                        : 'bg-white text-orange-700 border border-orange-200 hover:bg-orange-100'
+                    }`}
                   >
                     {feature}
-                    <button
-                      type="button"
-                      onClick={() => removeFeature(index)}
-                      className="ml-2 text-gray-400 hover:text-red-500"
-                    >
-                      <X size={14} />
-                    </button>
-                  </div>
+                  </button>
                 ))}
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
+
+        {/* Vehicle Specifications Section */}
+        <div className="mb-8">
+          <h4 className="text-md font-medium text-gray-800 mb-3 border-b pb-2">Vehicle Specifications</h4>
+          
+          <div className="space-y-6">
+            {vehicleSpecs.map((specGroup, groupIdx) => (
+              <div key={groupIdx} className="bg-gray-50 p-3 rounded-lg border border-gray-200">
+                <h5 className="text-sm font-medium text-gray-700 mb-2">{specGroup.label}</h5>
+                <div className="flex flex-wrap gap-2">
+                  {specGroup.options.map((option, optionIdx) => (
+                    <button
+                      key={optionIdx}
+                      type="button"
+                      onClick={() => handleAddPredefinedFeature(option)}
+                      className={`text-sm py-1 px-3 rounded-full transition-colors ${
+                        formData.features.includes(option)
+                          ? 'bg-green-100 text-green-800 border border-green-200'
+                          : 'bg-white text-gray-700 border border-gray-200 hover:bg-gray-100'
+                      }`}
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+        
+        {/* Features list */}
+        {formData.features.length > 0 ? (
+          <div className="mt-4">
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="text-sm font-medium text-gray-700">Added Features: ({formData.features.length})</h4>
+              {formData.features.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (confirm('Are you sure you want to clear all features?')) {
+                      setFormData(prev => ({ ...prev, features: [] }));
+                      toast.success('All features cleared');
+                    }
+                  }}
+                  className="text-xs py-1 px-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded"
+                >
+                  Clear All
+                </button>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {formData.features.map((feature, index) => (
+                <div
+                  key={index}
+                  className="bg-orange-100 text-orange-800 rounded-full py-1 px-3 flex items-center border border-orange-200 font-medium"
+                >
+                  <span className="text-sm text-orange-800">{feature}</span>
+                  <button
+                    type="button"
+                    onClick={() => removeFeature(index)}
+                    className="ml-2 text-orange-500 hover:text-red-500"
+                  >
+                    <X size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <p className="text-gray-500 italic">No features added yet.</p>
+        )}
       </div>
     );
   };
