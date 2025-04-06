@@ -105,7 +105,8 @@ export default function EditCarPage({ params }) {
     features: [],
     description: '',
     condition: '',
-    status: 'available'
+    status: 'available',
+    msrp: ''
   });
   const [selectedImages, setSelectedImages] = useState([]);
   const [existingImages, setExistingImages] = useState([]);
@@ -202,34 +203,35 @@ export default function EditCarPage({ params }) {
           horsepower: carData.horsepower || '',
           torque: carData.torque || '',
           drivetrain: carData.drivetrain || '',
-          features: Array.isArray(carData.features) ? carData.features : [],
+          features: carData.features || [],
           description: carData.description || '',
           condition: carData.condition || '',
-          status: carData.status || 'available'
+          status: carData.status || 'available',
+          msrp: carData.msrp?.toString() || ''
         });
-
-        // Handle images - different APIs have different formats
-        if (carData.images && Array.isArray(carData.images)) {
+        
+        // Set existing images if available
+        if (carData.images && carData.images.length > 0) {
+          console.log('Found existing images:', carData.images);
           setExistingImages(carData.images);
-        } else if (carData.image) {
-          // Single image string
-          setExistingImages([{ _id: 'main', url: carData.image }]);
-        } else if (carData.imageUrl) {
-          setExistingImages([{ _id: 'main', url: carData.imageUrl }]);
+        } else {
+          console.log('No existing images found');
+          setExistingImages([]);
         }
-        
-        console.log('Loaded VIN from API:', carData.vin);
-        
-        setIsLoadingCar(false);
       } catch (error) {
-        console.error('Error fetching car data:', error);
-        setErrorMessage(error.message);
+        console.error('Error fetching car details:', error);
+        setErrorMessage(error.message || 'Failed to load car details');
+        toast.error('Failed to load car details');
+      } finally {
         setIsLoadingCar(false);
       }
     };
 
     if (id) {
       fetchCarDetails();
+    } else {
+      setIsLoadingCar(false);
+      setErrorMessage('No car ID provided');
     }
   }, [id]);
   
@@ -427,29 +429,65 @@ export default function EditCarPage({ params }) {
           const formData = new FormData();
           
           // Append each selected image
-          selectedImages.forEach(image => {
+          selectedImages.forEach((image, index) => {
+            console.log(`Adding image ${index} to FormData:`, image.name, image.type, image.size);
             formData.append('images', image);
           });
+          
+          // Log the FormData entries for debugging
+          for (let pair of formData.entries()) {
+            console.log(`FormData contains: ${pair[0]}, ${pair[1].name}`);
+          }
+          
+          // Set loading state for upload
+          toast.loading('Uploading images...', { id: 'imageUpload' });
           
           // Upload images directly to backend API
           const imageUploadResponse = await fetch(`${baseApiUrl}/api/cars/${id}/images`, {
             method: 'POST',
             headers: {
               'Authorization': `Bearer ${token}`
+              // Important: Do NOT set 'Content-Type' header when uploading files with FormData
+              // The browser will set it automatically with the correct boundary
             },
             body: formData
           });
           
+          const responseText = await imageUploadResponse.text();
+          console.log('Raw image upload response:', responseText);
+          
+          let uploadResult;
+          try {
+            uploadResult = JSON.parse(responseText);
+            console.log('Parsed image upload response:', uploadResult);
+          } catch (e) {
+            console.error('Error parsing JSON response:', e);
+            throw new Error(`Invalid server response: ${responseText}`);
+          }
+          
           if (!imageUploadResponse.ok) {
-            const errorText = await imageUploadResponse.text();
-            console.error('Image upload failed:', errorText);
-            toast.error('Images uploaded but we had trouble saving some photos');
+            toast.error('Failed to upload images: ' + (uploadResult.message || 'Unknown error'), { id: 'imageUpload' });
+            throw new Error(uploadResult.message || 'Failed to upload images');
           } else {
-            toast.success('Images uploaded successfully');
+            // Update the existing images in state with the returned data
+            if (uploadResult && uploadResult.data && Array.isArray(uploadResult.data)) {
+              console.log('Setting existing images with server response:', uploadResult.data);
+              setExistingImages(uploadResult.data);
+              
+              // Clear the selected images and previews after successful upload
+              setSelectedImages([]);
+              imagePreviews.forEach(url => URL.revokeObjectURL(url));
+              setImagePreviews([]);
+              
+              toast.success('Images uploaded successfully!', { id: 'imageUpload' });
+            } else {
+              console.error('Invalid response data structure:', uploadResult);
+              toast.error('Images uploaded but response format was unexpected', { id: 'imageUpload' });
+            }
           }
         } catch (imageError) {
           console.error('Error uploading images:', imageError);
-          toast.error('Failed to upload some images');
+          toast.error(`Failed to upload images: ${imageError.message}`, { id: 'imageUpload' });
         }
       }
       

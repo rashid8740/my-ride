@@ -1,6 +1,7 @@
 const Car = require('../models/Car');
-const { deleteFile } = require('../middlewares/uploadMiddleware');
 const path = require('path');
+const { deleteFile } = require('../middlewares/uploadMiddleware');
+const { cloudinary } = require('../middlewares/uploadMiddleware');
 
 // @desc    Get all cars
 // @route   GET /api/cars
@@ -360,9 +361,13 @@ exports.deleteCar = async (req, res) => {
 // @access  Private
 exports.uploadCarImages = async (req, res) => {
   try {
+    console.log('Processing car image upload request', req.params.id);
+    console.log('Request files:', req.files);
+    
     const car = await Car.findById(req.params.id);
     
     if (!car) {
+      console.log('Car not found:', req.params.id);
       return res.status(404).json({
         status: 'error',
         message: 'Car not found'
@@ -371,6 +376,7 @@ exports.uploadCarImages = async (req, res) => {
     
     // Check ownership
     if (car.seller.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+      console.log('Unauthorized user tried to upload images');
       return res.status(403).json({
         status: 'error',
         message: 'Not authorized to update this car'
@@ -379,32 +385,43 @@ exports.uploadCarImages = async (req, res) => {
     
     // Process uploaded images
     if (!req.files || req.files.length === 0) {
+      console.log('No files found in the request');
       return res.status(400).json({
         status: 'error',
         message: 'No images uploaded'
       });
     }
     
-    // Add new images
-    const newImages = req.files.map(file => ({
-      url: `/uploads/${file.filename}`,
-      isMain: false
-    }));
+    console.log(`Found ${req.files.length} images to upload`);
+    
+    // Add new images - use Cloudinary URLs if available
+    const newImages = req.files.map((file, index) => {
+      const imgObj = {
+        url: file.path || `/uploads/${file.filename}`, // Use path for Cloudinary or generate local path
+        publicId: file.filename || `image-${Date.now()}-${index}`,
+        isMain: car.images.length === 0 && index === 0 // First image is main only if no existing images
+      };
+      console.log('Creating image object:', imgObj);
+      return imgObj;
+    });
+    
+    console.log('New images to add:', newImages);
     
     // Update the car with new images
     car.images.push(...newImages);
-    await car.save();
+    const savedCar = await car.save();
+    console.log('Car saved with new images. Total images:', savedCar.images.length);
     
     res.status(200).json({
       status: 'success',
       message: 'Images uploaded successfully',
-      data: car.images
+      data: savedCar.images
     });
   } catch (error) {
     console.error('Upload car images error:', error);
     res.status(500).json({
       status: 'error',
-      message: 'Server error while uploading images'
+      message: 'Server error while uploading images: ' + error.message
     });
   }
 };
