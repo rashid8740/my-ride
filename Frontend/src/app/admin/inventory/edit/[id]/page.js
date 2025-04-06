@@ -183,8 +183,21 @@ export default function EditCarPage({ params }) {
           fuelType: carData.fuelType || carData.fuel || '',
           engineSize: carData.engineSize?.toString() || '',
           doors: carData.doors?.toString() || '',
-          bodyType: carData.bodyType || carData.category || '',
+          bodyType: carData.bodyType || '',
+          category: carData.category || '',
           color: carData.color || carData.exteriorColor || '',
+          interiorColor: carData.interiorColor || '',
+          vin: carData.vin || '',
+          stock: carData.stock || '',
+          trim: carData.trim || '',
+          length: carData.length || '',
+          width: carData.width || '',
+          height: carData.height || '',
+          cargoCapacity: carData.cargoCapacity || '',
+          fuelCapacity: carData.fuelCapacity || '',
+          horsepower: carData.horsepower || '',
+          torque: carData.torque || '',
+          drivetrain: carData.drivetrain || '',
           features: Array.isArray(carData.features) ? carData.features : [],
           description: carData.description || '',
           condition: carData.condition || '',
@@ -200,6 +213,8 @@ export default function EditCarPage({ params }) {
         } else if (carData.imageUrl) {
           setExistingImages([{ _id: 'main', url: carData.imageUrl }]);
         }
+        
+        console.log('Loaded VIN from API:', carData.vin);
         
         setIsLoadingCar(false);
       } catch (error) {
@@ -217,10 +232,32 @@ export default function EditCarPage({ params }) {
   // Handle input changes
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    setFormData(prev => {
+      const updated = {
+        ...prev,
+        [name]: value
+      };
+      
+      // Auto-update title when make, model, or year changes if title is empty
+      // or matches the previous auto-generated pattern
+      if (name === 'make' || name === 'model' || name === 'year') {
+        const autoTitle = `${prev.year} ${prev.make} ${prev.model}`;
+        const newAutoTitle = `${
+          name === 'year' ? value : prev.year
+        } ${
+          name === 'make' ? value : prev.make
+        } ${
+          name === 'model' ? value : prev.model
+        }`;
+        
+        // Only update if title is empty or matches the previous auto-generated pattern
+        if (!prev.title || prev.title === autoTitle) {
+          updated.title = newAutoTitle;
+        }
+      }
+      
+      return updated;
+    });
   };
 
   // Handle adding a new feature
@@ -310,7 +347,7 @@ export default function EditCarPage({ params }) {
       
       // Prepare vehicle data object
       const vehicleData = {
-        title: `${formData.year} ${formData.make} ${formData.model}`,
+        title: formData.title || `${formData.year} ${formData.make} ${formData.model}`,
         make: formData.make,
         model: formData.model,
         year: parseInt(formData.year),
@@ -322,13 +359,27 @@ export default function EditCarPage({ params }) {
         doors: formData.doors ? parseInt(formData.doors) : undefined,
         bodyType: formData.bodyType,
         color: formData.color,
+        interiorColor: formData.interiorColor,
+        vin: formData.vin,
+        stock: formData.stock,
+        trim: formData.trim,
+        length: formData.length,
+        width: formData.width,
+        height: formData.height,
+        cargoCapacity: formData.cargoCapacity,
+        fuelCapacity: formData.fuelCapacity,
+        horsepower: formData.horsepower,
+        torque: formData.torque,
+        drivetrain: formData.drivetrain,
         features: formData.features,
         description: formData.description,
         condition: formData.condition,
+        category: formData.category,
         status: formData.status || 'available'
       };
       
-      console.log('Submitting vehicle data:', vehicleData);
+      console.log('Submitting vehicle with VIN:', formData.vin);
+      console.log('vehicleData with VIN:', vehicleData.vin);
       
       // Update car directly to backend API
       const updateResponse = await fetch(`${baseApiUrl}/api/cars/${id}`, {
@@ -719,7 +770,7 @@ export default function EditCarPage({ params }) {
           </div>
           <div>
             <label htmlFor="vin" className={labelClass}>
-              VIN
+              VIN (Vehicle Identification Number)
             </label>
             <input
               type="text"
@@ -727,8 +778,8 @@ export default function EditCarPage({ params }) {
               name="vin"
               value={formData.vin}
               onChange={handleInputChange}
-              className={inputBaseClass}
-              placeholder="Vehicle Identification Number"
+              className={`${inputBaseClass} focus:border-blue-500`}
+              placeholder="Enter vehicle identification number"
             />
           </div>
           <div>
