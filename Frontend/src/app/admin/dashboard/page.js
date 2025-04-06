@@ -338,7 +338,7 @@ export default function AdminDashboard() {
         />
         <StatCard 
           title="Revenue" 
-          value={`$${currentSales.toLocaleString()}`} 
+          value={`KSh ${currentSales.toLocaleString()}`} 
           change="+8% from last month"
           icon={<DollarSign className="h-5 w-5" />} 
           color="orange"
@@ -362,7 +362,7 @@ export default function AdminDashboard() {
         </div>
         
         <div className="flex flex-col md:flex-row md:items-end md:justify-between mb-2">
-          <div className="text-3xl font-bold text-gray-900">${currentSales.toLocaleString()} <span className="text-sm font-normal text-gray-500">of ${salesGoal.toLocaleString()}</span></div>
+          <div className="text-3xl font-bold text-gray-900">KSh {currentSales.toLocaleString()} <span className="text-sm font-normal text-gray-500">of KSh {salesGoal.toLocaleString()}</span></div>
           <div className="mt-2 md:mt-0 text-sm text-gray-500">{Math.round(salesPercentage)}% to goal</div>
         </div>
         
@@ -376,7 +376,7 @@ export default function AdminDashboard() {
               }}></div>
               <div>
                 <div className="text-sm font-medium text-gray-700">{month.month}</div>
-                <div className="text-xs text-gray-500">${month.amount.toLocaleString()}</div>
+                <div className="text-xs text-gray-500">KSh {month.amount.toLocaleString()}</div>
               </div>
             </div>
           ))}
@@ -413,7 +413,7 @@ export default function AdminDashboard() {
             <ActivityItem 
               icon={<Car className="h-4 w-4" />}
               title="Vehicle Sold"
-              description="Audi A4 2022 has been sold for $38,500"
+              description="Audi A4 2022 has been sold for KSh 38,500"
               time="3 hours ago"
               type="success"
             />
