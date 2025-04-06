@@ -1,8 +1,9 @@
 // src/app/contact/page.js
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
-import { MapPin, Phone, Mail, Clock, Send } from "lucide-react";
+import { MapPin, Phone, Mail, Clock, Send, Check, AlertCircle, Loader, Car } from "lucide-react";
+import apiService from "@/utils/api";
 
 // Input Field Component
 const InputField = ({ 
@@ -28,6 +29,39 @@ const InputField = ({
         required={required}
         className="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-gray-50 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 shadow-sm transition-colors"
       />
+    </div>
+  );
+};
+
+// Select Field Component
+const SelectField = ({ 
+  id, 
+  label, 
+  options,
+  value, 
+  onChange, 
+  required = false,
+  placeholder = "Select an option..." 
+}) => {
+  return (
+    <div className="mb-4">
+      <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1">
+        {label} {required && <span className="text-red-500">*</span>}
+      </label>
+      <select
+        id={id}
+        value={value}
+        onChange={onChange}
+        required={required}
+        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-gray-50 text-gray-900 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 shadow-sm transition-colors"
+      >
+        <option value="">{placeholder}</option>
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
     </div>
   );
 };
@@ -81,24 +115,88 @@ export default function ContactPage() {
   const [phone, setPhone] = useState("");
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
+  const [vehicle, setVehicle] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
+  const [error, setError] = useState(null);
+  const [vehicles, setVehicles] = useState([]);
+  const [isLoadingVehicles, setIsLoadingVehicles] = useState(false);
 
-  const handleSubmit = (e) => {
+  // Fetch vehicles when component mounts
+  useEffect(() => {
+    const fetchVehicles = async () => {
+      try {
+        setIsLoadingVehicles(true);
+        const response = await apiService.cars.getAll();
+        
+        if (response.status === 'success' && Array.isArray(response.data)) {
+          setVehicles(response.data);
+        }
+      } catch (err) {
+        console.error('Error fetching vehicles:', err);
+      } finally {
+        setIsLoadingVehicles(false);
+      }
+    };
+    
+    fetchVehicles();
+  }, []);
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Handle form submission logic here
-    console.log({ name, email, phone, subject, message });
-    // For demo purposes, just set submitted to true
-    setSubmitted(true);
-    // Reset form fields
-    setName("");
-    setEmail("");
-    setPhone("");
-    setSubject("");
-    setMessage("");
-    // After 3 seconds, reset the submission status
-    setTimeout(() => {
-      setSubmitted(false);
-    }, 3000);
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      // Find the selected vehicle details
+      let vehicleDetails = vehicle;
+      if (vehicle && vehicle.startsWith('vehicle-')) {
+        const vehicleId = vehicle.replace('vehicle-', '');
+        const selectedVehicle = vehicles.find(v => v._id === vehicleId);
+        if (selectedVehicle) {
+          vehicleDetails = `${selectedVehicle.year} ${selectedVehicle.make} ${selectedVehicle.model}`;
+        }
+      }
+      
+      // Prepare the inquiry data
+      const inquiryData = {
+        name,
+        email,
+        phone,
+        subject,
+        message,
+        vehicle: vehicleDetails,
+        vehicleId: vehicle && vehicle.startsWith('vehicle-') ? vehicle.replace('vehicle-', '') : null
+      };
+      
+      // Submit the inquiry to the backend
+      const response = await apiService.contact.submitInquiry(inquiryData);
+      
+      if (response.status === 'success') {
+        // Show success message
+        setSubmitted(true);
+        
+        // Reset form fields
+        setName("");
+        setEmail("");
+        setPhone("");
+        setSubject("");
+        setMessage("");
+        setVehicle("");
+        
+        // After 5 seconds, reset the submission status
+        setTimeout(() => {
+          setSubmitted(false);
+        }, 5000);
+      } else {
+        throw new Error(response.message || 'Failed to submit inquiry');
+      }
+    } catch (err) {
+      console.error('Error submitting inquiry:', err);
+      setError(err.message || 'An error occurred while submitting your inquiry. Please try again later.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -137,14 +235,14 @@ export default function ContactPage() {
                 icon={<MapPin size={24} className="text-orange-500" />}
                 title="Our Location"
               >
-                <p>123 Automotive Avenue,<br />San Francisco, CA 94158,<br />United States</p>
+                <p>123 Automotive Avenue,<br />Nairobi, Kenya</p>
               </ContactInfoCard>
               
               <ContactInfoCard 
                 icon={<Phone size={24} className="text-orange-500" />}
                 title="Phone Number"
               >
-                <p>+1 (555) 123-4567</p>
+                <p>+254 (123) 456-7890</p>
                 <p className="text-sm text-gray-500 mt-1">Mon-Fri from 9am to 6pm</p>
               </ContactInfoCard>
               
@@ -152,7 +250,7 @@ export default function ContactPage() {
                 icon={<Mail size={24} className="text-orange-500" />}
                 title="Email Address"
               >
-                <p>info@autodecar.com</p>
+                <p>info@myride.co.ke</p>
                 <p className="text-sm text-gray-500 mt-1">We'll respond as soon as possible</p>
               </ContactInfoCard>
               
@@ -172,10 +270,15 @@ export default function ContactPage() {
               
               {submitted && (
                 <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-6 flex items-center">
-                  <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd"></path>
-                  </svg>
-                  <span>Thank you! Your message has been sent successfully.</span>
+                  <Check className="w-5 h-5 mr-2" />
+                  <span>Thank you! Your inquiry has been sent successfully. Our team will contact you soon.</span>
+                </div>
+              )}
+              
+              {error && (
+                <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-6 flex items-center">
+                  <AlertCircle className="w-5 h-5 mr-2" />
+                  <span>{error}</span>
                 </div>
               )}
               
@@ -204,7 +307,7 @@ export default function ContactPage() {
                   <InputField
                     id="phone"
                     label="Phone Number"
-                    placeholder="(555) 123-4567"
+                    placeholder="(123) 456-7890"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                   />
@@ -216,6 +319,37 @@ export default function ContactPage() {
                     onChange={(e) => setSubject(e.target.value)}
                     required
                   />
+                </div>
+                
+                <div className="mb-4">
+                  <label htmlFor="vehicle" className="block text-sm font-medium text-gray-700 mb-1">
+                    Vehicle of Interest
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Car className="h-5 w-5 text-gray-400" />
+                    </div>
+                    {isLoadingVehicles ? (
+                      <div className="w-full px-4 py-2.5 pl-10 border border-gray-300 rounded-lg bg-gray-50 text-gray-500">
+                        <Loader className="h-4 w-4 mr-2 inline animate-spin" /> Loading vehicles...
+                      </div>
+                    ) : (
+                      <select
+                        id="vehicle"
+                        value={vehicle}
+                        onChange={(e) => setVehicle(e.target.value)}
+                        className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg bg-gray-50 text-gray-900 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 shadow-sm transition-colors"
+                      >
+                        <option value="">Select a vehicle (optional)</option>
+                        <option value="other">Other/Not listed</option>
+                        {vehicles.map((car) => (
+                          <option key={car._id} value={`vehicle-${car._id}`}>
+                            {car.year} {car.make} {car.model} - KSh {car.price ? car.price.toLocaleString() : 'N/A'}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
                 </div>
                 
                 <TextareaField
@@ -230,10 +364,22 @@ export default function ContactPage() {
                 
                 <button
                   type="submit"
-                  className="mt-4 bg-orange-500 hover:bg-orange-600 text-white font-medium py-3 px-6 rounded-lg transition-colors shadow-md flex items-center"
+                  disabled={isLoading}
+                  className={`mt-4 ${
+                    isLoading ? 'bg-gray-400' : 'bg-orange-500 hover:bg-orange-600'
+                  } text-white font-medium py-3 px-6 rounded-lg transition-colors shadow-md flex items-center justify-center`}
                 >
-                  <Send size={18} className="mr-2" />
-                  Send Message
+                  {isLoading ? (
+                    <>
+                      <Loader size={18} className="animate-spin mr-2" />
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      <Send size={18} className="mr-2" />
+                      Send Message
+                    </>
+                  )}
                 </button>
               </form>
             </div>
@@ -250,56 +396,19 @@ export default function ContactPage() {
               Visit our showroom to explore our premium vehicle selection in person.
             </p>
           </div>
-          <div className="rounded-xl overflow-hidden shadow-lg h-[400px] relative">
-            {/* Placeholder for an actual Google Map integration */}
-            <div className="absolute inset-0 bg-gray-300 flex items-center justify-center">
-              <p className="text-gray-700 font-medium">
-                Map integration would be displayed here.
-                <br />
-                For production, replace with Google Maps API or similar.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="bg-white py-16">
-        <div className="container mx-auto px-4 max-w-6xl">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold mb-4">Frequently Asked Questions</h2>
-            <p className="text-gray-600 max-w-3xl mx-auto">
-              Find quick answers to common questions about our services.
-            </p>
-          </div>
           
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="bg-gray-50 p-6 rounded-lg">
-              <h3 className="text-xl font-semibold mb-3">What payment methods do you accept?</h3>
-              <p className="text-gray-700">
-                We accept all major credit cards, bank transfers, certified checks, and financing through our partner institutions. We can also discuss personalized payment plans.
-              </p>
-            </div>
-            
-            <div className="bg-gray-50 p-6 rounded-lg">
-              <h3 className="text-xl font-semibold mb-3">Do you offer test drives?</h3>
-              <p className="text-gray-700">
-                Yes, we encourage test drives before making a purchase decision. You can schedule a test drive through our website or by contacting our sales team directly.
-              </p>
-            </div>
-            
-            <div className="bg-gray-50 p-6 rounded-lg">
-              <h3 className="text-xl font-semibold mb-3">How do I sell my car through AutoDecar?</h3>
-              <p className="text-gray-700">
-                Selling your car is easy. Simply create an account, complete our online form with your vehicle details, upload photos, and set your price. Our team will review your listing and publish it to our marketplace.
-              </p>
-            </div>
-            
-            <div className="bg-gray-50 p-6 rounded-lg">
-              <h3 className="text-xl font-semibold mb-3">Do you offer delivery services?</h3>
-              <p className="text-gray-700">
-                Yes, we offer nationwide vehicle delivery for an additional fee. Delivery times and costs vary depending on your location. Contact our logistics team for a custom quote.
-              </p>
-            </div>
+          <div className="bg-white rounded-xl shadow-md overflow-hidden">
+            <iframe 
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d63820.98109883296!2d36.78544933953908!3d-1.2971286238125492!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x182f10a36c8bf097%3A0x877fc8fe75911ff4!2sNairobi%2C%20Kenya!5e0!3m2!1sen!2sus!4v1713352800000!5m2!1sen!2sus" 
+              width="100%" 
+              height="450" 
+              style={{ border: 0 }} 
+              allowFullScreen="" 
+              loading="lazy" 
+              referrerPolicy="no-referrer-when-downgrade"
+              title="MyRide Kenya Location"
+              className="w-full"
+            ></iframe>
           </div>
         </div>
       </section>

@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '@/utils/AuthContext';
 import { 
   Users, 
@@ -85,17 +85,17 @@ const StatCard = ({ title, value, change, icon, color, subtext, trend = "up", on
           <div className={`p-2.5 rounded-xl ${getIconColor()} shadow-sm`}>
             {icon}
           </div>
-          {change && (
+              {change && (
             <div className={`px-2 py-1 text-xs font-medium rounded-full border ${getTrendColor()} flex items-center`}>
-              {trend === "up" ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}
-              {change}
+                  {trend === "up" ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}
+                  {change}
+                </div>
+              )}
             </div>
-          )}
-        </div>
         <div className="flex flex-col">
           <p className="text-sm font-medium text-gray-500 mb-1">{title}</p>
           <p className="text-2xl font-bold text-gray-900 tracking-tight mb-1">{value}</p>
-          {subtext && <p className="text-xs text-gray-500 mt-0.5">{subtext}</p>}
+            {subtext && <p className="text-xs text-gray-500 mt-0.5">{subtext}</p>}
         </div>
       </div>
       {onClick && (
@@ -168,6 +168,9 @@ export default function AdminDashboard() {
   const [replyInquiry, setReplyInquiry] = useState(null);
   const [replyMessage, setReplyMessage] = useState('');
   const [sendingReply, setSendingReply] = useState(false);
+  const [lastRefreshTime, setLastRefreshTime] = useState(Date.now());
+  const [newInquiriesCount, setNewInquiriesCount] = useState(0);
+  const [showRefreshAlert, setShowRefreshAlert] = useState(false);
 
   // Effect to close dropdown when clicking outside
   useEffect(() => {
@@ -185,110 +188,147 @@ export default function AdminDashboard() {
     };
   }, []);
 
-  useEffect(() => {
-    const fetchDashboardData = async () => {
-      try {
+  // Function to fetch dashboard data with useCallback
+  const fetchDashboardData = useCallback(async (showLoading = true) => {
+    try {
+      if (showLoading) {
         setIsLoading(true);
-        setError(null);
-        
-        console.log('Fetching dashboard data...');
-        // Add retry logic for dashboard stats
-        let attempts = 0;
-        const maxAttempts = 3;
-        let dashboardData;
-        
-        while (attempts < maxAttempts) {
-          try {
-            console.log(`Attempt ${attempts + 1} to fetch dashboard stats`);
-            dashboardData = await apiService.dashboard.getStats();
-            console.log('Dashboard data received:', dashboardData);
-            break; // Successfully got data, exit loop
-          } catch (statsError) {
-            console.error(`Attempt ${attempts + 1} failed:`, statsError);
-            attempts++;
-            
-            if (attempts >= maxAttempts) {
-              console.log('Max attempts reached, falling back to alternative data sources');
-              throw statsError; // Will be caught by outer try/catch
-            }
-            
-            // Wait before retrying
-            await new Promise(resolve => setTimeout(resolve, 1000));
-          }
-        }
-        
-        // If dashboard data is successfully fetched
-        if (dashboardData && dashboardData.data) {
-          console.log('Using dashboard data:', dashboardData.data);
-          setStats({
-            ...stats,
-            totalUsers: dashboardData.data.totalUsers || 0,
-            totalCars: dashboardData.data.totalCars || 0,
-            totalInquiries: dashboardData.data.totalInquiries || 0,
-            recentInquiries: dashboardData.data.recentInquiries || [],
-            recentUsers: dashboardData.data.recentUsers || [],
-            lowStockCars: dashboardData.data.lowStockCars || []
-          });
-        } else {
-          // Fall back to fetching from multiple endpoints
-          console.log('Falling back to fetching from multiple endpoints');
-          const [usersResponse, carsResponse, inquiriesResponse] = await Promise.all([
-            apiService.users.getAll().catch(err => {
-              console.error('Failed to fetch users:', err);
-              return { data: [] };
-            }),
-            apiService.cars.getAll().catch(err => {
-              console.error('Failed to fetch cars:', err);
-              return { data: [] };
-            }),
-            apiService.contact.getAll().catch(err => {
-              console.error('Failed to fetch inquiries:', err);
-              return { data: [] };
-            })
-          ]);
+      }
+      setError(null);
+      
+      console.log('Fetching dashboard data...');
+      // Add retry logic for dashboard stats
+      let attempts = 0;
+      const maxAttempts = 3;
+      let dashboardData;
+      
+      while (attempts < maxAttempts) {
+        try {
+          console.log(`Attempt ${attempts + 1} to fetch dashboard stats`);
+          dashboardData = await apiService.dashboard.getStats();
+          console.log('Dashboard data received:', dashboardData);
+          break; // Successfully got data, exit loop
+        } catch (statsError) {
+          console.error(`Attempt ${attempts + 1} failed:`, statsError);
+          attempts++;
           
-          // Extract the recent inquiries (last 5)
-          const recentInquiries = inquiriesResponse.data
-            ? inquiriesResponse.data
-                .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-                .slice(0, 5)
-            : [];
-            
-          // Extract the recent users (last 5)
-          const recentUsers = usersResponse.data
-            ? usersResponse.data
-                .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-                .slice(0, 5)
-            : [];
-            
-          // Extract cars with low stock (less than 3 units)
-          const lowStockCars = carsResponse.data
-            ? carsResponse.data
-                .filter(car => car.stock < 3)
-                .slice(0, 5)
-            : [];
-            
-          setStats({
-            ...stats,
-            totalUsers: usersResponse.data?.length || 0,
-            totalCars: carsResponse.data?.length || 0,
-            totalInquiries: inquiriesResponse.data?.length || 0,
-            recentInquiries,
-            recentUsers,
-            lowStockCars
-          });
+          if (attempts >= maxAttempts) {
+            console.log('Max attempts reached, falling back to alternative data sources');
+            throw statsError; // Will be caught by outer try/catch
+          }
+          
+          // Wait before retrying
+          await new Promise(resolve => setTimeout(resolve, 1000));
         }
-      } catch (err) {
-        console.error('Error fetching dashboard data:', err);
-        setError('Failed to load dashboard data. Please try again later. Error: ' + (err.message || 'Unknown error'));
-      } finally {
+      }
+      
+      // If dashboard data is successfully fetched
+      if (dashboardData && dashboardData.data) {
+        console.log('Using dashboard data:', dashboardData.data);
+        
+        // Check for new inquiries
+        const currentInquiriesCount = stats.recentInquiries.length;
+        const newInquiriesCount = dashboardData.data.recentInquiries?.length || 0;
+        
+        if (newInquiriesCount > currentInquiriesCount && currentInquiriesCount > 0) {
+          // We have new inquiries
+          setNewInquiriesCount(newInquiriesCount - currentInquiriesCount);
+          setShowRefreshAlert(true);
+          
+          // Auto-hide the alert after 5 seconds
+          setTimeout(() => {
+            setShowRefreshAlert(false);
+          }, 5000);
+        }
+        
+        setStats((prevStats) => ({
+          ...prevStats,
+          totalUsers: dashboardData.data.totalUsers || 0,
+          totalCars: dashboardData.data.totalCars || 0,
+          totalInquiries: dashboardData.data.totalInquiries || 0,
+          recentInquiries: dashboardData.data.recentInquiries || [],
+          recentUsers: dashboardData.data.recentUsers || [],
+          lowStockCars: dashboardData.data.lowStockCars || []
+        }));
+        
+        setLastRefreshTime(Date.now());
+        setNewInquiriesCount(0);
+      } else {
+        // Fall back to fetching from multiple endpoints
+        console.log('Falling back to fetching from multiple endpoints');
+        const [usersResponse, carsResponse, inquiriesResponse] = await Promise.all([
+          apiService.users.getAll().catch(err => {
+            console.error('Failed to fetch users:', err);
+            return { data: [] };
+          }),
+          apiService.cars.getAll().catch(err => {
+            console.error('Failed to fetch cars:', err);
+            return { data: [] };
+          }),
+          apiService.contact.getAll().catch(err => {
+            console.error('Failed to fetch inquiries:', err);
+            return { data: [] };
+          })
+        ]);
+        
+        // Extract the recent inquiries (last 5)
+        const recentInquiries = inquiriesResponse.data
+          ? inquiriesResponse.data
+              .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+              .slice(0, 5)
+          : [];
+          
+        // Extract the recent users (last 5)
+        const recentUsers = usersResponse.data
+          ? usersResponse.data
+              .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+              .slice(0, 5)
+          : [];
+          
+        // Extract cars with low stock (less than 3 units)
+        const lowStockCars = carsResponse.data
+          ? carsResponse.data
+              .filter(car => car.stock < 3)
+              .slice(0, 5)
+          : [];
+          
+        setStats((prevStats) => ({
+          ...prevStats,
+          totalUsers: usersResponse.data?.length || 0,
+          totalCars: carsResponse.data?.length || 0,
+          totalInquiries: inquiriesResponse.data?.length || 0,
+          recentInquiries,
+          recentUsers,
+          lowStockCars
+        }));
+
+        setLastRefreshTime(Date.now());
+      }
+    } catch (err) {
+      console.error('Error fetching dashboard data:', err);
+      setError('Failed to load dashboard data. Please try again later. Error: ' + (err.message || 'Unknown error'));
+    } finally {
+      if (showLoading) {
         setIsLoading(false);
       }
-    };
-    
-    fetchDashboardData();
-  }, []);
+    }
+  }, [stats.recentInquiries.length]);
   
+  // Set up auto-refresh every 60 seconds
+  useEffect(() => {
+    // Initial fetch
+    fetchDashboardData();
+    
+    // Set up interval for auto-refresh
+    const refreshInterval = setInterval(() => {
+      // Silent refresh (don't show loading state)
+      fetchDashboardData(false);
+    }, 60000); // Every 60 seconds
+    
+    // Clean up interval on component unmount
+    return () => clearInterval(refreshInterval);
+  }, [fetchDashboardData]);
+
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh]">
@@ -667,10 +707,42 @@ export default function AdminDashboard() {
               <h2 className="text-lg font-semibold text-gray-900">Recent Inquiries</h2>
               <p className="text-xs text-gray-500 mt-1">Manage customer inquiries and requests</p>
             </div>
-            <Link href="/admin/inquiries" className="px-3 py-1.5 bg-orange-50 text-orange-600 rounded-lg text-sm font-medium hover:bg-orange-100 transition-colors flex items-center">
-              <span>View all</span>
-              <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
-            </Link>
+            <div className="flex items-center space-x-3">
+              {showRefreshAlert && (
+                <div className="animate-pulse bg-blue-50 text-blue-600 px-3 py-1 rounded-lg text-xs font-medium flex items-center">
+                  <span className="mr-1.5">New inquiries available!</span>
+                </div>
+              )}
+              <button 
+                onClick={() => fetchDashboardData()}
+                className="p-2 bg-gray-100 rounded-lg text-gray-600 hover:bg-gray-200 transition-colors"
+                title="Refresh inquiries"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`${isLoading ? 'animate-spin' : ''}`}>
+                  <path d="M21 12a9 9 0 0 1-9 9c-4.97 0-9-4.03-9-9s4.03-9 9-9h3"></path>
+                  <path d="M21 3v6h-6"></path>
+                  <path d="M21 9L15 3"></path>
+                </svg>
+              </button>
+              <Link href="/admin/inquiries" className="px-3 py-1.5 bg-orange-50 text-orange-600 rounded-lg text-sm font-medium hover:bg-orange-100 transition-colors flex items-center">
+                <span>View all</span>
+                <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+              </Link>
+            </div>
+          </div>
+          
+          <div className="px-6 py-2 bg-gray-50 border-b border-gray-100 flex justify-between items-center text-xs text-gray-500">
+            <span>
+              Last refreshed: {new Date(lastRefreshTime).toLocaleTimeString()}
+            </span>
+            <span>
+              {stats.totalInquiries} total inquiries
+              {newInquiriesCount > 0 && (
+                <span className="ml-2 px-1.5 py-0.5 bg-green-100 text-green-700 rounded-full">
+                  +{newInquiriesCount} new
+                </span>
+              )}
+            </span>
           </div>
           
           <div className="overflow-x-auto">
@@ -721,24 +793,24 @@ export default function AdminDashboard() {
                               className="flex items-center"
                             >
                               <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
-                                inquiry.status === 'new' 
-                                  ? 'bg-blue-100 text-blue-800' 
-                                  : inquiry.status === 'inProgress' 
-                                  ? 'bg-yellow-100 text-yellow-800' 
-                                  : 'bg-green-100 text-green-800'
-                              }`}>
-                                {inquiry.status === 'new' 
+                          inquiry.status === 'new' 
+                            ? 'bg-blue-100 text-blue-800' 
+                            : inquiry.status === 'inProgress' 
+                            ? 'bg-yellow-100 text-yellow-800' 
+                            : 'bg-green-100 text-green-800'
+                        }`}>
+                          {inquiry.status === 'new' 
                                   ? <span className="h-1.5 w-1.5 rounded-full bg-blue-500 mr-1.5"></span>
-                                  : inquiry.status === 'inProgress'
+                            : inquiry.status === 'inProgress'
                                   ? <Clock className="h-3.5 w-3.5 mr-1.5" />
                                   : <Check className="h-3.5 w-3.5 mr-1.5" />
-                                }
-                                {inquiry.status === 'new' 
-                                  ? 'New' 
-                                  : inquiry.status === 'inProgress' 
-                                  ? 'In Progress' 
-                                  : 'Resolved'}
-                              </span>
+                          }
+                          {inquiry.status === 'new' 
+                            ? 'New' 
+                            : inquiry.status === 'inProgress' 
+                            ? 'In Progress' 
+                            : 'Resolved'}
+                        </span>
                               <ChevronRight className="h-4 w-4 ml-2 text-gray-400" />
                             </button>
                             
