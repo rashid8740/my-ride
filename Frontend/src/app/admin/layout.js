@@ -15,7 +15,8 @@ import {
   ChevronDown,
   Bell,
   Search,
-  User
+  User,
+  Heart
 } from 'lucide-react';
 
 export default function AdminLayout({ children }) {
@@ -279,14 +280,32 @@ export default function AdminLayout({ children }) {
                 <ChevronDown className="h-4 w-4" />
               </button>
               {userMenuOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
+                <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border border-gray-200 z-20">
+                  <div className="p-3 border-b border-gray-100">
+                    <div className="text-sm font-semibold text-gray-800">{user.firstName} {user.lastName}</div>
+                    <div className="text-xs text-gray-500 mt-1">{user.email}</div>
+                  </div>
                   <div className="py-1">
                     <Link 
-                      href="/admin/profile" 
+                      href="/admin/dashboard" 
                       className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                     >
-                      <User className="h-4 w-4 mr-2 text-gray-500" />
-                      Your Profile
+                      <LayoutDashboard className="h-4 w-4 mr-2 text-gray-500" />
+                      Dashboard
+                    </Link>
+                    <Link 
+                      href="/favorites" 
+                      className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      <Heart className="h-4 w-4 mr-2 text-gray-500" />
+                      My Favorites
+                    </Link>
+                    <Link 
+                      href="/admin/test-drives" 
+                      className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      <Car className="h-4 w-4 mr-2 text-gray-500" />
+                      Test Drives
                     </Link>
                     <Link 
                       href="/admin/settings" 

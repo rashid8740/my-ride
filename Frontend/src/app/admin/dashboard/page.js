@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/utils/AuthContext';
 import { 
   Users, 
@@ -62,43 +62,47 @@ const StatCard = ({ title, value, change, icon, color, subtext, trend = "up", on
 
   const getIconColor = () => {
     switch(color) {
-      case "green": return "text-green-600";
-      case "yellow": return "text-yellow-600";
-      case "orange": return "text-orange-600";
-      case "blue": return "text-blue-600";
-      case "purple": return "text-purple-600";
-      default: return "text-orange-600";
+      case "green": return "bg-green-500 text-white";
+      case "yellow": return "bg-yellow-500 text-white";
+      case "orange": return "bg-orange-500 text-white";
+      case "blue": return "bg-blue-500 text-white";
+      case "purple": return "bg-purple-500 text-white";
+      default: return "bg-orange-500 text-white";
     }
+  };
+  
+  const getTrendColor = () => {
+    return trend === "up" ? "text-green-600 bg-green-50 border-green-100" : "text-red-600 bg-red-50 border-red-100";
   };
   
   return (
     <div 
       onClick={onClick} 
-      className={`bg-white rounded-xl shadow-sm overflow-hidden transition transform hover:shadow-md border ${onClick ? 'cursor-pointer hover:scale-[1.01]' : ''}`}
+      className={`bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden transition-all duration-300 ${onClick ? 'cursor-pointer hover:shadow-md hover:-translate-y-1' : ''}`}
     >
-      <div className={`p-6 bg-gradient-to-br ${getBgColor()}`}>
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-medium text-gray-600">{title}</h3>
-          <div className={`p-2 rounded-lg ${getIconColor()} bg-white/70 backdrop-blur-sm`}>
+      <div className="p-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className={`p-2.5 rounded-xl ${getIconColor()} shadow-sm`}>
             {icon}
           </div>
-        </div>
-        <div className="flex flex-col">
-          <p className="text-3xl font-bold text-gray-900 mb-1.5">{value}</p>
           {change && (
-            <div className={`flex items-center text-sm font-medium ${trend === "up" ? "text-green-600" : "text-red-600"}`}>
-              {trend === "up" ? <TrendingUp className="h-3.5 w-3.5 mr-1" /> : <TrendingDown className="h-3.5 w-3.5 mr-1" />}
+            <div className={`px-2 py-1 text-xs font-medium rounded-full border ${getTrendColor()} flex items-center`}>
+              {trend === "up" ? <TrendingUp className="h-3 w-3 mr-1" /> : <TrendingDown className="h-3 w-3 mr-1" />}
               {change}
             </div>
           )}
+        </div>
+        <div className="flex flex-col">
+          <p className="text-sm font-medium text-gray-500 mb-1">{title}</p>
+          <p className="text-2xl font-bold text-gray-900 tracking-tight mb-1">{value}</p>
           {subtext && <p className="text-xs text-gray-500 mt-0.5">{subtext}</p>}
         </div>
       </div>
       {onClick && (
-        <div className="px-6 py-2 border-t border-gray-100">
-          <Link href={typeof onClick === 'string' ? onClick : '#'} className="flex items-center justify-between text-xs font-medium text-gray-500 hover:text-orange-600 transition-colors">
+        <div className="px-6 py-3 border-t border-gray-100 bg-gray-50">
+          <Link href={typeof onClick === 'string' ? onClick : '#'} className="flex items-center justify-between text-xs font-medium text-gray-600 hover:text-orange-600 transition-colors">
             <span>View details</span>
-            <ChevronRight className="h-3 w-3" />
+            <ChevronRight className="h-3.5 w-3.5" />
           </Link>
         </div>
       )}
@@ -157,6 +161,29 @@ export default function AdminDashboard() {
   const [error, setError] = useState(null);
   const [salesGoal, setSalesGoal] = useState(150000);
   const [currentSales, setCurrentSales] = useState(128590);
+  const [selectedInquiry, setSelectedInquiry] = useState(null);
+  const [statusDropdownOpen, setStatusDropdownOpen] = useState(false);
+  const statusDropdownRef = useRef(null);
+  const [replyModalOpen, setReplyModalOpen] = useState(false);
+  const [replyInquiry, setReplyInquiry] = useState(null);
+  const [replyMessage, setReplyMessage] = useState('');
+  const [sendingReply, setSendingReply] = useState(false);
+
+  // Effect to close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (statusDropdownRef.current && !statusDropdownRef.current.contains(event.target)) {
+        setStatusDropdownOpen(false);
+      }
+    }
+    
+    // Bind the event listener
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      // Unbind the event listener on cleanup
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -264,21 +291,40 @@ export default function AdminDashboard() {
   
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="loader animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500"></div>
+      <div className="flex flex-col items-center justify-center min-h-[60vh]">
+        <div className="relative">
+          <div className="h-16 w-16 rounded-full border-t-4 border-l-4 border-orange-500 animate-spin"></div>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="h-8 w-8 rounded-full bg-white"></div>
+          </div>
+          <div className="absolute inset-0 flex items-center justify-center">
+            <Car className="h-4 w-4 text-orange-500 animate-pulse" />
+          </div>
+        </div>
+        <p className="mt-4 text-sm font-medium text-gray-600">Loading dashboard data...</p>
+        <div className="mt-3 w-48 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+          <div className="h-full bg-orange-500 rounded-full animate-pulse-width"></div>
+        </div>
       </div>
     );
   }
   
   if (error) {
     return (
-      <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-r-md">
-        <div className="flex">
-          <div className="flex-shrink-0">
-            <AlertTriangle className="h-5 w-5 text-red-500" />
+      <div className="bg-white rounded-xl shadow-sm p-8 mb-6 border border-red-200">
+        <div className="flex items-start">
+          <div className="flex-shrink-0 p-3 bg-red-100 rounded-full">
+            <AlertTriangle className="h-6 w-6 text-red-500" />
           </div>
-          <div className="ml-3">
-            <p className="text-sm text-red-700">{error}</p>
+          <div className="ml-5">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Unable to load dashboard data</h3>
+            <p className="text-sm text-gray-600 mb-4">{error}</p>
+            <button 
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-red-500 text-white text-sm font-medium rounded-lg hover:bg-red-600 transition-colors focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+            >
+              Try Again
+            </button>
           </div>
         </div>
       </div>
@@ -287,6 +333,64 @@ export default function AdminDashboard() {
 
   // Calculate percentage of goal
   const salesPercentage = (currentSales / salesGoal) * 100;
+
+  // Function to update inquiry status
+  const updateInquiryStatus = async (inquiryId, newStatus) => {
+    try {
+      setIsLoading(true);
+      
+      // Call the API to update the status
+      await apiService.contact.updateStatus(inquiryId, { status: newStatus });
+      
+      // Update the local state to reflect the change
+      setStats(prevStats => ({
+        ...prevStats,
+        recentInquiries: prevStats.recentInquiries.map(inquiry => 
+          inquiry._id === inquiryId 
+            ? { ...inquiry, status: newStatus } 
+            : inquiry
+        )
+      }));
+      
+      setSelectedInquiry(null);
+      setStatusDropdownOpen(false);
+    } catch (err) {
+      console.error('Error updating inquiry status:', err);
+      // Show error notification or feedback here
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Function to handle sending reply to an inquiry
+  const handleSendReply = async () => {
+    if (!replyInquiry || !replyMessage.trim()) return;
+    
+    try {
+      setSendingReply(true);
+      
+      // Call API to send reply
+      await apiService.contact.reply(replyInquiry._id, { 
+        message: replyMessage,
+        adminName: `${user.firstName} ${user.lastName}` 
+      });
+      
+      // Update inquiry status to in progress
+      await updateInquiryStatus(replyInquiry._id, 'inProgress');
+      
+      // Clear form and close modal
+      setReplyMessage('');
+      setReplyInquiry(null);
+      setReplyModalOpen(false);
+      
+      // You could add a success notification here
+    } catch (err) {
+      console.error('Error sending reply:', err);
+      // Add error notification here
+    } finally {
+      setSendingReply(false);
+    }
+  };
 
   return (
     <div>
@@ -305,6 +409,67 @@ export default function AdminDashboard() {
               <ArrowUpRight className="h-4 w-4" />
               <span>Export Report</span>
             </button>
+          </div>
+        </div>
+        
+        {/* Today's Highlights */}
+        <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl shadow-md mb-8 overflow-hidden">
+          <div className="p-6 text-white">
+            <div className="flex items-center mb-4">
+              <ShieldCheck className="h-5 w-5 mr-2" />
+              <h2 className="text-lg font-semibold">Today's Highlights</h2>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-white/20 backdrop-blur-sm p-4 rounded-xl">
+                <div className="flex items-center mb-3">
+                  <Users className="h-4 w-4 text-white/80 mr-2" />
+                  <p className="text-xs font-medium text-white/80">New Users</p>
+                </div>
+                <p className="text-2xl font-bold text-white">12</p>
+                <p className="text-xs text-white/70 mt-1 flex items-center">
+                  <TrendingUp className="h-3 w-3 mr-1" />
+                  <span>+3 from yesterday</span>
+                </p>
+              </div>
+              <div className="bg-white/20 backdrop-blur-sm p-4 rounded-xl">
+                <div className="flex items-center mb-3">
+                  <MessageSquare className="h-4 w-4 text-white/80 mr-2" />
+                  <p className="text-xs font-medium text-white/80">New Inquiries</p>
+                </div>
+                <p className="text-2xl font-bold text-white">8</p>
+                <p className="text-xs text-white/70 mt-1 flex items-center">
+                  <TrendingUp className="h-3 w-3 mr-1" />
+                  <span>+2 from yesterday</span>
+                </p>
+              </div>
+              <div className="bg-white/20 backdrop-blur-sm p-4 rounded-xl">
+                <div className="flex items-center mb-3">
+                  <DollarSign className="h-4 w-4 text-white/80 mr-2" />
+                  <p className="text-xs font-medium text-white/80">Today's Sales</p>
+                </div>
+                <p className="text-2xl font-bold text-white">KSh 580K</p>
+                <p className="text-xs text-white/70 mt-1 flex items-center">
+                  <TrendingUp className="h-3 w-3 mr-1" />
+                  <span>+120K from yesterday</span>
+                </p>
+              </div>
+              <div className="bg-white/20 backdrop-blur-sm p-4 rounded-xl">
+                <div className="flex items-center mb-3">
+                  <Car className="h-4 w-4 text-white/80 mr-2" />
+                  <p className="text-xs font-medium text-white/80">Test Drives</p>
+                </div>
+                <p className="text-2xl font-bold text-white">3</p>
+                <p className="text-xs text-white/70 mt-1 flex items-center">
+                  <TrendingDown className="h-3 w-3 mr-1" />
+                  <span>-1 from yesterday</span>
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="bg-gradient-to-r from-white/10 to-white/5 px-6 py-3 border-t border-white/20">
+            <p className="text-xs text-white/80">
+              Last updated: <span className="font-medium">Today at {new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+            </p>
           </div>
         </div>
       </div>
@@ -413,52 +578,98 @@ export default function AdminDashboard() {
             </button>
           </div>
           
-          <div className="space-y-0">
-            <ActivityItem 
-              icon={<Users className="h-4 w-4" />}
-              title="New User Registered"
-              description="James Wilson created an account"
-              time="10 minutes ago"
-              type="success"
-            />
-            <ActivityItem 
-              icon={<MessageSquare className="h-4 w-4" />}
-              title="New Inquiry"
-              description="Sarah Johnson is interested in BMW X5"
-              time="1 hour ago"
-              type="info"
-            />
-            <ActivityItem 
-              icon={<Car className="h-4 w-4" />}
-              title="Vehicle Sold"
-              description="Audi A4 2022 has been sold for KSh 38,500"
-              time="3 hours ago"
-              type="success"
-            />
-            <ActivityItem 
-              icon={<Clock className="h-4 w-4" />}
-              title="Test Drive Scheduled"
-              description="Michael Brown - Tesla Model Y at 2:00 PM"
-              time="5 hours ago"
-              type="neutral"
-            />
-            <ActivityItem 
-              icon={<AlertTriangle className="h-4 w-4" />}
-              title="Low Stock Alert"
-              description="Honda Civic 2023 - Only 1 unit left"
-              time="1 day ago"
-              type="warning"
-            />
+          <div className="relative">
+            <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-100"></div>
+            <div className="space-y-5 relative">
+              <div className="pl-8 relative">
+                <div className="absolute left-0 p-1.5 rounded-full bg-green-500 shadow-sm z-10">
+                  <Users className="h-3 w-3 text-white" />
+                </div>
+                <div className="rounded-lg border border-gray-100 p-3 hover:bg-gray-50 transition-colors cursor-pointer">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">New User Registration</p>
+                      <p className="text-xs text-gray-600 mt-0.5">James Wilson created an account</p>
+                    </div>
+                    <span className="text-[10px] font-medium bg-green-50 text-green-700 px-1.5 py-0.5 rounded">new</span>
+                  </div>
+                  <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-50">
+                    <p className="text-xs text-gray-400">10 minutes ago</p>
+                    <button className="text-xs font-medium text-blue-500 hover:text-blue-600">View Profile</button>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="pl-8 relative">
+                <div className="absolute left-0 p-1.5 rounded-full bg-blue-500 shadow-sm z-10">
+                  <MessageSquare className="h-3 w-3 text-white" />
+                </div>
+                <div className="rounded-lg border border-gray-100 p-3 hover:bg-gray-50 transition-colors cursor-pointer">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">New Inquiry Received</p>
+                      <p className="text-xs text-gray-600 mt-0.5">Sarah Johnson is interested in BMW X5</p>
+                    </div>
+                    <span className="text-[10px] font-medium bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded">info</span>
+                  </div>
+                  <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-50">
+                    <p className="text-xs text-gray-400">1 hour ago</p>
+                    <button className="text-xs font-medium text-blue-500 hover:text-blue-600">View Inquiry</button>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="pl-8 relative">
+                <div className="absolute left-0 p-1.5 rounded-full bg-green-500 shadow-sm z-10">
+                  <Car className="h-3 w-3 text-white" />
+                </div>
+                <div className="rounded-lg border border-gray-100 p-3 hover:bg-gray-50 transition-colors cursor-pointer">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">Vehicle Sold</p>
+                      <p className="text-xs text-gray-600 mt-0.5">Audi A4 2022 has been sold for KSh 3.85M</p>
+                    </div>
+                    <span className="text-[10px] font-medium bg-green-50 text-green-700 px-1.5 py-0.5 rounded">success</span>
+                  </div>
+                  <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-50">
+                    <p className="text-xs text-gray-400">3 hours ago</p>
+                    <button className="text-xs font-medium text-blue-500 hover:text-blue-600">View Details</button>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="pl-8 relative">
+                <div className="absolute left-0 p-1.5 rounded-full bg-yellow-500 shadow-sm z-10">
+                  <AlertTriangle className="h-3 w-3 text-white" />
+                </div>
+                <div className="rounded-lg border border-gray-100 p-3 hover:bg-gray-50 transition-colors cursor-pointer">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">Low Stock Alert</p>
+                      <p className="text-xs text-gray-600 mt-0.5">Honda Civic 2023 - Only 1 unit left</p>
+                    </div>
+                    <span className="text-[10px] font-medium bg-yellow-50 text-yellow-700 px-1.5 py-0.5 rounded">warning</span>
+                  </div>
+                  <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-50">
+                    <p className="text-xs text-gray-400">1 day ago</p>
+                    <button className="text-xs font-medium text-blue-500 hover:text-blue-600">Update Stock</button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
         
         {/* Recent Inquiries */}
-        <div className="xl:col-span-2 bg-white rounded-xl shadow-sm p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-lg font-semibold text-gray-900">Recent Inquiries</h2>
-            <Link href="/admin/inquiries" className="text-sm text-orange-500 hover:text-orange-600 font-medium flex items-center">
+        <div className="xl:col-span-2 bg-white rounded-xl shadow-sm overflow-hidden">
+          <div className="flex justify-between items-center p-6 border-b border-gray-100">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">Recent Inquiries</h2>
+              <p className="text-xs text-gray-500 mt-1">Manage customer inquiries and requests</p>
+            </div>
+            <Link href="/admin/inquiries" className="px-3 py-1.5 bg-orange-50 text-orange-600 rounded-lg text-sm font-medium hover:bg-orange-100 transition-colors flex items-center">
               <span>View all</span>
-              <ArrowRight className="ml-1 h-4 w-4" />
+              <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
             </Link>
           </div>
           
@@ -476,54 +687,134 @@ export default function AdminDashboard() {
               <tbody className="divide-y divide-gray-200">
                 {stats.recentInquiries.length > 0 ? (
                   stats.recentInquiries.map((inquiry) => (
-                    <tr key={inquiry._id} className="hover:bg-gray-50">
+                    <tr key={inquiry._id} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4">
                         <div className="flex items-center">
-                          <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center uppercase text-gray-600 font-medium">
+                          <div className="h-9 w-9 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white uppercase text-xs font-semibold">
                             {inquiry.name?.[0]}
                           </div>
                           <div className="ml-3">
                             <div className="text-sm font-medium text-gray-900">{inquiry.name}</div>
-                            <div className="text-xs text-gray-500">{inquiry.email}</div>
+                            <div className="text-xs text-gray-500 flex items-center mt-0.5">
+                              <span className="inline-block w-2 h-2 rounded-full bg-green-500 mr-1.5"></span>
+                              {inquiry.email}
+                            </div>
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="text-sm text-gray-900">{inquiry.vehicle || 'Not specified'}</div>
+                        <div className="text-sm font-medium text-gray-900">{inquiry.vehicle || 'Not specified'}</div>
+                        {inquiry.message && (
+                          <div className="text-xs text-gray-500 mt-1 max-w-xs truncate">
+                            {inquiry.message.slice(0, 50)}...
+                          </div>
+                        )}
                       </td>
                       <td className="px-6 py-4">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          inquiry.status === 'new' 
-                            ? 'bg-blue-100 text-blue-800' 
-                            : inquiry.status === 'inProgress' 
-                            ? 'bg-yellow-100 text-yellow-800' 
-                            : 'bg-green-100 text-green-800'
-                        }`}>
-                          {inquiry.status === 'new' 
-                            ? <span className="h-1.5 w-1.5 rounded-full bg-blue-500 mr-1"></span>
-                            : inquiry.status === 'inProgress'
-                            ? <Clock className="h-3 w-3 mr-1" />
-                            : <Check className="h-3 w-3 mr-1" />
-                          }
-                          {inquiry.status === 'new' 
-                            ? 'New' 
-                            : inquiry.status === 'inProgress' 
-                            ? 'In Progress' 
-                            : 'Resolved'}
-                        </span>
+                        <div className="flex items-center">
+                          <div className="relative" ref={statusDropdownRef}>
+                            <button 
+                              onClick={() => {
+                                setSelectedInquiry(inquiry._id);
+                                setStatusDropdownOpen(!statusDropdownOpen);
+                              }}
+                              className="flex items-center"
+                            >
+                              <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
+                                inquiry.status === 'new' 
+                                  ? 'bg-blue-100 text-blue-800' 
+                                  : inquiry.status === 'inProgress' 
+                                  ? 'bg-yellow-100 text-yellow-800' 
+                                  : 'bg-green-100 text-green-800'
+                              }`}>
+                                {inquiry.status === 'new' 
+                                  ? <span className="h-1.5 w-1.5 rounded-full bg-blue-500 mr-1.5"></span>
+                                  : inquiry.status === 'inProgress'
+                                  ? <Clock className="h-3.5 w-3.5 mr-1.5" />
+                                  : <Check className="h-3.5 w-3.5 mr-1.5" />
+                                }
+                                {inquiry.status === 'new' 
+                                  ? 'New' 
+                                  : inquiry.status === 'inProgress' 
+                                  ? 'In Progress' 
+                                  : 'Resolved'}
+                              </span>
+                              <ChevronRight className="h-4 w-4 ml-2 text-gray-400" />
+                            </button>
+                            
+                            {statusDropdownOpen && selectedInquiry === inquiry._id && (
+                              <div className="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-lg border border-gray-200 z-10 w-40 py-1 overflow-hidden">
+                                <button
+                                  onClick={() => updateInquiryStatus(inquiry._id, 'new')}
+                                  className={`flex items-center w-full px-3 py-2 text-left text-sm ${
+                                    inquiry.status === 'new' ? 'bg-blue-50 text-blue-700' : 'hover:bg-gray-50'
+                                  }`}
+                                >
+                                  <span className="h-1.5 w-1.5 rounded-full bg-blue-500 mr-2"></span>
+                                  New
+                                </button>
+                                <button
+                                  onClick={() => updateInquiryStatus(inquiry._id, 'inProgress')}
+                                  className={`flex items-center w-full px-3 py-2 text-left text-sm ${
+                                    inquiry.status === 'inProgress' ? 'bg-yellow-50 text-yellow-700' : 'hover:bg-gray-50'
+                                  }`}
+                                >
+                                  <Clock className="h-3.5 w-3.5 mr-2 text-yellow-600" />
+                                  In Progress
+                                </button>
+                                <button
+                                  onClick={() => updateInquiryStatus(inquiry._id, 'resolved')}
+                                  className={`flex items-center w-full px-3 py-2 text-left text-sm ${
+                                    inquiry.status === 'resolved' ? 'bg-green-50 text-green-700' : 'hover:bg-gray-50'
+                                  }`}
+                                >
+                                  <Check className="h-3.5 w-3.5 mr-2 text-green-600" />
+                                  Resolved
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
                       </td>
-                      <td className="px-6 py-4 text-sm text-gray-500">
-                        {new Date(inquiry.createdAt).toLocaleDateString()}
+                      <td className="px-6 py-4">
+                        <div className="text-sm text-gray-700 font-medium">
+                          {new Date(inquiry.createdAt).toLocaleDateString('en-US', {month: 'short', day: 'numeric'})}
+                        </div>
+                        <div className="text-xs text-gray-500 mt-0.5">
+                          {new Date(inquiry.createdAt).toLocaleTimeString('en-US', {hour: '2-digit', minute:'2-digit'})}
+                        </div>
                       </td>
                       <td className="px-6 py-4 text-right">
-                        <Link href={`/admin/inquiries/${inquiry._id}`} className="text-sm text-orange-500 hover:text-orange-600 font-medium">View</Link>
+                        <div className="flex justify-end">
+                          <button 
+                            className="mr-3 p-1.5 rounded-md text-gray-400 hover:text-blue-500 hover:bg-blue-50"
+                            onClick={() => {
+                              setReplyInquiry(inquiry);
+                              setReplyModalOpen(true);
+                            }}
+                          >
+                            <MessageSquare className="h-4 w-4" />
+                          </button>
+                          <Link 
+                            href={`/admin/inquiries/${inquiry._id}`} 
+                            className="p-1.5 rounded-md text-gray-400 hover:text-orange-500 hover:bg-orange-50"
+                          >
+                            <ArrowRight className="h-4 w-4" />
+                          </Link>
+                        </div>
                       </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="5" className="px-6 py-4 text-center text-gray-500">
-                      No recent inquiries
+                    <td colSpan="5" className="px-6 py-8 text-center">
+                      <div className="flex flex-col items-center justify-center">
+                        <div className="p-3 rounded-full bg-gray-100 mb-3">
+                          <MessageSquare className="h-6 w-6 text-gray-400" />
+                        </div>
+                        <p className="text-sm text-gray-500 mb-1">No recent inquiries</p>
+                        <p className="text-xs text-gray-400">New inquiries will appear here</p>
+                      </div>
                     </td>
                   </tr>
                 )}
@@ -643,6 +934,102 @@ export default function AdminDashboard() {
           </table>
         </div>
       </div>
+      
+      {/* Reply Modal */}
+      {replyModalOpen && replyInquiry && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden animate-fade-in">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-semibold text-gray-900">Reply to Inquiry</h3>
+                <button 
+                  onClick={() => {
+                    setReplyModalOpen(false);
+                    setReplyInquiry(null);
+                    setReplyMessage('');
+                  }}
+                  className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100"
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            
+            <div className="p-6 overflow-y-auto flex-grow">
+              <div className="bg-blue-50 p-4 rounded-lg mb-6">
+                <div className="flex items-center mb-3">
+                  <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-500">
+                    <MessageSquare className="h-4 w-4" />
+                  </div>
+                  <div className="ml-3">
+                    <div className="text-sm font-medium text-gray-900">
+                      {replyInquiry.name} <span className="text-gray-500 font-normal">({replyInquiry.email})</span>
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {new Date(replyInquiry.createdAt).toLocaleString()}
+                    </div>
+                  </div>
+                </div>
+                <div className="text-sm text-gray-600">
+                  <div className="font-medium mb-1 text-blue-700">Original Message:</div>
+                  <p>{replyInquiry.message}</p>
+                </div>
+                <div className="mt-3 text-sm">
+                  <div className="font-medium text-gray-700">Interested in: <span className="text-blue-600">{replyInquiry.vehicle || 'Not specified'}</span></div>
+                </div>
+              </div>
+              
+              <div>
+                <label htmlFor="reply-message" className="block text-sm font-medium text-gray-700 mb-2">Your Reply</label>
+                <textarea 
+                  id="reply-message"
+                  rows={6}
+                  value={replyMessage}
+                  onChange={(e) => setReplyMessage(e.target.value)}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent resize-none"
+                  placeholder="Type your response here..."
+                ></textarea>
+              </div>
+            </div>
+            
+            <div className="p-6 border-t border-gray-200 bg-gray-50 flex justify-end">
+              <button
+                onClick={() => {
+                  setReplyModalOpen(false);
+                  setReplyInquiry(null);
+                  setReplyMessage('');
+                }}
+                className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg mr-3"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSendReply}
+                disabled={!replyMessage.trim() || sendingReply}
+                className={`px-4 py-2 text-sm font-medium text-white rounded-lg flex items-center ${
+                  replyMessage.trim() && !sendingReply
+                    ? 'bg-orange-500 hover:bg-orange-600' 
+                    : 'bg-orange-300 cursor-not-allowed'
+                }`}
+              >
+                {sendingReply ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Sending...
+                  </>
+                ) : (
+                  'Send Reply'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 } 
