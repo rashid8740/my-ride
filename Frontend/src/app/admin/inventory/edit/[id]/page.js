@@ -33,9 +33,9 @@ const baseApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
 // Form styling classes
 const labelClass = "block text-sm font-medium text-gray-700 mb-1";
 const inputClass = "block w-full p-2 border border-gray-300 rounded-md focus:ring-orange-500 focus:border-orange-500";
-const inputBaseClass = "block w-full px-4 py-2.5 rounded-md border-2 border-gray-300 shadow-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 sm:text-sm bg-white text-gray-900";
-const selectBaseClass = "block w-full px-4 py-2.5 rounded-md border-2 border-gray-300 shadow-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 sm:text-sm bg-white text-gray-900";
-const textareaBaseClass = "block w-full px-4 py-2.5 rounded-md border-2 border-gray-300 shadow-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 sm:text-sm bg-white text-gray-900";
+const inputBaseClass = "block w-full px-4 py-2.5 rounded-md border-2 border-gray-300 shadow-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 sm:text-sm bg-white text-gray-900 transition-colors";
+const selectBaseClass = "block w-full px-4 py-2.5 rounded-md border-2 border-gray-300 shadow-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 sm:text-sm bg-white text-gray-900 transition-colors";
+const textareaBaseClass = "block w-full px-4 py-2.5 rounded-md border-2 border-gray-300 shadow-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 sm:text-sm bg-white text-gray-900 transition-colors";
 
 // Step components for progress tracking
 const FormStep = ({ title, icon, active, completed, number }) => {
@@ -606,6 +606,21 @@ export default function EditCarPage({ params }) {
           description="Enter the primary details of the vehicle"
         />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
+          <div className="col-span-full">
+            <label htmlFor="title" className={labelClass}>
+              Title <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              id="title"
+              name="title"
+              value={formData.title}
+              onChange={handleInputChange}
+              className={inputBaseClass}
+              placeholder="Vehicle title/name"
+              required
+            />
+          </div>
           <div>
             <label htmlFor="make" className={labelClass}>
               Make <span className="text-red-500">*</span>
@@ -759,8 +774,8 @@ export default function EditCarPage({ params }) {
           </div>
           
           {/* Dimension Fields */}
-          <div className="col-span-full mt-2">
-            <h3 className="text-md font-medium mb-3 border-b pb-2">Vehicle Dimensions</h3>
+          <div className="col-span-full mt-4">
+            <h3 className="text-md font-medium mb-3 border-b pb-2 text-gray-700">Vehicle Dimensions</h3>
           </div>
           
           <div>
@@ -930,10 +945,10 @@ export default function EditCarPage({ params }) {
             type="button"
             onClick={handleAddFeature}
             disabled={!newFeature.trim()}
-            className={`ml-2 px-4 py-2 rounded-md ${
+            className={`ml-2 px-4 py-2 rounded-md text-sm font-medium ${
               !newFeature.trim()
-                ? 'bg-gray-300 cursor-not-allowed'
-                : 'bg-orange-500 hover:bg-orange-600 text-white'
+                ? 'bg-gray-300 cursor-not-allowed text-gray-500'
+                : 'bg-orange-500 hover:bg-orange-600 text-white transition-colors'
             }`}
           >
             Add
@@ -1377,8 +1392,8 @@ export default function EditCarPage({ params }) {
           </div>
           
           {/* Performance Specifications */}
-          <div className="col-span-full mt-2">
-            <h3 className="text-md font-medium mb-3 border-b pb-2">Performance Specifications</h3>
+          <div className="col-span-full mt-4">
+            <h3 className="text-md font-medium mb-3 border-b pb-2 text-gray-700">Performance Specifications</h3>
           </div>
           
           <div>
@@ -1456,9 +1471,9 @@ export default function EditCarPage({ params }) {
         </div>
         <Link
           href="/admin/inventory"
-          className="inline-flex items-center px-4 py-2 bg-orange-500 text-white rounded-md"
+          className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-orange-500"
         >
-          <ArrowLeft className="mr-2 h-4 w-4" />
+          <ArrowLeft className="mr-2 -ml-1 h-5 w-5 text-gray-500" aria-hidden="true" />
           Back to Inventory
         </Link>
       </div>
@@ -1473,9 +1488,9 @@ export default function EditCarPage({ params }) {
           <button
             key={tab.id}
             type="button"
-            className={`px-4 py-2 border-b-2 font-medium text-sm ${
+            className={`px-4 py-2 border-b-2 font-medium text-sm transition-colors ${
               currentTab === tab.id
-                ? 'border-blue-500 text-blue-600'
+                ? 'border-orange-500 text-orange-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
             onClick={() => setActiveTab(tab.id)}
@@ -1499,7 +1514,7 @@ export default function EditCarPage({ params }) {
           </div>
           <Link
             href="/admin/inventory"
-            className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
+            className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-1 focus:ring-orange-500"
           >
             <ArrowLeft className="mr-2 -ml-1 h-5 w-5 text-gray-500" aria-hidden="true" />
             Back to Inventory
