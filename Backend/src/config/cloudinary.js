@@ -19,13 +19,12 @@ const carStorage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
     folder: 'my-ride/cars',
-    format: 'auto', // Auto detect format
+    // Don't use format: 'auto' as it's causing extension errors
     public_id: (req, file) => {
       // Generate a unique public_id based on timestamp
       const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
       return `car-${uniqueSuffix}`;
     }
-    // Removed transformations to avoid upload issues
   }
 });
 
