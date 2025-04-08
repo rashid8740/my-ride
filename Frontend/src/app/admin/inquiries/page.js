@@ -147,17 +147,30 @@ export default function AdminInquiries() {
 
   const fetchInquiries = async () => {
     try {
+      console.log('🔍 [Admin/Inquiries] Starting to fetch inquiries');
       setIsLoading(true);
       setError(null);
 
       const response = await apiService.contact.getAll();
+      console.log('✅ [Admin/Inquiries] Received inquiries data:', response);
+      console.log(`✅ [Admin/Inquiries] Total inquiries fetched: ${response.data?.length || 0}`);
+      
+      if (response.data && response.data.length === 0) {
+        console.warn('⚠️ [Admin/Inquiries] No inquiries found in the database');
+      }
+      
       setInquiries(response.data);
       setFilteredInquiries(response.data);
     } catch (err) {
-      console.error('Error fetching inquiries:', err);
+      console.error('❌ [Admin/Inquiries] Error fetching inquiries:', err);
+      console.error('❌ [Admin/Inquiries] Error details:', {
+        message: err.message,
+        stack: err.stack
+      });
       setError('Failed to load inquiries. Please try again later.');
     } finally {
       setIsLoading(false);
+      console.log('🔍 [Admin/Inquiries] Finished inquiry fetch attempt');
     }
   };
 
@@ -174,7 +187,12 @@ export default function AdminInquiries() {
   };
 
   const applyFiltersAndSort = () => {
+    console.log('🔍 [Admin/Inquiries] Applying filters and sort to inquiries');
+    console.log('🔍 [Admin/Inquiries] Current filters:', filters);
+    console.log('🔍 [Admin/Inquiries] Sort by:', sortBy, 'Order:', sortOrder);
+    
     let result = [...inquiries];
+    console.log(`🔍 [Admin/Inquiries] Starting with ${result.length} inquiries`);
 
     // Apply status filter
     if (filters.status) {

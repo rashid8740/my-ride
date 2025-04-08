@@ -17,7 +17,7 @@ const InputField = ({
 }) => {
   return (
     <div className="mb-4">
-      <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1">
+      <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">
         {label} {required && <span className="text-red-500">*</span>}
       </label>
       <input
@@ -27,7 +27,7 @@ const InputField = ({
         value={value}
         onChange={onChange}
         required={required}
-        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-gray-50 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 shadow-sm transition-colors"
+        className="w-full px-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg sm:rounded-xl bg-white text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 focus:outline-none transition-all shadow-sm"
       />
     </div>
   );
@@ -45,23 +45,26 @@ const SelectField = ({
 }) => {
   return (
     <div className="mb-4">
-      <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1">
+      <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">
         {label} {required && <span className="text-red-500">*</span>}
       </label>
-      <select
-        id={id}
-        value={value}
-        onChange={onChange}
-        required={required}
-        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-gray-50 text-gray-900 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 shadow-sm transition-colors"
-      >
-        <option value="">{placeholder}</option>
-        {options.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
+      <div className="relative">
+        <select
+          id={id}
+          value={value}
+          onChange={onChange}
+          required={required}
+          className="w-full appearance-none px-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg sm:rounded-xl bg-white text-gray-800 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 focus:outline-none transition-all shadow-sm"
+          style={{ backgroundImage: 'url("data:image/svg+xml,%3csvg xmlns=%27http://www.w3.org/2000/svg%27 fill=%27none%27 viewBox=%270 0 20 20%27%3e%3cpath stroke=%27%236b7280%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27 stroke-width=%271.5%27 d=%27M6 8l4 4 4-4%27/%3e%3c/svg%3e")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.5rem center', backgroundSize: '1.5em 1.5em' }}
+        >
+          <option value="">{placeholder}</option>
+          {options.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </div>
     </div>
   );
 };
@@ -78,7 +81,7 @@ const TextareaField = ({
 }) => {
   return (
     <div className="mb-4">
-      <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1">
+      <label htmlFor={id} className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">
         {label} {required && <span className="text-red-500">*</span>}
       </label>
       <textarea
@@ -88,7 +91,7 @@ const TextareaField = ({
         onChange={onChange}
         required={required}
         rows={rows}
-        className="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-gray-50 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 shadow-sm transition-colors"
+        className="w-full px-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg sm:rounded-xl bg-white text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 focus:outline-none transition-all shadow-sm"
       />
     </div>
   );
@@ -147,6 +150,8 @@ export default function ContactPage() {
     setIsLoading(true);
     setError(null);
     
+    console.log('🔍 [Contact] Starting inquiry submission from contact page');
+    
     try {
       // Find the selected vehicle details
       let vehicleDetails = vehicle;
@@ -155,7 +160,14 @@ export default function ContactPage() {
         const selectedVehicle = vehicles.find(v => v._id === vehicleId);
         if (selectedVehicle) {
           vehicleDetails = `${selectedVehicle.year} ${selectedVehicle.make} ${selectedVehicle.model}`;
+          console.log('🔍 [Contact] Selected vehicle:', vehicleDetails, 'with ID:', vehicleId);
+        } else {
+          console.warn('⚠️ [Contact] Selected vehicle not found in loaded vehicles list:', vehicleId);
         }
+      } else if (vehicle) {
+        console.log('🔍 [Contact] Using custom vehicle text:', vehicle);
+      } else {
+        console.log('🔍 [Contact] No vehicle specified');
       }
       
       // Prepare the inquiry data
@@ -169,10 +181,15 @@ export default function ContactPage() {
         vehicleId: vehicle && vehicle.startsWith('vehicle-') ? vehicle.replace('vehicle-', '') : null
       };
       
+      console.log('🔍 [Contact] Prepared inquiry data:', inquiryData);
+      
       // Submit the inquiry to the backend
+      console.log('🔍 [Contact] Sending inquiry to API');
       const response = await apiService.contact.submitInquiry(inquiryData);
+      console.log('✅ [Contact] Inquiry API response:', response);
       
       if (response.status === 'success') {
+        console.log('✅ [Contact] Inquiry submission successful');
         // Show success message
         setSubmitted(true);
         
@@ -189,13 +206,19 @@ export default function ContactPage() {
           setSubmitted(false);
         }, 5000);
       } else {
+        console.error('❌ [Contact] API returned unsuccessful status:', response);
         throw new Error(response.message || 'Failed to submit inquiry');
       }
     } catch (err) {
-      console.error('Error submitting inquiry:', err);
+      console.error('❌ [Contact] Error submitting inquiry:', err);
+      console.error('❌ [Contact] Error details:', {
+        message: err.message,
+        stack: err.stack
+      });
       setError(err.message || 'An error occurred while submitting your inquiry. Please try again later.');
     } finally {
       setIsLoading(false);
+      console.log('🔍 [Contact] Inquiry submission process completed');
     }
   };
 
@@ -322,7 +345,7 @@ export default function ContactPage() {
                 </div>
                 
                 <div className="mb-4">
-                  <label htmlFor="vehicle" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label htmlFor="vehicle" className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">
                     Vehicle of Interest
                   </label>
                   <div className="relative">
@@ -330,7 +353,7 @@ export default function ContactPage() {
                       <Car className="h-5 w-5 text-gray-400" />
                     </div>
                     {isLoadingVehicles ? (
-                      <div className="w-full px-4 py-2.5 pl-10 border border-gray-300 rounded-lg bg-gray-50 text-gray-500">
+                      <div className="w-full px-4 py-2.5 sm:py-3 pl-10 border border-gray-300 rounded-lg sm:rounded-xl bg-white text-gray-500 shadow-sm">
                         <Loader className="h-4 w-4 mr-2 inline animate-spin" /> Loading vehicles...
                       </div>
                     ) : (
@@ -338,7 +361,8 @@ export default function ContactPage() {
                         id="vehicle"
                         value={vehicle}
                         onChange={(e) => setVehicle(e.target.value)}
-                        className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg bg-gray-50 text-gray-900 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 shadow-sm transition-colors"
+                        className="w-full appearance-none pl-10 pr-10 py-2.5 sm:py-3 border border-gray-300 rounded-lg sm:rounded-xl bg-white text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 focus:outline-none transition-all shadow-sm"
+                        style={{ backgroundImage: 'url("data:image/svg+xml,%3csvg xmlns=%27http://www.w3.org/2000/svg%27 fill=%27none%27 viewBox=%270 0 20 20%27%3e%3cpath stroke=%27%236b7280%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27 stroke-width=%271.5%27 d=%27M6 8l4 4 4-4%27/%3e%3c/svg%3e")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.5rem center', backgroundSize: '1.5em 1.5em' }}
                       >
                         <option value="">Select a vehicle (optional)</option>
                         <option value="other">Other/Not listed</option>
@@ -365,9 +389,9 @@ export default function ContactPage() {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className={`mt-4 ${
+                  className={`mt-4 w-full ${
                     isLoading ? 'bg-gray-400' : 'bg-orange-500 hover:bg-orange-600'
-                  } text-white font-medium py-3 px-6 rounded-lg transition-colors shadow-md flex items-center justify-center`}
+                  } text-white font-medium py-3 px-6 rounded-lg sm:rounded-xl transition-all shadow-md flex items-center justify-center`}
                 >
                   {isLoading ? (
                     <>

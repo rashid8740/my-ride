@@ -6,6 +6,7 @@ import { useAuth } from "@/utils/AuthContext";
 import { useFavorites } from "@/utils/FavoritesContext";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
+import ClearFavoritesButton from "@/components/shared/ClearFavoritesButton";
 import { X, Car, Heart, AlertCircle, MapPin, Tag, Gauge, Fuel, Settings, ChevronRight, RefreshCw } from "lucide-react";
 
 export default function FavoritesPage() {
@@ -64,86 +65,151 @@ export default function FavoritesPage() {
     };
   }, [isAuthenticated, authLoading, router]);
 
-  // Get local car data based on favorites IDs - FIX CRITICAL MATCHING ISSUE
+  // Get local car data based on favorites IDs - PRODUCTION IMPLEMENTATION
   useEffect(() => {
-    // Log favorites first for debugging
-    console.log("=== FAVORITES PAGE DEBUG START ===");
-    console.log("Current favorites state:", JSON.stringify(favorites));
-    
     // Only proceed if we have favorites
     if (favorites && favorites.length > 0) {
-      // Import the sample data
-      import("@/app/inventory/data").then((module) => {
-        const { cars } = module;
-        console.log("Sample car data loaded:", cars.length, "cars available");
-        console.log("First few sample car IDs:", cars.slice(0, 3).map(c => ({ id: c.id, title: c.title })));
+      // Set loading state - no need to clear error as it's managed by the context
+      // Don't modify the error or isLoading state directly as they come from useFavorites
+      
+      const fetchFavoriteDetails = async () => {
+        console.log(`Fetching details for ${favorites.length} favorite cars`);
         
-        // FIXED APPROACH: Force car IDs to be numbers and compare directly
-        const matchedCars = [];
-        
-        favorites.forEach(favorite => {
-          // Extract the ID and convert to a number if possible
-          let favoriteId = favorite;
+        try {
+          const favoriteDetails = [];
           
-          if (typeof favorite === 'object') {
-            favoriteId = favorite.id || favorite._id;
-          }
-          
-          // Always try to convert to a number for matching with sample data
-          const numericId = Number(favoriteId);
-          
-          console.log(`Looking for car with ID "${favoriteId}" (numeric: ${numericId}, type: ${typeof favoriteId})`);
-          
-          // Find the car with matching ID in sample data
-          // Try multiple matching strategies to ensure we find the car
-          let matchingCar = null;
-          
-          // Strategy 1: Direct numeric comparison (most reliable)
-          matchingCar = cars.find(car => Number(car.id) === numericId);
-          
-          // Strategy 2: Direct string comparison
-          if (!matchingCar) {
-            matchingCar = cars.find(car => String(car.id) === String(favoriteId));
-          }
-          
-          // Strategy 3: Try matching with ObjectId's last part (for MongoDB IDs)
-          if (!matchingCar && typeof favoriteId === 'string' && favoriteId.length === 24) {
-            // Extract the numeric part from a MongoDB ObjectId
-            const lastPart = favoriteId.slice(-6);
-            if (/^[0-9a-f]+$/.test(lastPart)) {
-              const numFromHex = parseInt(lastPart, 16);
-              matchingCar = cars.find(car => Number(car.id) === numFromHex);
+          // Determine whether to use sample data or real backend based on environment
+          if (backendAvailable) {
+            // PRODUCTION: Fetch each car from backend
+            for (const favorite of favorites) {
+              let carId = favorite;
               
-              if (matchingCar) {
-                console.log(`Found car by ObjectId's last part: ${lastPart} -> ${numFromHex}`);
+              // Extract ID if it's an object
+          if (typeof favorite === 'object') {
+                carId = favorite.id || favorite._id || favorite.carId;
+              }
+              
+              if (!carId) continue;
+              
+              try {
+                console.log(`📣 Fetching car details for ID: ${carId} from API`);
+                const response = await fetch(`/api/cars/${carId}`);
+                
+                if (response.ok) {
+                  const data = await response.json();
+                  const carData = data.car || data.data || data;
+                  
+                  if (carData) {
+                    // Ensure the car has an ID property
+                    if (!carData.id && !carData._id) {
+                      carData._id = carId;
+                    }
+                    favoriteDetails.push(carData);
+                    console.log(`✅ Successfully fetched car: ${carData.title || carData.name || carId}`);
+                  }
+                } else {
+                  console.log(`❌ Failed to fetch car ${carId}: ${response.status}`);
+                  
+                  // Try sample data as fallback for failed fetches
+                  const sampleCarMatch = await fetchFromSampleData(carId);
+                  if (sampleCarMatch) {
+                    favoriteDetails.push(sampleCarMatch);
+                  } else {
+                    // Last resort: Create a placeholder car with the ID
+                    favoriteDetails.push(createPlaceholderCar(carId));
+                  }
+                }
+              } catch (error) {
+                console.error(`Error fetching car ${carId}:`, error);
+                
+                // Try sample data as fallback for errors
+                const sampleCarMatch = await fetchFromSampleData(carId);
+                if (sampleCarMatch) {
+                  favoriteDetails.push(sampleCarMatch);
+                } else {
+                  // Last resort: Create a placeholder car with the ID
+                  favoriteDetails.push(createPlaceholderCar(carId));
+                }
+              }
+            }
+          } else {
+            // OFFLINE MODE: Fall back to sample data
+            console.log("Backend unavailable, using sample data");
+            for (const favorite of favorites) {
+              const sampleCarMatch = await fetchFromSampleData(favorite);
+              if (sampleCarMatch) {
+                favoriteDetails.push(sampleCarMatch);
+              } else {
+                // Last resort: Create a placeholder car
+                favoriteDetails.push(createPlaceholderCar(typeof favorite === 'object' ? 
+                  (favorite.id || favorite._id || 'unknown') : favorite));
               }
             }
           }
           
-          if (matchingCar) {
-            console.log(`✅ FOUND car for ID ${favoriteId}:`, matchingCar.title);
-            // Ensure we don't add duplicates
-            if (!matchedCars.some(c => c.id === matchingCar.id)) {
-              matchedCars.push(matchingCar);
-            }
-          } else {
-            console.log(`❌ NO MATCH for ID ${favoriteId}`);
+          console.log(`Found ${favoriteDetails.length} of ${favorites.length} favorited cars`);
+          setLocalCarData(favoriteDetails);
+        } catch (err) {
+          console.error("Error fetching favorite details:", err);
+          // Don't modify the error state directly
+        }
+      };
+      
+      // Helper function to try finding a car in sample data
+      const fetchFromSampleData = async (carId) => {
+        try {
+          // Import the sample data
+          const module = await import("@/app/inventory/data");
+          const { cars } = module;
+          
+          let favoriteId = carId;
+          if (typeof carId === 'object') {
+            favoriteId = carId.id || carId._id || carId.carId;
           }
-        });
-        
-        console.log(`Total matches found: ${matchedCars.length} of ${favorites.length} favorites`);
-        console.log("Matched cars:", matchedCars.map(c => ({ id: c.id, title: c.title })));
-        console.log("=== FAVORITES PAGE DEBUG END ===");
-        
-        // Update the state with matched cars
-        setLocalCarData(matchedCars);
-      });
+          
+          // Try multiple matching strategies
+          let matchingCar = null;
+          
+          // Strategy 1: Direct matching
+          matchingCar = cars.find(car => 
+            car.id === favoriteId || 
+            String(car.id) === String(favoriteId)
+          );
+          
+          // Strategy 2: Numeric matching
+          if (!matchingCar) {
+            const numericId = Number(favoriteId);
+            if (!isNaN(numericId)) {
+              matchingCar = cars.find(car => Number(car.id) === numericId);
+            }
+          }
+          
+          // Strategy 3: ObjectId last part matching
+          if (!matchingCar && typeof favoriteId === 'string' && favoriteId.length === 24) {
+            const lastPart = favoriteId.slice(-6);
+            if (/^[0-9a-f]+$/.test(lastPart)) {
+              const numFromHex = parseInt(lastPart, 16);
+              matchingCar = cars.find(car => Number(car.id) === numFromHex);
+            }
+          }
+          
+          if (matchingCar) {
+            console.log(`Found car in sample data: ${matchingCar.title}`);
+            return matchingCar;
+          }
+          
+          return null;
+        } catch (error) {
+          console.error("Error fetching from sample data:", error);
+          return null;
+        }
+      };
+      
+      fetchFavoriteDetails();
     } else {
       setLocalCarData([]);
-      console.log("No favorites to display");
-      console.log("=== FAVORITES PAGE DEBUG END ===");
     }
-  }, [favorites]);
+  }, [favorites, backendAvailable]);
 
   // Always use local car data for display since we need the full car objects
   // to show images, details, etc.
@@ -201,8 +267,15 @@ export default function FavoritesPage() {
             <p className="text-orange-50">
               {displayCars.length} {displayCars.length === 1 ? 'vehicle' : 'vehicles'} saved
               {!backendAvailable && " (Offline Mode)"}
+              {/* Debug info */}
+              {process.env.NODE_ENV === 'development' && (
+                <span className="ml-2 opacity-75 text-xs">
+                  (API: {favorites.length} | Display: {displayCars.length})
+                </span>
+              )}
             </p>
           </div>
+          <div className="flex items-center gap-3">
           <button
             onClick={handleRefresh}
             disabled={isRefreshing}
@@ -211,6 +284,8 @@ export default function FavoritesPage() {
           >
             <RefreshCw size={20} className={`${isRefreshing ? 'animate-spin' : ''}`} />
           </button>
+            <ClearFavoritesButton onCleared={handleRefresh} variant="icon" />
+          </div>
         </div>
 
         {isLoading && (
@@ -259,12 +334,12 @@ export default function FavoritesPage() {
                       {(car.image || car.images?.[0]?.url) ? (
                         <img
                           src={car.image || car.images?.[0]?.url}
-                          alt={car.title}
+                          alt={car.title || car.name}
                           className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center bg-gray-200">
-                          <Car size={48} className="text-gray-400" />
+                          <Car size={48} className={`${car.isPlaceholder ? "text-orange-300" : "text-gray-400"}`} />
                         </div>
                       )}
                     </div>
@@ -285,46 +360,59 @@ export default function FavoritesPage() {
 
                 <div className="p-5">
                   <Link href={`/cars/${car.id || car._id}`}>
-                    <h3 className="font-bold text-lg mb-2 text-gray-900 hover:text-orange-500 transition-colors line-clamp-2">
-                      {car.title}
+                    <h3 className={`font-bold text-lg mb-2 text-gray-900 hover:text-orange-500 transition-colors line-clamp-2 ${car.isPlaceholder ? "italic" : ""}`}>
+                      {car.title || car.name || 'Unnamed Vehicle'}
+                      {car.isPlaceholder && <span className="ml-2 text-xs font-normal text-orange-500">(Limited Info)</span>}
                     </h3>
                   </Link>
 
                   <div className="flex items-center justify-between mb-4">
                     <div className="text-orange-500 font-bold text-xl">
-                      ${car.price && typeof car.price === 'string' 
-                          ? car.price.replace(/,/g, '') 
+                      {!car.isPlaceholder 
+                        ? `KSh ${typeof car.price === 'number' 
+                            ? car.price.toLocaleString() 
+                            : parseFloat(car.price?.toString().replace(/[^\d.-]/g, '') || '0').toLocaleString()}`
                           : car.price}
                     </div>
                     <div className="text-sm text-gray-500">
-                      {car.year} · {car.mileage}
+                      {car.year} {car.mileage || car.odometer ? `· ${car.mileage || `${car.odometer} km`}` : ''}
                     </div>
                   </div>
 
+                  {!car.isPlaceholder ? (
                   <div className="grid grid-cols-2 gap-3 mb-5">
                     <div className="flex items-center text-sm text-gray-700">
                       <Fuel size={16} className="mr-2 text-gray-400" />
-                      {car.fuel}
+                        {car.fuel || car.fuelType || 'Not specified'}
                     </div>
                     <div className="flex items-center text-sm text-gray-700">
                       <Settings size={16} className="mr-2 text-gray-400" />
-                      {car.transmission}
+                        {car.transmission || 'Not specified'}
                     </div>
                     <div className="flex items-center text-sm text-gray-700">
                       <Tag size={16} className="mr-2 text-gray-400" />
-                      {car.category}
+                        {car.category || car.bodyType || car.type || 'Not specified'}
                     </div>
                     <div className="flex items-center text-sm text-gray-700">
                       <MapPin size={16} className="mr-2 text-gray-400" />
                       {car.location || "On Lot"}
                     </div>
                   </div>
+                  ) : (
+                    <div className="mb-5 py-2 px-3 bg-orange-50 text-sm text-orange-700 rounded border border-orange-100">
+                      This vehicle is in your favorites but detailed information is currently unavailable.
+                    </div>
+                  )}
 
                   <Link
                     href={`/cars/${car.id || car._id}`}
-                    className="block w-full py-2.5 text-center bg-gray-100 hover:bg-orange-500 text-gray-800 hover:text-white rounded-lg font-medium transition-colors"
+                    className={`block w-full py-2.5 text-center rounded-lg font-medium transition-colors ${
+                      car.isPlaceholder 
+                        ? "bg-gray-100 text-gray-700 hover:bg-gray-200" 
+                        : "bg-gray-100 hover:bg-orange-500 text-gray-800 hover:text-white"
+                    }`}
                   >
-                    View Details
+                    {car.isPlaceholder ? "Find Vehicle" : "View Details"}
                   </Link>
                 </div>
               </div>
@@ -337,5 +425,33 @@ export default function FavoritesPage() {
     </main>
   );
 } 
+
+// Create a placeholder car for IDs that couldn't be resolved
+const createPlaceholderCar = (carId) => {
+  console.log(`Creating placeholder car for ID: ${carId}`);
+  
+  // Handle object type carId
+  if (typeof carId === 'object') {
+    carId = carId.id || carId._id || carId.carId || 'unknown';
+  }
+  
+  // Generate a display ID
+  let displayId = 'unknown';
+  if (typeof carId === 'string' && carId.length > 6) {
+    displayId = carId.slice(-6);
+  } else if (carId !== 'unknown') {
+    displayId = String(carId);
+  }
+  
+  return {
+    _id: carId,
+    title: `Vehicle #${displayId}`,
+    price: 'N/A',
+    year: 'N/A',
+    category: 'Unknown',
+    isPlaceholder: true,
+    description: 'Details unavailable at the moment'
+  };
+}; 
  
  

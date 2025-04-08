@@ -76,15 +76,21 @@ export default function ProductHeader({ car }) {
               {car.discountedPrice && car.price > car.discountedPrice ? (
                 <>
                   <span className="text-gray-500 line-through text-lg">
-                    ${car.price.toLocaleString()}
+                    KSh {typeof car.price === 'number' 
+                      ? car.price.toLocaleString() 
+                      : parseFloat(car.price?.toString().replace(/[^\d.-]/g, '') || '0').toLocaleString()}
                   </span>
                   <span className="text-3xl md:text-4xl font-bold text-orange-600">
-                    ${car.discountedPrice.toLocaleString()}
+                    KSh {typeof car.discountedPrice === 'number' 
+                      ? car.discountedPrice.toLocaleString() 
+                      : parseFloat(car.discountedPrice?.toString().replace(/[^\d.-]/g, '') || '0').toLocaleString()}
                   </span>
                 </>
               ) : (
                 <span className="text-3xl md:text-4xl font-bold text-orange-600">
-                  ${car.price.toLocaleString()}
+                  KSh {typeof car.price === 'number' 
+                    ? car.price.toLocaleString() 
+                    : parseFloat(car.price?.toString().replace(/[^\d.-]/g, '') || '0').toLocaleString()}
                 </span>
               )}
             </div>

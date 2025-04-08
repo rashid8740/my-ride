@@ -26,156 +26,102 @@ import {
   CarFront,
   Shield,
   X,
-  ArrowRight
+  ArrowRight,
+  Car
 } from "lucide-react";
 import { cars } from "@/app/inventory/data";
 import { toast } from "react-hot-toast";
 import { useFavorites } from "@/utils/FavoritesContext";
+import apiService from "@/utils/api";
+import Image from "next/image";
 
 // Gallery component for car images
-const CarGallery = ({ images, mainImage, title }) => {
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [isFullscreen, setIsFullscreen] = useState(false);
+const CarGallery = ({ car, title, mainImage }) => {
+  const [activeImage, setActiveImage] = useState(mainImage || "");
   
-  // Use the main image and create additional fake images for the gallery
-  const allImages = [
+  useEffect(() => {
+    if (mainImage) {
+      setActiveImage(mainImage);
+    } else if (car && car.processedImages && car.processedImages.length > 0) {
+      setActiveImage(car.processedImages[0].url);
+    } else if (car && car.images && car.images.length > 0) {
+      // Handle various image formats
+      const firstImage = car.images[0];
+      if (typeof firstImage === 'string') {
+        setActiveImage(firstImage);
+      } else if (firstImage && firstImage.url) {
+        setActiveImage(firstImage.url);
+      }
+    }
+  }, [mainImage, car]);
+  
+  // Debug what images are available
+  useEffect(() => {
+    if (car) {
+      console.log("CarGallery - Images available:", {
     mainImage, 
-    mainImage.replace('?q=80&w=800', '?q=80&w=801'),
-    mainImage.replace('?q=80&w=800', '?q=80&w=802'),
-    mainImage.replace('?q=80&w=800', '?q=80&w=803'),
-    mainImage.replace('?q=80&w=800', '?q=80&w=804')
-  ];
+        processedImages: car.processedImages || [],
+        images: car.images || [],
+        image: car.image
+      });
+    }
+  }, [car, mainImage]);
   
-  const nextSlide = () => {
-    setActiveIndex((prev) => (prev === allImages.length - 1 ? 0 : prev + 1));
-  };
+  if (!car) return null;
   
-  const prevSlide = () => {
-    setActiveIndex((prev) => (prev === 0 ? allImages.length - 1 : prev - 1));
-  };
+  // Prepare images for display - handle different formats
+  let displayImages = [];
   
-  const toggleFullscreen = () => {
-    setIsFullscreen(!isFullscreen);
-  };
+  if (car.processedImages && car.processedImages.length > 0) {
+    displayImages = car.processedImages;
+  } else if (car.images && car.images.length > 0) {
+    displayImages = car.images.map(img => {
+      if (typeof img === 'string') return { url: img };
+      return img;
+    });
+  } else if (car.image) {
+    displayImages = [{ url: car.image }];
+  }
+  
+  const hasMultipleImages = displayImages.length > 1;
   
   return (
-    <div className={`relative ${isFullscreen ? 'fixed inset-0 z-50 bg-black' : ''}`}>
-      {isFullscreen && (
-        <button 
-          onClick={toggleFullscreen}
-          className="absolute top-4 right-4 z-10 bg-black/60 text-white p-2 rounded-full"
-        >
-          <X size={24} />
-        </button>
-      )}
-      
-      {/* Main image */}
-      <div className={`relative overflow-hidden ${isFullscreen ? 'h-screen' : 'h-[300px] sm:h-[400px] md:h-[500px] rounded-t-xl lg:rounded-tr-none lg:rounded-l-xl'}`}>
-        <div className="absolute inset-0 flex">
-          {allImages.map((img, idx) => (
-            <div 
-              key={idx}
-              className={`absolute inset-0 transition-opacity duration-500 ${idx === activeIndex ? 'opacity-100' : 'opacity-0'}`}
-            >
-              <img
-                src={img}
-                alt={`${title} - Image ${idx + 1}`}
-                className={`w-full h-full object-cover ${isFullscreen ? 'object-contain' : 'object-cover'}`}
-                onClick={toggleFullscreen}
+    <div className="rounded-lg overflow-hidden bg-white border border-gray-200 w-full h-full">
+      <div className="h-[500px] bg-gray-100 relative">
+        {activeImage ? (
+          <div className="w-full h-full">
+            <img
+              src={activeImage}
+              alt={title || "Car image"}
+              className="car-gallery-image"
               />
             </div>
-          ))}
+        ) : (
+          <div className="h-full w-full flex items-center justify-center text-gray-400">
+            <Car size={48} />
         </div>
-        
-        {/* Slider controls */}
-        {!isFullscreen && (
-          <>
-            <button
-              onClick={prevSlide}
-              className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-gray-800 p-2 rounded-full shadow-md transition-colors z-10"
-              aria-label="Previous image"
-            >
-              <ChevronLeft size={20} />
-            </button>
-            <button
-              onClick={nextSlide}
-              className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white text-gray-800 p-2 rounded-full shadow-md transition-colors z-10"
-              aria-label="Next image"
-            >
-              <ChevronRight size={20} />
-            </button>
-          </>
         )}
-        
-        {/* Fullscreen controls */}
-        {isFullscreen && (
-          <div className="absolute bottom-8 left-0 right-0 flex justify-center gap-4 z-10">
-            <button
-              onClick={prevSlide}
-              className="bg-white/20 hover:bg-white/40 text-white p-3 rounded-full transition-colors"
-              aria-label="Previous image"
-            >
-              <MoveLeft size={24} />
-            </button>
-            <button
-              onClick={nextSlide}
-              className="bg-white/20 hover:bg-white/40 text-white p-3 rounded-full transition-colors"
-              aria-label="Next image"
-            >
-              <MoveRight size={24} />
-            </button>
           </div>
-        )}
-        
-        {/* Thumbnail indicator */}
-        {!isFullscreen && (
-          <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-2 z-10">
-            {allImages.map((_, idx) => (
-              <button
-                key={idx}
-                onClick={() => setActiveIndex(idx)}
-                className={`w-2 h-2 rounded-full transition-all ${
-                  idx === activeIndex 
-                    ? 'bg-white w-4' 
-                    : 'bg-white/50 hover:bg-white/80'
-                }`}
-                aria-label={`Go to image ${idx + 1}`}
-              />
-            ))}
-          </div>
-        )}
-        
-        {/* Zoom/Fullscreen button */}
-        {!isFullscreen && (
-          <button
-            onClick={toggleFullscreen}
-            className="absolute top-4 right-4 bg-black/30 hover:bg-black/50 text-white p-1.5 rounded-md flex items-center transition-colors z-10"
-            aria-label="View fullscreen"
-          >
-            <ArrowUpRight size={16} className="mr-1" />
-            <span className="text-xs font-medium">Enlarge</span>
-          </button>
-        )}
-      </div>
       
-      {/* Thumbnails */}
-      {!isFullscreen && (
-        <div className="flex mt-2 gap-2 px-2 overflow-x-auto pb-2 lg:px-0">
-          {allImages.map((img, idx) => (
-            <button
-              key={idx}
-              onClick={() => setActiveIndex(idx)}
-              className={`relative flex-shrink-0 w-20 h-16 rounded-md overflow-hidden border-2 transition ${
-                idx === activeIndex ? 'border-orange-500' : 'border-transparent hover:border-gray-300'
+      {hasMultipleImages && (
+        <div className="p-4 overflow-hidden">
+          <div className="flex flex-wrap gap-3 justify-center">
+            {displayImages.map((img, i) => (
+              <button
+                key={i}
+                onClick={() => setActiveImage(img.url)}
+                className={`relative h-20 w-32 rounded overflow-hidden flex-shrink-0 border-2 transition-all ${
+                  activeImage === img.url ? 'border-orange-500' : 'border-transparent hover:border-gray-300'
               }`}
             >
               <img
-                src={img}
-                alt={`Thumbnail ${idx + 1}`}
-                className="w-full h-full object-cover"
+                  src={img.url}
+                  alt={`${title || "Car"} image ${i + 1}`}
+                  className="object-cover w-full h-full"
               />
             </button>
           ))}
+          </div>
         </div>
       )}
     </div>
@@ -189,6 +135,7 @@ const CarDetailPage = ({ params }) => {
   const [error, setError] = useState(null);
   const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
+  const [mainImage, setMainImage] = useState(null);
   
   // Contact form state
   const [contactForm, setContactForm] = useState({
@@ -205,55 +152,124 @@ const CarDetailPage = ({ params }) => {
 
   // Fetch car data from our sample data until backend is working
   useEffect(() => {
-    console.log("Fetching car with ID:", id);
+    const fetchCarDetails = async () => {
     setLoading(true);
-    setTimeout(() => {
-      const foundCar = cars.find(c => c.id.toString() === id);
-      console.log("Found car:", foundCar);
-      if (foundCar) {
-        setCar(foundCar);
         setError(null);
+      
+      try {
+        // Determine if the ID is a valid ObjectId or a sample ID
+        const useNumericEndpoint = !isNaN(Number(id)) && String(Number(id)) === id;
+        
+        let carData;
+        
+        if (useNumericEndpoint) {
+          console.log("Fetching sample car ID:", id);
+          const response = await fetch(`/api/sample/cars/${id}`);
+          if (!response.ok) throw new Error('Failed to fetch sample car data');
+          const result = await response.json();
+          carData = result.data;
       } else {
-        setError("Car not found. Please check the URL and try again.");
-      }
+          console.log("Fetching car by ID:", id);
+          try {
+            // Try to get car from API directly
+            const response = await fetch(`/api/cars/${id}`);
+            if (!response.ok) throw new Error('Car not found in API');
+            const result = await response.json();
+            carData = result.data;
+            console.log("Car data from API:", carData);
+          } catch (err) {
+            // Fallback to regular car data for demo purposes
+            console.log("Fetching car from sample data as fallback");
+            const sampleCar = cars.find(c => c.id.toString() === id);
+            if (!sampleCar) throw new Error('Car not found');
+            carData = sampleCar;
+          }
+        }
+        
+        if (!carData) {
+          throw new Error('Car not found');
+        }
+        
+        // Process images for consistency
+        carData.processedImages = [];
+        
+        // Case 1: Array of image objects with url property
+        if (carData.images && Array.isArray(carData.images)) {
+          carData.images.forEach(img => {
+            if (typeof img === 'string') {
+              carData.processedImages.push({ url: img });
+            } else if (img && typeof img === 'object') {
+              if (img.url) {
+                carData.processedImages.push({ url: img.url });
+              } else if (img.secure_url) {
+                carData.processedImages.push({ url: img.secure_url });
+              }
+            }
+          });
+        }
+        
+        // Case 2: Single image URL
+        if (carData.image && typeof carData.image === 'string' && carData.processedImages.length === 0) {
+          carData.processedImages.push({ url: carData.image });
+        }
+        
+        // Case 3: Handle imageUrl property that some sample data might have
+        if (carData.imageUrl && typeof carData.imageUrl === 'string' && carData.processedImages.length === 0) {
+          carData.processedImages.push({ url: carData.imageUrl });
+        }
+        
+        // Log what we found
+        console.log("Processed car data:", {
+          id: carData._id || carData.id,
+          title: carData.title,
+          originalImages: carData.images,
+          processedImages: carData.processedImages
+        });
+        
+        setCar(carData);
+        
+        if (carData.processedImages.length > 0) {
+          setMainImage(carData.processedImages[0].url);
+        }
+        
+        // Fetch similar cars
+        if (carData.make && carData.model) {
+          // You can implement this if needed
+          // fetchSimilarCars(carData.make, carData.model, carData._id || carData.id);
+        }
+      } catch (err) {
+        console.error('Error fetching car details:', err);
+        setError('Car not found. Please check the URL and try again.');
+      } finally {
       setLoading(false);
-    }, 800);
+      }
+    };
+    
+    fetchCarDetails();
   }, [id]);
   
   // Check if car is in favorites (for UI state)
-  const isCarInFavorites = car ? isFavorite(car.id || Number(id)) : false;
+  const isCarInFavorites = car ? isFavorite(car._id || car.id || id) : false;
 
-  // Toggle favorite status
+  // Handle favorite toggling
   const handleFavoriteToggle = async () => {
-    if (!isAuthenticated) {
-      toast.error("Please log in to add favorites");
-      return;
-    }
-    
     try {
-      setIsTogglingFavorite(true);
-      // Make sure we have a valid ID to add
-      const carIdToUse = car.id || Number(params.id);
-      console.log("Toggling favorite for car ID:", carIdToUse);
+      // Get the correct ID format for the car
+      const carIdToUse = car._id || car.id || id;
+      console.log("Toggling favorite for car:", carIdToUse);
       
+      // Call the toggleFavorite function with proper car ID
       const result = await toggleFavorite(carIdToUse);
       
-      if (result.success) {
-        // Force a UI update based on the actual current state
-        const isFav = isFavorite(carIdToUse);
-        if (isFav) {
-          toast.success("Added to favorites");
-        } else {
-          toast.success("Removed from favorites");
-        }
-      } else {
+      if (result && result.success) {
+        // Success is already handled by the toggleFavorite function with toast notification
+        return;
+      } else if (result && !result.success) {
         toast.error(result.message || "Failed to update favorites");
       }
     } catch (error) {
       console.error("Error toggling favorite:", error);
-      toast.error("Something went wrong");
-    } finally {
-      setIsTogglingFavorite(false);
+      toast.error("Something went wrong when updating favorites");
     }
   };
 
@@ -272,33 +288,58 @@ const CarDetailPage = ({ params }) => {
     
     if (formSubmitting) return;
     
+    console.log('🔍 [CarDetail] Starting inquiry submission');
     setFormSubmitting(true);
+    setFormError(null);
     
-    // Simulate form submission
-    setTimeout(() => {
-      setFormSuccess(true);
+    try {
+      // Prepare the inquiry data
+      const inquiryData = {
+        name: contactForm.name,
+        email: contactForm.email,
+        phone: contactForm.phone,
+        subject: `Inquiry about ${car.title}`,
+        message: contactForm.message,
+        vehicle: car.title,
+        vehicleId: car._id || car.id
+      };
+      
+      console.log('🔍 [CarDetail] Prepared inquiry data:', inquiryData);
+      console.log('🔍 [CarDetail] Car ID:', car._id || car.id);
+      
+      // Submit the inquiry to the backend
+      console.log('🔍 [CarDetail] Sending inquiry to API');
+      const response = await apiService.contact.submitInquiry(inquiryData);
+      console.log('✅ [CarDetail] API response:', response);
+      
+      if (response.status === 'success') {
+        console.log('✅ [CarDetail] Inquiry submission successful');
+        // Show success message
+        setFormSuccess(true);
+        
+        // Reset form fields
+        setContactForm({
+          name: "",
+          email: "",
+          phone: "",
+          message: "I'm interested in this vehicle. Please contact me."
+        });
+      } else {
+        console.error('❌ [CarDetail] API returned unsuccessful status:', response);
+        throw new Error(response.message || 'Failed to submit inquiry');
+      }
+    } catch (err) {
+      console.error('❌ [CarDetail] Error submitting inquiry:', err);
+      console.error('❌ [CarDetail] Error details:', {
+        message: err.message,
+        stack: err.stack
+      });
+      setFormError(err.message || 'An error occurred while submitting your inquiry. Please try again later.');
+    } finally {
       setFormSubmitting(false);
-    }, 1000);
+      console.log('🔍 [CarDetail] Inquiry submission process completed');
+    }
   };
-
-  // Dummy car features
-  const carFeatures = [
-    'Navigation System',
-    'Leather Seats',
-    'Sunroof',
-    'Backup Camera',
-    'Bluetooth Connection',
-    'Premium Sound System',
-    'Heated Seats',
-    'Parking Sensors',
-    'Lane Departure Warning',
-    'Blind Spot Monitor',
-    'Apple CarPlay',
-    'Android Auto',
-    'Keyless Entry',
-    'Push Button Start',
-    'Climate Control'
-  ];
 
   // Debug why the page is blank
   console.log("Rendering car detail page. Loading:", loading, "Error:", error, "Car:", car);
@@ -426,10 +467,11 @@ const CarDetailPage = ({ params }) => {
             {/* Main Content */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-0">
               {/* Left Column - Car Gallery */}
-              <div className="lg:col-span-2">
+              <div className="lg:col-span-2 w-full p-0">
                 <CarGallery 
-                  mainImage={car.image} 
+                  car={car} 
                   title={car.title} 
+                  mainImage={mainImage}
                 />
               </div>
 
@@ -456,7 +498,6 @@ const CarDetailPage = ({ params }) => {
                           ? "text-orange-500 bg-orange-50"
                           : "text-gray-500 hover:bg-gray-100"
                       }`}
-                      disabled={isTogglingFavorite}
                       aria-label={isCarInFavorites ? "Remove from favorites" : "Add to favorites"}
                     >
                       <Heart size={18} fill={isCarInFavorites ? "currentColor" : "none"} />
@@ -477,10 +518,10 @@ const CarDetailPage = ({ params }) => {
                 {/* Pricing */}
                 <div className="bg-gray-50 rounded-xl p-4 mb-6">
                   <div className="text-3xl text-orange-500 font-bold">
-                    ${car.price}
+                    KSh {typeof car.price === 'number' ? car.price.toLocaleString() : car.price}
                   </div>
                   <div className="text-sm text-gray-500 mt-1">
-                    Est. ${parseInt(car.price.replace(/,/g, '')) / 48}/mo for 48 months
+                    Est. KSh {Math.round((typeof car.price === 'number' ? car.price : parseInt(car.price.toString().replace(/[^\d]/g, ''))) / 48).toLocaleString()}/mo for 48 months
                   </div>
                 </div>
                 
@@ -601,7 +642,18 @@ const CarDetailPage = ({ params }) => {
                   Safety Features
                 </h3>
                 <ul className="space-y-2">
-                  {carFeatures.slice(0, 5).map((feature, index) => (
+                  {car.features && car.features
+                    .filter(feature => 
+                      feature.toLowerCase().includes('safety') ||
+                      feature.toLowerCase().includes('airbag') ||
+                      feature.toLowerCase().includes('assist') ||
+                      feature.toLowerCase().includes('brake') ||
+                      feature.toLowerCase().includes('monitor') ||
+                      feature.toLowerCase().includes('warning') ||
+                      feature.toLowerCase().includes('camera')
+                    )
+                    .slice(0, 5)
+                    .map((feature, index) => (
                     <li key={index} className="flex items-center">
                       <Check className="h-4 w-4 text-green-500 mr-2 flex-shrink-0" />
                       <span className="text-gray-700 text-sm">{feature}</span>
@@ -616,7 +668,21 @@ const CarDetailPage = ({ params }) => {
                   Technology
                 </h3>
                 <ul className="space-y-2">
-                  {carFeatures.slice(5, 10).map((feature, index) => (
+                  {car.features && car.features
+                    .filter(feature => 
+                      feature.toLowerCase().includes('display') ||
+                      feature.toLowerCase().includes('sound') ||
+                      feature.toLowerCase().includes('apple') ||
+                      feature.toLowerCase().includes('android') ||
+                      feature.toLowerCase().includes('carplay') ||
+                      feature.toLowerCase().includes('bluetooth') ||
+                      feature.toLowerCase().includes('navigation') ||
+                      feature.toLowerCase().includes('wifi') ||
+                      feature.toLowerCase().includes('usb') ||
+                      feature.toLowerCase().includes('system')
+                    )
+                    .slice(0, 5)
+                    .map((feature, index) => (
                     <li key={index} className="flex items-center">
                       <Check className="h-4 w-4 text-green-500 mr-2 flex-shrink-0" />
                       <span className="text-gray-700 text-sm">{feature}</span>
@@ -631,7 +697,20 @@ const CarDetailPage = ({ params }) => {
                   Comfort
                 </h3>
                 <ul className="space-y-2">
-                  {carFeatures.slice(10, 15).map((feature, index) => (
+                  {car.features && car.features
+                    .filter(feature => 
+                      feature.toLowerCase().includes('seat') ||
+                      feature.toLowerCase().includes('climate') ||
+                      feature.toLowerCase().includes('sunroof') ||
+                      feature.toLowerCase().includes('roof') ||
+                      feature.toLowerCase().includes('keyless') ||
+                      feature.toLowerCase().includes('push') ||
+                      feature.toLowerCase().includes('heated') ||
+                      feature.toLowerCase().includes('ventilated') ||
+                      feature.toLowerCase().includes('leather')
+                    )
+                    .slice(0, 5)
+                    .map((feature, index) => (
                     <li key={index} className="flex items-center">
                       <Check className="h-4 w-4 text-green-500 mr-2 flex-shrink-0" />
                       <span className="text-gray-700 text-sm">{feature}</span>
@@ -652,25 +731,60 @@ const CarDetailPage = ({ params }) => {
                   Performance
                 </h3>
                 <div className="space-y-3">
+                  {/* Try to find engine spec from features */}
                   <div className="flex justify-between py-2 border-b border-gray-100">
                     <div className="text-gray-600">Engine</div>
-                    <div className="font-medium text-gray-900">2.0L Turbo</div>
+                    <div className="font-medium text-gray-900">
+                      {car.features?.find(f => 
+                        f.toLowerCase().includes('engine') || 
+                        f.toLowerCase().includes('turbo') || 
+                        /\d\.\d[l]/i.test(f) || 
+                        /v\d/i.test(f)
+                      ) || 'N/A'}
                   </div>
+                  </div>
+                  
+                  {/* Try to find horsepower from features */}
                   <div className="flex justify-between py-2 border-b border-gray-100">
                     <div className="text-gray-600">Horsepower</div>
-                    <div className="font-medium text-gray-900">248 hp</div>
+                    <div className="font-medium text-gray-900">
+                      {car.features?.find(f => 
+                        f.toLowerCase().includes('hp') || 
+                        f.toLowerCase().includes('horsepower')
+                      ) || 'N/A'}
                   </div>
+                  </div>
+                  
+                  {/* Try to find torque from features */}
                   <div className="flex justify-between py-2 border-b border-gray-100">
                     <div className="text-gray-600">Torque</div>
-                    <div className="font-medium text-gray-900">258 lb-ft</div>
+                    <div className="font-medium text-gray-900">
+                      {car.features?.find(f => 
+                        f.toLowerCase().includes('lb-ft') || 
+                        f.toLowerCase().includes('torque')
+                      ) || 'N/A'}
                   </div>
+                  </div>
+                  
+                  {/* Use actual car transmission data */}
                   <div className="flex justify-between py-2 border-b border-gray-100">
                     <div className="text-gray-600">Transmission</div>
-                    <div className="font-medium text-gray-900">{car.transmission}</div>
+                    <div className="font-medium text-gray-900">{car.transmission || 'N/A'}</div>
                   </div>
+                  
+                  {/* Try to find drivetrain from features or use actual car data */}
                   <div className="flex justify-between py-2 border-b border-gray-100">
                     <div className="text-gray-600">Drivetrain</div>
-                    <div className="font-medium text-gray-900">All-Wheel Drive</div>
+                    <div className="font-medium text-gray-900">
+                      {car.drivetrain || 
+                       car.features?.find(f => 
+                         f.toLowerCase().includes('wheel drive') || 
+                         f.toLowerCase().includes('awd') ||
+                         f.toLowerCase().includes('4wd') ||
+                         f.toLowerCase().includes('rwd') ||
+                         f.toLowerCase().includes('fwd')
+                       ) || 'N/A'}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -681,25 +795,50 @@ const CarDetailPage = ({ params }) => {
                   Dimensions
                 </h3>
                 <div className="space-y-3">
+                  {/* Try to find length from features */}
                   <div className="flex justify-between py-2 border-b border-gray-100">
                     <div className="text-gray-600">Length</div>
-                    <div className="font-medium text-gray-900">185.7 in</div>
+                    <div className="font-medium text-gray-900">
+                      {car.features?.find(f => f.toLowerCase().includes('length')) || 'N/A'}
                   </div>
+                  </div>
+                  
+                  {/* Try to find width from features */}
                   <div className="flex justify-between py-2 border-b border-gray-100">
                     <div className="text-gray-600">Width</div>
-                    <div className="font-medium text-gray-900">74.4 in</div>
+                    <div className="font-medium text-gray-900">
+                      {car.features?.find(f => f.toLowerCase().includes('width')) || 'N/A'}
                   </div>
+                  </div>
+                  
+                  {/* Try to find height from features */}
                   <div className="flex justify-between py-2 border-b border-gray-100">
                     <div className="text-gray-600">Height</div>
-                    <div className="font-medium text-gray-900">65.3 in</div>
+                    <div className="font-medium text-gray-900">
+                      {car.features?.find(f => f.toLowerCase().includes('height')) || 'N/A'}
                   </div>
+                  </div>
+                  
+                  {/* Try to find cargo capacity from features */}
                   <div className="flex justify-between py-2 border-b border-gray-100">
                     <div className="text-gray-600">Cargo Capacity</div>
-                    <div className="font-medium text-gray-900">28.7 cu ft</div>
+                    <div className="font-medium text-gray-900">
+                      {car.features?.find(f => 
+                        f.toLowerCase().includes('cargo') || 
+                        f.toLowerCase().includes('cu ft')
+                      ) || 'N/A'}
                   </div>
+                  </div>
+                  
+                  {/* Try to find fuel capacity from features */}
                   <div className="flex justify-between py-2 border-b border-gray-100">
                     <div className="text-gray-600">Fuel Capacity</div>
-                    <div className="font-medium text-gray-900">17.7 gal</div>
+                    <div className="font-medium text-gray-900">
+                      {car.features?.find(f => 
+                        f.toLowerCase().includes('fuel capacity') || 
+                        f.toLowerCase().includes('gal')
+                      ) || 'N/A'}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -747,7 +886,7 @@ const CarDetailPage = ({ params }) => {
                     
                     <div className="flex justify-between items-center pt-3 border-t border-gray-100">
                       <div className="text-orange-500 font-bold text-lg">
-                        ${similarCar.price}
+                        KSh {similarCar.price}
                       </div>
                       <Link 
                         href={`/cars/${similarCar.id}`}
@@ -878,6 +1017,14 @@ const CarDetailPage = ({ params }) => {
         }
         .hide-scrollbar::-webkit-scrollbar {
           display: none;
+        }
+        
+        /* Fix for car image display */
+        .car-gallery-image {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          object-position: center;
         }
       `}</style>
       
