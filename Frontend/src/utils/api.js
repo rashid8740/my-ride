@@ -284,6 +284,20 @@ const apiService = {
         body: JSON.stringify({ message }),
       });
     },
+    
+    async delete(id) {
+      console.log('🔍 [API] Deleting inquiry with ID:', id);
+      try {
+        const response = await apiService.request(`/contact/${id}`, {
+          method: 'DELETE',
+        });
+        console.log('✅ [API] Inquiry deletion successful:', response);
+        return response;
+      } catch (error) {
+        console.error('❌ [API] Inquiry deletion failed:', error);
+        throw error;
+      }
+    },
   },
   
   // User endpoints

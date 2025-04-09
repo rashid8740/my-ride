@@ -182,6 +182,8 @@ export default function ContactPage() {
       };
       
       console.log('🔍 [Contact] Prepared inquiry data:', inquiryData);
+      console.log('🔍 [Contact] Vehicle ID value:', inquiryData.vehicleId);
+      console.log('🔍 [Contact] Vehicle info value:', inquiryData.vehicle);
       
       // Submit the inquiry to the backend
       console.log('🔍 [Contact] Sending inquiry to API');
@@ -305,86 +307,71 @@ export default function ContactPage() {
                 </div>
               )}
               
-              <form onSubmit={handleSubmit}>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <InputField
-                    id="name"
-                    label="Full Name"
-                    placeholder="John Doe"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
-                  />
-                  <InputField
-                    id="email"
-                    label="Email"
-                    type="email"
-                    placeholder="your@email.com"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    required
-                  />
-                </div>
+              <form onSubmit={handleSubmit} className="bg-white rounded-lg p-6 sm:p-8 shadow-md">
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <InputField
-                    id="phone"
-                    label="Phone Number"
-                    placeholder="(123) 456-7890"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                  />
-                  <InputField
-                    id="subject"
-                    label="Subject"
-                    placeholder="How can we help you?"
-                    value={subject}
-                    onChange={(e) => setSubject(e.target.value)}
-                    required
-                  />
-                </div>
-                
-                <div className="mb-4">
-                  <label htmlFor="vehicle" className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">
-                    Vehicle of Interest
-                  </label>
-                  <div className="relative">
-                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <Car className="h-5 w-5 text-gray-400" />
-                    </div>
-                    {isLoadingVehicles ? (
-                      <div className="w-full px-4 py-2.5 sm:py-3 pl-10 border border-gray-300 rounded-lg sm:rounded-xl bg-white text-gray-500 shadow-sm">
-                        <Loader className="h-4 w-4 mr-2 inline animate-spin" /> Loading vehicles...
-                      </div>
-                    ) : (
-                      <select
-                        id="vehicle"
-                        value={vehicle}
-                        onChange={(e) => setVehicle(e.target.value)}
-                        className="w-full appearance-none pl-10 pr-10 py-2.5 sm:py-3 border border-gray-300 rounded-lg sm:rounded-xl bg-white text-gray-800 placeholder-gray-400 focus:ring-2 focus:ring-orange-500 focus:border-orange-500 focus:outline-none transition-all shadow-sm"
-                        style={{ backgroundImage: 'url("data:image/svg+xml,%3csvg xmlns=%27http://www.w3.org/2000/svg%27 fill=%27none%27 viewBox=%270 0 20 20%27%3e%3cpath stroke=%27%236b7280%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27 stroke-width=%271.5%27 d=%27M6 8l4 4 4-4%27/%3e%3c/svg%3e")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.5rem center', backgroundSize: '1.5em 1.5em' }}
-                      >
-                        <option value="">Select a vehicle (optional)</option>
-                        <option value="other">Other/Not listed</option>
-                        {vehicles.map((car) => (
-                          <option key={car._id} value={`vehicle-${car._id}`}>
-                            {car.year} {car.make} {car.model} - KSh {car.price ? car.price.toLocaleString() : 'N/A'}
-                          </option>
-                        ))}
-                      </select>
-                    )}
+                <div className="space-y-4">
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <InputField
+                      id="name"
+                      label="Name"
+                      placeholder="Your name"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      required
+                    />
+                    <InputField
+                      id="email"
+                      label="Email"
+                      type="email"
+                      placeholder="Your email address"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                    />
                   </div>
+                  
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <InputField
+                      id="phone"
+                      label="Phone"
+                      placeholder="Your phone number"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                    />
+                    <InputField
+                      id="subject"
+                      label="Subject"
+                      placeholder="Message subject"
+                      value={subject}
+                      onChange={(e) => setSubject(e.target.value)}
+                      required
+                    />
+                  </div>
+                  
+                  <div className="mb-4">
+                    <SelectField
+                      id="vehicle"
+                      label="Regarding Vehicle"
+                      placeholder="Select a vehicle (optional)"
+                      options={vehicles.map(v => ({
+                        value: `vehicle-${v._id}`,
+                        label: `${v.year} ${v.make} ${v.model}`
+                      }))}
+                      value={vehicle}
+                      onChange={(e) => setVehicle(e.target.value)}
+                    />
+                  </div>
+                  
+                  <TextareaField
+                    id="message"
+                    label="Message"
+                    placeholder="How can we help you?"
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    required
+                    rows={6}
+                  />
                 </div>
-                
-                <TextareaField
-                  id="message"
-                  label="Message"
-                  placeholder="Please describe your question or concern in detail..."
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  required
-                  rows={6}
-                />
                 
                 <button
                   type="submit"

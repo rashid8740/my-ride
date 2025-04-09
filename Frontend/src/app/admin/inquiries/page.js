@@ -202,7 +202,8 @@ export default function AdminInquiries() {
     // Apply vehicle filter
     if (filters.vehicle) {
       result = result.filter(inquiry => 
-        inquiry.vehicle && inquiry.vehicle.includes(filters.vehicle)
+        (inquiry.vehicleInfo && inquiry.vehicleInfo.includes(filters.vehicle)) ||
+        (inquiry.car && `${inquiry.car.year} ${inquiry.car.make} ${inquiry.car.model}`.includes(filters.vehicle))
       );
     }
 
@@ -226,7 +227,7 @@ export default function AdminInquiries() {
         (inquiry.email && inquiry.email.toLowerCase().includes(searchLower)) ||
         (inquiry.phone && inquiry.phone.includes(searchLower)) ||
         (inquiry.message && inquiry.message.toLowerCase().includes(searchLower)) ||
-        (inquiry.vehicle && inquiry.vehicle.toLowerCase().includes(searchLower))
+        (inquiry.vehicleInfo && inquiry.vehicleInfo.toLowerCase().includes(searchLower))
       );
     }
 
