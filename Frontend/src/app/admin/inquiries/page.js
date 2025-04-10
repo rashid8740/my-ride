@@ -68,13 +68,10 @@ const InquiryRow = ({ inquiry, onView, onDelete }) => {
     `${inquiry.car.year} ${inquiry.car.make} ${inquiry.car.model}` : 
     (inquiry.vehicleInfo || 'Not specified');
   
-  // Determine badge color based on status
-  let statusBadgeColor = 'bg-blue-100 text-blue-800';
-  if (inquiry.status === 'inProgress') {
-    statusBadgeColor = 'bg-yellow-100 text-yellow-800';
-  } else if (inquiry.status === 'resolved') {
-    statusBadgeColor = 'bg-green-100 text-green-800';
-  }
+  // Get a truncated message preview
+  const messagePreview = inquiry.message ? 
+    (inquiry.message.length > 50 ? inquiry.message.substring(0, 50) + '...' : inquiry.message) : 
+    'No message';
   
   return (
     <tr className="hover:bg-gray-50">
@@ -89,10 +86,11 @@ const InquiryRow = ({ inquiry, onView, onDelete }) => {
       <td className="px-6 py-4 whitespace-nowrap">
         <div className="text-sm text-gray-900">{vehicleInfo}</div>
       </td>
+      <td className="px-6 py-4">
+        <div className="text-sm text-gray-900">{messagePreview}</div>
+      </td>
       <td className="px-6 py-4 whitespace-nowrap">
-        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${statusBadgeColor}`}>
-          {inquiry.status.charAt(0).toUpperCase() + inquiry.status.slice(1)}
-        </span>
+        <StatusBadge status={inquiry.status} />
       </td>
       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
         {formattedDate}
