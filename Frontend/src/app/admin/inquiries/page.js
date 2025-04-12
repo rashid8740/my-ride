@@ -342,32 +342,63 @@ export default function AdminInquiries() {
 
         {/* Stats cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white rounded-xl shadow-sm p-4">
-            <div className="text-sm font-medium text-gray-500">Total Inquiries</div>
-            <div className="mt-1 flex items-end">
-              <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
-              <div className="text-xs text-gray-500 ml-2 mb-1">total messages</div>
+          <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100 hover:shadow transition-all">
+            <div className="flex items-center">
+              <div className="bg-indigo-100 rounded-lg p-2.5 mr-3">
+                <MessageSquare className="h-5 w-5 text-indigo-600" />
+              </div>
+              <div>
+                <div className="text-sm font-medium text-gray-500">Total Inquiries</div>
+                <div className="mt-1 flex items-end">
+                  <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
+                  <div className="text-xs text-gray-500 ml-2 mb-1">total messages</div>
+                </div>
+              </div>
             </div>
           </div>
-          <div className="bg-white rounded-xl shadow-sm p-4">
-            <div className="text-sm font-medium text-gray-500">New</div>
-            <div className="mt-1 flex items-end">
-              <div className="text-2xl font-bold text-blue-600">{stats.newCount}</div>
-              <div className="text-xs text-gray-500 ml-2 mb-1">awaiting response</div>
+          
+          <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100 hover:shadow transition-all">
+            <div className="flex items-center">
+              <div className="bg-blue-100 rounded-lg p-2.5 mr-3">
+                <AlertCircle className="h-5 w-5 text-blue-600" />
+              </div>
+              <div>
+                <div className="text-sm font-medium text-gray-500">New</div>
+                <div className="mt-1 flex items-end">
+                  <div className="text-2xl font-bold text-blue-600">{stats.newCount}</div>
+                  <div className="text-xs text-gray-500 ml-2 mb-1">awaiting response</div>
+                </div>
+              </div>
             </div>
           </div>
-          <div className="bg-white rounded-xl shadow-sm p-4">
-            <div className="text-sm font-medium text-gray-500">In Progress</div>
-            <div className="mt-1 flex items-end">
-              <div className="text-2xl font-bold text-yellow-600">{stats.inProgressCount}</div>
-              <div className="text-xs text-gray-500 ml-2 mb-1">being addressed</div>
+          
+          <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100 hover:shadow transition-all">
+            <div className="flex items-center">
+              <div className="bg-yellow-100 rounded-lg p-2.5 mr-3">
+                <Clock className="h-5 w-5 text-yellow-600" />
+              </div>
+              <div>
+                <div className="text-sm font-medium text-gray-500">In Progress</div>
+                <div className="mt-1 flex items-end">
+                  <div className="text-2xl font-bold text-yellow-600">{stats.inProgressCount}</div>
+                  <div className="text-xs text-gray-500 ml-2 mb-1">being addressed</div>
+                </div>
+              </div>
             </div>
           </div>
-          <div className="bg-white rounded-xl shadow-sm p-4">
-            <div className="text-sm font-medium text-gray-500">Resolved</div>
-            <div className="mt-1 flex items-end">
-              <div className="text-2xl font-bold text-green-600">{stats.resolvedCount}</div>
-              <div className="text-xs text-gray-500 ml-2 mb-1">successfully completed</div>
+          
+          <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100 hover:shadow transition-all">
+            <div className="flex items-center">
+              <div className="bg-green-100 rounded-lg p-2.5 mr-3">
+                <CheckCircle className="h-5 w-5 text-green-600" />
+              </div>
+              <div>
+                <div className="text-sm font-medium text-gray-500">Resolved</div>
+                <div className="mt-1 flex items-end">
+                  <div className="text-2xl font-bold text-green-600">{stats.resolvedCount}</div>
+                  <div className="text-xs text-gray-500 ml-2 mb-1">successfully completed</div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -382,14 +413,14 @@ export default function AdminInquiries() {
               <div className="ml-3">
                 <h3 className="text-sm font-medium text-orange-800">Attention Required</h3>
                 <div className="mt-1 text-sm text-orange-700">
-                  <p>You have {stats.newCount} new inquiries that need your attention. Please respond to them promptly.</p>
+                  <p>You have {stats.newCount} new {stats.newCount === 1 ? 'inquiry' : 'inquiries'} that {stats.newCount === 1 ? 'needs' : 'need'} your attention. Please respond promptly.</p>
                 </div>
                 <div className="mt-2">
                   <button 
                     onClick={() => setFilters({...filters, status: 'new'})}
                     className="text-sm font-medium text-orange-800 hover:text-orange-900 flex items-center"
                   >
-                    View new inquiries
+                    View new {stats.newCount === 1 ? 'inquiry' : 'inquiries'}
                     <ArrowRight className="ml-1 h-4 w-4" />
                   </button>
                 </div>
@@ -417,7 +448,7 @@ export default function AdminInquiries() {
                 name="status"
                 value={filters.status}
                 onChange={handleFilterChange}
-                className="w-full rounded-lg border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500"
+                className="w-full rounded-lg border-gray-300 shadow-sm text-gray-900 focus:border-orange-500 focus:ring-orange-500"
               >
                 <option value="">All Status</option>
                 <option value="new">New</option>
@@ -432,7 +463,7 @@ export default function AdminInquiries() {
                 name="vehicle"
                 value={filters.vehicle}
                 onChange={handleFilterChange}
-                className="w-full rounded-lg border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500"
+                className="w-full rounded-lg border-gray-300 shadow-sm text-gray-900 focus:border-orange-500 focus:ring-orange-500"
               >
                 <option value="">All Vehicles</option>
                 {availableVehicles.map(vehicle => (
@@ -448,7 +479,7 @@ export default function AdminInquiries() {
                 name="dateFrom"
                 value={filters.dateFrom}
                 onChange={handleFilterChange}
-                className="w-full rounded-lg border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500"
+                className="w-full rounded-lg border-gray-300 shadow-sm text-gray-900 focus:border-orange-500 focus:ring-orange-500"
               />
             </div>
             <div>
@@ -459,7 +490,7 @@ export default function AdminInquiries() {
                 name="dateTo"
                 value={filters.dateTo}
                 onChange={handleFilterChange}
-                className="w-full rounded-lg border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500"
+                className="w-full rounded-lg border-gray-300 shadow-sm text-gray-900 focus:border-orange-500 focus:ring-orange-500"
               />
             </div>
           </div>
@@ -474,7 +505,7 @@ export default function AdminInquiries() {
             type="text"
             name="search"
             id="search"
-            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-orange-500 focus:border-orange-500 sm:text-sm"
+            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg leading-5 bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-orange-500 focus:border-orange-500 sm:text-sm"
             placeholder="Search by name, email, phone, or message content..."
             value={filters.search}
             onChange={handleFilterChange}
