@@ -27,7 +27,9 @@ import {
   Shield,
   X,
   ArrowRight,
-  Car
+  Car,
+  Maximize2,
+  Minimize2
 } from "lucide-react";
 import { cars } from "@/app/inventory/data";
 import { toast } from "react-hot-toast";
@@ -37,7 +39,19 @@ import Image from "next/image";
 
 // Gallery component for car images
 const CarGallery = ({ car, title, mainImage }) => {
-  const [activeImage, setActiveImage] = useState(mainImage || "");
+  const [activeImage, setActiveImage] = useState(mainImage);
+  const [fitMode, setFitMode] = useState('cover');
+  const [isZoomed, setIsZoomed] = useState(false);
+  
+  // Handle image fit toggle
+  const toggleFitMode = () => {
+    setFitMode(prev => prev === 'contain' ? 'cover' : 'contain');
+  };
+  
+  // Handle image zoom toggle
+  const toggleZoom = () => {
+    setIsZoomed(prev => !prev);
+  };
   
   useEffect(() => {
     if (mainImage) {
@@ -69,7 +83,7 @@ const CarGallery = ({ car, title, mainImage }) => {
   
   if (!car) return null;
   
-  // Prepare images for display - handle different formats
+  // Initialize displayImages
   let displayImages = [];
   
   if (car.processedImages && car.processedImages.length > 0) {
@@ -87,15 +101,39 @@ const CarGallery = ({ car, title, mainImage }) => {
   
   return (
     <div className="rounded-lg overflow-hidden bg-white border border-gray-200 w-full h-full">
-      <div className="h-[500px] bg-gray-100 relative">
+      <div className="h-[550px] bg-gray-100 relative">
         {activeImage ? (
-          <div className="w-full h-full">
+          <div className="w-full h-full flex items-center justify-center bg-gray-50">
             <img
               src={activeImage}
               alt={title || "Car image"}
-              className="car-gallery-image"
-              />
+              className={`car-gallery-image ${fitMode === 'cover' ? 'image-cover' : 'image-contain'} ${isZoomed ? 'zoomed' : ''}`}
+              onClick={toggleZoom}
+            />
+            
+            {/* Image Controls */}
+            <div className="image-controls">
+              <button 
+                onClick={toggleFitMode} 
+                className="p-2 rounded-md hover:bg-gray-200 transition-colors" 
+                title={fitMode === 'contain' ? "Switch to fill mode" : "Switch to fit mode"}
+              >
+                {fitMode === 'contain' ? 
+                  <span className="flex items-center gap-1 text-xs font-medium">Fill <Maximize2 size={14} /></span> : 
+                  <span className="flex items-center gap-1 text-xs font-medium">Fit <Minimize2 size={14} /></span>
+                }
+              </button>
+              <button 
+                onClick={toggleZoom} 
+                className="p-2 rounded-md hover:bg-gray-200 transition-colors" 
+                title={isZoomed ? "Exit zoom" : "Zoom in"}
+              >
+                <span className="flex items-center gap-1 text-xs font-medium">
+                  {isZoomed ? "Exit" : "Zoom"}
+                </span>
+              </button>
             </div>
+          </div>
         ) : (
           <div className="h-full w-full flex items-center justify-center text-gray-400">
             <Car size={48} />
@@ -105,22 +143,23 @@ const CarGallery = ({ car, title, mainImage }) => {
       
       {hasMultipleImages && (
         <div className="p-4 overflow-hidden">
-          <div className="flex flex-wrap gap-3 justify-center">
+          <div className="flex flex-wrap gap-3 justify-center thumbnail-container overflow-x-auto py-2">
             {displayImages.map((img, i) => (
               <button
                 key={i}
                 onClick={() => setActiveImage(img.url)}
                 className={`relative h-20 w-32 rounded overflow-hidden flex-shrink-0 border-2 transition-all ${
                   activeImage === img.url ? 'border-orange-500' : 'border-transparent hover:border-gray-300'
-              }`}
-            >
-              <img
+                }`}
+              >
+                <img
                   src={img.url}
                   alt={`${title || "Car"} image ${i + 1}`}
-                  className="object-cover w-full h-full"
-              />
-            </button>
-          ))}
+                  className="object-contain hover:object-cover transition-all w-full h-full"
+                  loading="lazy"
+                />
+              </button>
+            ))}
           </div>
         </div>
       )}
@@ -1021,10 +1060,69 @@ const CarDetailPage = ({ params }) => {
         
         /* Fix for car image display */
         .car-gallery-image {
+          max-width: 98%;
+          max-height: 98%;
+          width: auto;
+          height: auto;
+          object-position: center;
+          transition: all 0.2s ease;
+        }
+        
+        .image-contain {
+          object-fit: contain;
+        }
+        
+        .image-cover {
+          object-fit: cover;
           width: 100%;
           height: 100%;
-          object-fit: cover;
-          object-position: center;
+        }
+
+        /* Optional controls to switch between view modes */
+        .image-controls {
+          position: absolute;
+          bottom: 16px;
+          right: 16px;
+          display: flex;
+          gap: 8px;
+          background: rgba(255,255,255,0.8);
+          padding: 4px;
+          border-radius: 8px;
+        }
+
+        /* Image zoom effect */
+        .car-gallery-image:hover {
+          cursor: zoom-in;
+        }
+        
+        .car-gallery-image.zoomed {
+          transform: scale(1.8);
+          cursor: zoom-out;
+          transition: transform 0.3s ease;
+        }
+        
+        .car-gallery-image:not(.zoomed) {
+          transition: transform 0.3s ease;
+        }
+        
+        /* Enhanced thumbnails */
+        .thumbnail-container {
+          scrollbar-width: thin;
+          scrollbar-color: #f97316 #f1f5f9;
+        }
+        
+        .thumbnail-container::-webkit-scrollbar {
+          height: 6px;
+        }
+        
+        .thumbnail-container::-webkit-scrollbar-track {
+          background: #f1f5f9;
+          border-radius: 3px;
+        }
+        
+        .thumbnail-container::-webkit-scrollbar-thumb {
+          background-color: #f97316;
+          border-radius: 3px;
         }
       `}</style>
       
