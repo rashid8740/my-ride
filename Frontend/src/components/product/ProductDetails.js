@@ -1,10 +1,87 @@
 // src/components/product/ProductDetails.js
 "use client";
 import { useState } from "react";
-import { Check, Award, Clock, Car, Info, Gauge, Fuel } from "lucide-react";
+import { Check, Award, Clock, Car, Info, Gauge, Fuel, MapPin } from "lucide-react";
 
 export default function ProductDetails({ car }) {
   const [activeTab, setActiveTab] = useState("overview");
+
+  // Function to extract specifications from features
+  const extractSpecifications = () => {
+    // Initialize specifications object with default values
+    const specs = {
+      engine: "N/A",
+      horsepower: "N/A",
+      torque: "N/A",
+      acceleration: "N/A",
+      topSpeed: "N/A",
+      fuelEconomy: car.fuelType || "N/A",
+      fuelTank: "N/A",
+      length: "N/A",
+      width: "N/A", 
+      height: "N/A",
+      wheelbase: "N/A",
+      groundClearance: "N/A",
+      seatingCapacity: car.seats ? `${car.seats} passengers` : "N/A",
+      cargoCapacity: "N/A",
+      weight: "N/A"
+    };
+
+    // If no features, return default specs
+    if (!car.features || !Array.isArray(car.features)) {
+      return specs;
+    }
+
+    // Extract specifications from features array
+    car.features.forEach(feature => {
+      const lowerFeature = feature.toLowerCase();
+      
+      // Engine
+      if (lowerFeature.includes("engine") || lowerFeature.includes("turbo") || lowerFeature.match(/\d\.\d[l]/) || lowerFeature.match(/v\d/i)) {
+        specs.engine = feature;
+      }
+      
+      // Horsepower
+      if (lowerFeature.includes("hp") || lowerFeature.includes("horsepower")) {
+        specs.horsepower = feature;
+      }
+      
+      // Torque
+      if (lowerFeature.includes("lb-ft") || lowerFeature.includes("torque")) {
+        specs.torque = feature;
+      }
+      
+      // Dimensions - Length
+      if (lowerFeature.includes("length")) {
+        specs.length = feature;
+      }
+      
+      // Dimensions - Width
+      if (lowerFeature.includes("width")) {
+        specs.width = feature;
+      }
+      
+      // Dimensions - Height
+      if (lowerFeature.includes("height")) {
+        specs.height = feature;
+      }
+      
+      // Cargo Capacity
+      if (lowerFeature.includes("cargo capacity") || lowerFeature.includes("cu ft")) {
+        specs.cargoCapacity = feature;
+      }
+      
+      // Fuel Capacity
+      if (lowerFeature.includes("fuel capacity") || lowerFeature.includes("gal")) {
+        specs.fuelTank = feature;
+      }
+    });
+
+    return specs;
+  };
+
+  // Get specifications
+  const specifications = car.specifications || extractSpecifications();
 
   return (
     <div className="bg-white rounded-xl shadow-sm overflow-hidden">
@@ -77,7 +154,9 @@ export default function ProductDetails({ car }) {
                 </div>
                 <div className="text-sm text-gray-600 mb-1">Mileage</div>
                 <div className="font-semibold">
-                  {car.mileage.toLocaleString()} mi
+                  {typeof car.mileage === 'number' 
+                    ? car.mileage.toLocaleString() 
+                    : parseFloat(car.mileage?.toString().replace(/[^\d.-]/g, '') || '0').toLocaleString()} mi
                 </div>
               </div>
 
@@ -159,7 +238,9 @@ export default function ProductDetails({ car }) {
                 <div className="flex justify-between p-3 bg-gray-50 rounded-lg">
                   <span className="text-gray-600">Mileage</span>
                   <span className="font-medium text-gray-900">
-                    {car.mileage.toLocaleString()} mi
+                    {typeof car.mileage === 'number' 
+                      ? car.mileage.toLocaleString() 
+                      : parseFloat(car.mileage?.toString().replace(/[^\d.-]/g, '') || '0').toLocaleString()} mi
                   </span>
                 </div>
                 <div className="flex justify-between p-3 bg-gray-50 rounded-lg">
@@ -436,31 +517,31 @@ export default function ProductDetails({ car }) {
                     <div className="flex justify-between p-4 bg-gray-50">
                       <span className="text-gray-600">Engine</span>
                       <span className="font-medium text-gray-900">
-                        {car.specifications.engine}
+                        {specifications.engine}
                       </span>
                     </div>
                     <div className="flex justify-between p-4">
                       <span className="text-gray-600">Horsepower</span>
                       <span className="font-medium text-gray-900">
-                        {car.specifications.horsepower}
+                        {specifications.horsepower}
                       </span>
                     </div>
                     <div className="flex justify-between p-4 bg-gray-50">
                       <span className="text-gray-600">Torque</span>
                       <span className="font-medium text-gray-900">
-                        {car.specifications.torque}
+                        {specifications.torque}
                       </span>
                     </div>
                     <div className="flex justify-between p-4">
-                      <span className="text-gray-600">Acceleration</span>
+                      <span className="text-gray-600">Transmission</span>
                       <span className="font-medium text-gray-900">
-                        {car.specifications.acceleration}
+                        {car.transmission || "N/A"}
                       </span>
                     </div>
                     <div className="flex justify-between p-4 bg-gray-50">
-                      <span className="text-gray-600">Top Speed</span>
+                      <span className="text-gray-600">Drivetrain</span>
                       <span className="font-medium text-gray-900">
-                        {car.specifications.topSpeed}
+                        {car.drivetrain || "N/A"}
                       </span>
                     </div>
                   </div>
@@ -479,21 +560,15 @@ export default function ProductDetails({ car }) {
                 <div className="rounded-lg overflow-hidden border border-gray-200">
                   <div className="divide-y divide-gray-200">
                     <div className="flex justify-between p-4 bg-gray-50">
-                      <span className="text-gray-600">Fuel Economy</span>
+                      <span className="text-gray-600">Fuel Type</span>
                       <span className="font-medium text-gray-900">
-                        {car.specifications.fuelEconomy}
+                        {car.fuelType || specifications.fuelEconomy}
                       </span>
                     </div>
                     <div className="flex justify-between p-4">
                       <span className="text-gray-600">Fuel Tank</span>
                       <span className="font-medium text-gray-900">
-                        {car.specifications.fuelTank}
-                      </span>
-                    </div>
-                    <div className="flex justify-between p-4 bg-gray-50">
-                      <span className="text-gray-600">Fuel Type</span>
-                      <span className="font-medium text-gray-900">
-                        {car.fuelType}
+                        {specifications.fuelTank}
                       </span>
                     </div>
                   </div>
@@ -514,31 +589,19 @@ export default function ProductDetails({ car }) {
                     <div className="flex justify-between p-4 bg-gray-50">
                       <span className="text-gray-600">Length</span>
                       <span className="font-medium text-gray-900">
-                        {car.specifications.length}
+                        {specifications.length}
                       </span>
                     </div>
                     <div className="flex justify-between p-4">
                       <span className="text-gray-600">Width</span>
                       <span className="font-medium text-gray-900">
-                        {car.specifications.width}
+                        {specifications.width}
                       </span>
                     </div>
                     <div className="flex justify-between p-4 bg-gray-50">
                       <span className="text-gray-600">Height</span>
                       <span className="font-medium text-gray-900">
-                        {car.specifications.height}
-                      </span>
-                    </div>
-                    <div className="flex justify-between p-4">
-                      <span className="text-gray-600">Wheelbase</span>
-                      <span className="font-medium text-gray-900">
-                        {car.specifications.wheelbase}
-                      </span>
-                    </div>
-                    <div className="flex justify-between p-4 bg-gray-50">
-                      <span className="text-gray-600">Ground Clearance</span>
-                      <span className="font-medium text-gray-900">
-                        {car.specifications.groundClearance}
+                        {specifications.height}
                       </span>
                     </div>
                   </div>
@@ -557,19 +620,13 @@ export default function ProductDetails({ car }) {
                     <div className="flex justify-between p-4 bg-gray-50">
                       <span className="text-gray-600">Seating</span>
                       <span className="font-medium text-gray-900">
-                        {car.specifications.seatingCapacity}
+                        {specifications.seatingCapacity}
                       </span>
                     </div>
                     <div className="flex justify-between p-4">
                       <span className="text-gray-600">Cargo Capacity</span>
                       <span className="font-medium text-gray-900">
-                        {car.specifications.cargoCapacity}
-                      </span>
-                    </div>
-                    <div className="flex justify-between p-4 bg-gray-50">
-                      <span className="text-gray-600">Curb Weight</span>
-                      <span className="font-medium text-gray-900">
-                        {car.specifications.weight}
+                        {specifications.cargoCapacity}
                       </span>
                     </div>
                   </div>

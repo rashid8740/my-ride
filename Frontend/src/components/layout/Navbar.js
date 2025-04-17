@@ -16,6 +16,8 @@ import {
   ChevronDown,
   Phone,
   LogOut,
+  Trash2,
+  LayoutDashboard,
 } from "lucide-react";
 
 // Navigation Item Component with dropdown capability
@@ -152,11 +154,18 @@ export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const pathname = usePathname();
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, logout, isAdmin } = useAuth();
   const { favorites } = useFavorites();
   
-  // Calculate favorites count from actual favorites array
-  const favoritesCount = favorites?.length || 0;
+  // Calculate favorites count, ensuring it doesn't disappear
+  const [favoritesCount, setFavoritesCount] = useState(0);
+  
+  // Update favorites count whenever favorites changes
+  useEffect(() => {
+    if (favorites && favorites.length > 0) {
+      setFavoritesCount(favorites.length);
+    }
+  }, [favorites]);
 
   // Handle scroll event for navbar appearance
   useEffect(() => {
@@ -299,28 +308,37 @@ export default function Navbar() {
                   </button>
 
                   {userMenuOpen && (
-                    <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-50 py-1">
-                      <div className="px-4 py-2 border-b border-gray-100">
-                        <p className="text-sm font-medium">{user?.fullName || `${user?.firstName} ${user?.lastName}`}</p>
-                        <p className="text-xs text-gray-500">{user?.email}</p>
+                    <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-200 rounded-md shadow-lg z-50 py-1">
+                      <div className="px-4 py-3 border-b border-gray-100">
+                        <p className="text-sm font-semibold text-gray-800">{user?.fullName || `${user?.firstName} ${user?.lastName}`}</p>
+                        <p className="text-xs text-gray-500 mt-1">{user?.email}</p>
+                        {isAdmin && (
+                          <p className="text-xs font-bold text-orange-600 mt-2 bg-orange-100 inline-block px-2.5 py-1 rounded-md shadow-sm border border-orange-200">Admin User</p>
+                        )}
                       </div>
                       <Link
-                        href="/profile"
-                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        href={isAdmin ? "/admin/dashboard" : "/dashboard"}
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-orange-500 flex items-center"
+                        onClick={() => setUserMenuOpen(false)}
                       >
-                        My Profile
+                        <LayoutDashboard size={16} className="mr-2 text-gray-500" />
+                        Dashboard
                       </Link>
                       <Link
                         href="/favorites"
-                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-orange-500 flex items-center"
+                        onClick={() => setUserMenuOpen(false)}
                       >
+                        <Heart size={16} className="mr-2 text-gray-500" />
                         My Favorites
                       </Link>
                       <Link
-                        href="/dashboard"
-                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        href="/test-drives"
+                        className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 hover:text-orange-500 flex items-center"
+                        onClick={() => setUserMenuOpen(false)}
                       >
-                        Dashboard
+                        <Car size={16} className="mr-2 text-gray-500" />
+                        Test Drives
                       </Link>
                       <hr className="my-1 border-gray-100" />
                       <button
@@ -330,10 +348,10 @@ export default function Navbar() {
                         }}
                         className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 flex items-center"
                       >
-                        <LogOut size={14} className="mr-2" />
+                        <LogOut size={16} className="mr-2" />
                         Sign Out
-              </button>
-            </div>
+                      </button>
+                    </div>
                   )}
                 </div>
               </>
@@ -438,14 +456,17 @@ export default function Navbar() {
               <div className="pt-4 mt-4 border-t border-gray-200">
                 {isAuthenticated ? (
                   <>
-                    <div className="px-3 py-2 mb-2 bg-gray-50 rounded-md">
-                      <p className="text-sm font-medium">{user?.firstName} {user?.lastName}</p>
-                      <p className="text-xs text-gray-500">{user?.email}</p>
+                    <div className="px-3 py-3 mb-3 bg-white rounded-md shadow-sm border border-gray-200">
+                      <p className="text-base font-semibold text-gray-800">
+                        {user?.firstName} {user?.lastName}
+                        {isAdmin && <span className="ml-1 text-xs font-bold text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded">(Admin)</span>}
+                      </p>
+                      <p className="text-xs text-gray-600 mt-1">{user?.email}</p>
                     </div>
                     <MobileNavItem
-                      href="/profile"
-                      label="My Profile"
-                      icon={<User size={18} />}
+                      href={isAdmin ? "/admin/dashboard" : "/dashboard"}
+                      label={isAdmin ? "Admin Dashboard" : "Dashboard"}
+                      icon={<LayoutDashboard size={18} />}
                       onClick={closeMobileMenu}
                     />
                     <MobileNavItem
@@ -455,8 +476,8 @@ export default function Navbar() {
                       onClick={closeMobileMenu}
                     />
                     <MobileNavItem
-                      href="/dashboard"
-                      label="Dashboard"
+                      href="/test-drives"
+                      label="Test Drives"
                       icon={<Car size={18} />}
                       onClick={closeMobileMenu}
                     />

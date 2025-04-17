@@ -192,7 +192,7 @@ export default function EditCarPage({ params }) {
           category: carData.category || '',
           color: carData.color || carData.exteriorColor || '',
           interiorColor: carData.interiorColor || '',
-          vin: carData.vin?.length > 10 ? '039884' : (carData.vin || '039884'),
+          vin: carData.vin || '039884', // Removed conditional length check
           stock: carData.stock || '',
           trim: carData.trim || '',
           length: carData.length || '',
@@ -836,10 +836,16 @@ export default function EditCarPage({ params }) {
               name="vin"
               value={formData.vin}
               onChange={handleInputChange}
-              className={`${inputBaseClass} font-medium`}
-              placeholder="Enter vehicle chassis/VIN number (e.g., 039884)"
+              className={`${inputBaseClass} font-medium border-orange-300 bg-orange-50 focus:bg-white`}
+              placeholder="Enter vehicle chassis/VIN number"
+              required
             />
-            <p className="text-xs text-gray-500 mt-1">Enter the short VIN format commonly used in Kenya</p>
+            <div className="flex items-center mt-1.5">
+              <AlertCircle className="h-3.5 w-3.5 text-orange-500 mr-1.5" />
+              <p className="text-xs text-orange-700">
+                This VIN number will be displayed in the inventory table. Changes made here will update the table view.
+              </p>
+            </div>
           </div>
           <div>
             <label htmlFor="stock" className={labelClass}>
@@ -1401,24 +1407,25 @@ export default function EditCarPage({ params }) {
         />
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
           {/* Price */}
-          <div>
-            <label htmlFor="price" className={labelClass}>
-              Price (KSh) <span className="text-red-500">*</span>
+          <div className="col-span-6 sm:col-span-3">
+            <label 
+              htmlFor="price" 
+              className="block text-sm font-medium text-gray-700"
+            >
+              Price (KSh)
             </label>
-            <div className="relative">
-              <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500 font-medium">
-                KSh
-              </span>
+            <div className="mt-1 relative rounded-md shadow-sm">
+              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                <span className="text-gray-500 sm:text-sm">KSh</span>
+              </div>
               <input
                 type="number"
-                id="price"
                 name="price"
+                id="price"
+                className="focus:ring-orange-500 focus:border-orange-500 block w-full pl-12 pr-12 sm:text-sm border-gray-300 rounded-md"
+                placeholder="0.00"
                 value={formData.price}
                 onChange={handleInputChange}
-                className={`${inputBaseClass} pl-12`}
-                min="0"
-                step="1000"
-                placeholder="Enter price in KSh"
                 required
               />
             </div>
@@ -1445,6 +1452,25 @@ export default function EditCarPage({ params }) {
                 placeholder="Enter MSRP in KSh"
               />
             </div>
+          </div>
+          
+          {/* Status */}
+          <div>
+            <label htmlFor="status" className={labelClass}>
+              Status
+            </label>
+            <select
+              id="status"
+              name="status"
+              value={formData.status}
+              onChange={handleInputChange}
+              className={selectBaseClass}
+            >
+              <option value="available">Available</option>
+              <option value="sold">Sold</option>
+              <option value="reserved">Reserved</option>
+              <option value="pending">Pending</option>
+            </select>
           </div>
           
           {/* Mileage */}

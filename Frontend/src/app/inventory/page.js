@@ -2,6 +2,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   Search,
   ChevronDown,
@@ -119,6 +120,8 @@ const sampleCars = [
 ];
 
 export default function InventoryPage() {
+  const searchParams = useSearchParams();
+  
   // State for cars data
   const [cars, setCars] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -150,25 +153,163 @@ export default function InventoryPage() {
   // Featured cars
   const [featuredCars, setFeaturedCars] = useState([]);
 
+  // Check for URL parameters to set initial filters
+  useEffect(() => {
+    // Get parameters from URL
+    const urlCategory = searchParams.get('category');
+    const urlFuel = searchParams.get('fuel');
+    
+    // Set filters based on URL parameters if they exist
+    const newFilters = { ...filters };
+    let needsUpdate = false;
+    
+    if (urlCategory) {
+      // Handle the case where URL has "/inventory/suv" style URLs
+      const urlPath = window.location.pathname;
+      const pathSegments = urlPath.split('/').filter(Boolean);
+      
+      if (pathSegments.length > 1) {
+        const pathCategory = pathSegments[1].toLowerCase();
+        
+        // Convert URL path segment to a category value
+        switch (pathCategory) {
+          case 'suv':
+            newFilters.category = 'suv';
+            needsUpdate = true;
+            break;
+          case 'sedan':
+            newFilters.category = 'sedan';
+            needsUpdate = true;
+            break;
+          case 'luxury':
+            newFilters.category = 'luxury';
+            needsUpdate = true;
+            break;
+          case 'electric':
+            newFilters.category = 'electric';
+            needsUpdate = true;
+            break;
+          case 'hybrid':
+            newFilters.category = 'hybrid';
+            needsUpdate = true;
+            break;
+        }
+      } else if (urlCategory) {
+        // Handle query parameters like ?category=suv
+        newFilters.category = urlCategory;
+        needsUpdate = true;
+      }
+    }
+    
+    if (urlFuel) {
+      newFilters.fuel = urlFuel;
+      needsUpdate = true;
+    }
+    
+    // Update filters if needed
+    if (needsUpdate) {
+      setFilters(newFilters);
+    }
+  }, [searchParams]);
+
   // Fetch cars data
   useEffect(() => {
-    // Simulate API call with sample data for now
-    setLoading(true);
-    
-    setTimeout(() => {
-      setCars(sampleCars);
+    const fetchCars = async () => {
+      setLoading(true);
+      setError(null);
       
-      // Set featured cars (cars marked as featured)
-      if (!filters.category && !filters.minPrice && !filters.maxPrice && 
-          !filters.minYear && !filters.maxYear && !filters.fuel && 
-          !filters.transmission && !searchTerm) {
-        setFeaturedCars(sampleCars.filter(car => car.featured));
-      } else {
-        setFeaturedCars([]);
+      try {
+        // Build query parameters based on filters
+        const queryParams = new URLSearchParams();
+        
+        if (filters.category) queryParams.append('category', filters.category);
+        if (filters.minPrice) queryParams.append('minPrice', filters.minPrice);
+        if (filters.maxPrice) queryParams.append('maxPrice', filters.maxPrice);
+        if (filters.minYear) queryParams.append('minYear', filters.minYear);
+        if (filters.maxYear) queryParams.append('maxYear', filters.maxYear);
+        if (filters.fuel) queryParams.append('fuel', filters.fuel);
+        if (filters.transmission) queryParams.append('transmission', filters.transmission);
+        if (searchTerm) queryParams.append('search', searchTerm);
+        
+        // Set sort parameter
+        switch (sortBy) {
+          case 'newest':
+            queryParams.append('sort', 'year_desc');
+            break;
+          case 'oldest':
+            queryParams.append('sort', 'year_asc');
+            break;
+          case 'priceAsc':
+            queryParams.append('sort', 'price_asc');
+            break;
+          case 'priceDesc':
+            queryParams.append('sort', 'price_desc');
+            break;
+          default:
+            queryParams.append('sort', 'year_desc');
+        }
+        
+        // Fetch data from API
+        console.log('Fetching cars from API with params:', queryParams.toString());
+        const response = await fetch(`/api/cars?${queryParams.toString()}`);
+        
+        if (!response.ok) {
+          throw new Error(`Error fetching cars: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        console.log('API response:', result);
+        
+        if (result && result.data && Array.isArray(result.data)) {
+          setCars(result.data);
+          
+          // Set featured cars (only on initial load with no filters)
+          if (!filters.category && !filters.minPrice && !filters.maxPrice && 
+              !filters.minYear && !filters.maxYear && !filters.fuel && 
+              !filters.transmission && !searchTerm) {
+            const featuredResponse = await fetch('/api/cars/featured');
+            if (featuredResponse.ok) {
+              const featuredResult = await featuredResponse.json();
+              if (featuredResult && featuredResult.data) {
+                setFeaturedCars(featuredResult.data);
+              }
+            }
+          } else {
+            setFeaturedCars([]);
+          }
+        } else {
+          // Fallback to sample data if API returns no results
+          console.log('No cars found in API response, using sample data');
+          setCars(sampleCars);
+          
+          if (!filters.category && !filters.minPrice && !filters.maxPrice && 
+              !filters.minYear && !filters.maxYear && !filters.fuel && 
+              !filters.transmission && !searchTerm) {
+            setFeaturedCars(sampleCars.filter(car => car.featured));
+          } else {
+            setFeaturedCars([]);
+          }
+        }
+      } catch (err) {
+        console.error('Error fetching cars:', err);
+        setError('Failed to load vehicles. Please try again later.');
+        
+        // Fallback to sample data on error
+        setCars(sampleCars);
+        
+        if (!filters.category && !filters.minPrice && !filters.maxPrice && 
+            !filters.minYear && !filters.maxYear && !filters.fuel && 
+            !filters.transmission && !searchTerm) {
+          setFeaturedCars(sampleCars.filter(car => car.featured));
+        } else {
+          setFeaturedCars([]);
+        }
+      } finally {
+        setLoading(false);
       }
-      
-      setLoading(false);
-    }, 1000);
+    };
+    
+    fetchCars();
   }, [filters, searchTerm, sortBy]);
   
   // Handle filter changes
@@ -228,7 +369,7 @@ export default function InventoryPage() {
       {/* Ensure Navbar is at the top */}
       <Navbar />
       
-      <main className="mt-[90px] lg:mt-[110px] min-h-screen bg-gray-50">
+      <main className="pt-16 md:pt-20">
         {/* Hero Section with Search */}
         <section className="bg-gradient-to-r from-gray-900 via-gray-800 to-gray-900 text-white py-12 lg:py-16">
           <div className="container mx-auto px-4 md:px-8">
@@ -313,7 +454,7 @@ export default function InventoryPage() {
           </section>
         )}
 
-        <section className="py-8">
+        <section className="py-8 bg-gray-50">
           <div className="container mx-auto px-4 md:px-8">
             <div className="flex flex-col lg:flex-row gap-8">
               {/* Sidebar Filters - Desktop */}

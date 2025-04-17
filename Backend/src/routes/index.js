@@ -8,6 +8,7 @@ const carRoutes = require('./carRoutes');
 const contactRoutes = require('./contactRoutes');
 const uploadRoutes = require('./uploadRoutes');
 const dashboardRoutes = require('./dashboardRoutes');
+const favoriteRoutes = require('./favoriteRoutes');
 
 // Routes configuration
 router.use('/auth', authRoutes);
@@ -15,6 +16,7 @@ router.use('/users', userRoutes);
 router.use('/cars', carRoutes);
 router.use('/contact', contactRoutes);
 router.use('/uploads', uploadRoutes);
+router.use('/favorites', favoriteRoutes);
 router.use('/dashboard', dashboardRoutes);
 
 // Simple health check endpoint

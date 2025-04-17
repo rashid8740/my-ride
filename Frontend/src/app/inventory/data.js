@@ -17,7 +17,7 @@ export const filterOptions = {
     { label: "Convertible", value: "convertible", count: 5 },
   ],
   year: [
-    { label: "2023", value: "2025", count: 14 },
+    { label: "2023", value: "2023", count: 14 },
     { label: "2022", value: "2022", count: 28 },
     { label: "2021", value: "2021", count: 35 },
     { label: "2020", value: "2020", count: 42 },
@@ -139,7 +139,7 @@ export const cars = [
     fuel: "Hybrid",
     transmission: "Automatic",
     photoCount: "9",
-    featured: false,
+    featured: true,
     image:
       "https://images.unsplash.com/photo-1585011664466-b7bbe92f34ef?q=80&w=800&auto=format&fit=crop",
   },
@@ -156,5 +156,33 @@ export const cars = [
     featured: false,
     image:
       "https://images.unsplash.com/photo-1592198084033-aade902d1aae?q=80&w=800&auto=format&fit=crop",
+  },
+  {
+    id: 9,
+    title: "2022 Lexus RX 450h F Sport",
+    category: "SUV",
+    year: "2022",
+    price: "72,800",
+    mileage: "18,450 km",
+    fuel: "Hybrid",
+    transmission: "Automatic",
+    photoCount: "16",
+    featured: true,
+    image:
+      "https://images.unsplash.com/photo-1583267746897-2cf415887172?q=80&w=800&auto=format&fit=crop",
+  },
+  {
+    id: 10,
+    title: "2023 Volkswagen ID.4 Pro S",
+    category: "SUV",
+    year: "2023",
+    price: "51,500",
+    mileage: "7,320 km",
+    fuel: "Electric",
+    transmission: "Automatic",
+    photoCount: "11",
+    featured: true,
+    image:
+      "https://images.unsplash.com/photo-1617814076673-6be9bd8d9463?q=80&w=800&auto=format&fit=crop",
   },
 ];

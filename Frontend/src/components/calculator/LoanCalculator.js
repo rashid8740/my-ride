@@ -1,7 +1,6 @@
 // src/components/sections/LoanCalculatorSection.jsx
 "use client";
 import { useState, useEffect } from "react";
-import { ChevronDown } from "lucide-react";
 
 export default function LoanCalculatorSection() {
   return (
@@ -104,14 +103,11 @@ function SimpleLoanCalculator() {
               Total Price
             </label>
             <div className="relative">
-              <span className="absolute inset-y-0 left-0 flex items-center pl-3 sm:pl-4 text-gray-500">
-                KSh
-              </span>
               <input
                 type="text"
                 value={carPrice}
                 onChange={(e) => handleNumberInput(e, setCarPrice)}
-                className="w-full pl-7 sm:pl-8 pr-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg sm:rounded-xl focus:ring-1 focus:ring-orange-500 focus:border-orange-500 focus:outline-none transition-all text-gray-800"
+                className="w-full px-4 py-2.5 sm:py-3 border border-gray-300 rounded-lg sm:rounded-xl focus:ring-1 focus:ring-orange-500 focus:border-orange-500 focus:outline-none transition-all text-gray-800"
                 placeholder="Enter price in KSh"
               />
             </div>
@@ -136,21 +132,19 @@ function SimpleLoanCalculator() {
             {/* Payment Frequency */}
             <div>
               <label className="block text-gray-700 font-medium mb-2">
-                Terms
+                Payment Frequency
               </label>
               <div className="relative">
                 <select
                   value={paymentFrequency}
                   onChange={(e) => setPaymentFrequency(e.target.value)}
                   className="w-full appearance-none px-4 py-3 border border-gray-300 rounded-xl focus:ring-1 focus:ring-orange-500 focus:border-orange-500 focus:outline-none transition-all text-gray-800 bg-white"
+                  style={{ backgroundImage: 'url("data:image/svg+xml,%3csvg xmlns=%27http://www.w3.org/2000/svg%27 fill=%27none%27 viewBox=%270 0 20 20%27%3e%3cpath stroke=%27%236b7280%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27 stroke-width=%271.5%27 d=%27M6 8l4 4 4-4%27/%3e%3c/svg%3e")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.5rem center', backgroundSize: '1.5em 1.5em' }}
                 >
                   <option value="Monthly">Monthly</option>
                   <option value="Bi-weekly">Bi-weekly</option>
                   <option value="Weekly">Weekly</option>
                 </select>
-                <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
-                  <ChevronDown className="w-5 h-5 text-gray-500" />
-                </div>
               </div>
             </div>
 
@@ -183,6 +177,7 @@ function SimpleLoanCalculator() {
                   value={loanTerm}
                   onChange={(e) => setLoanTerm(parseInt(e.target.value, 10))}
                   className="w-full appearance-none px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all text-gray-800 bg-white"
+                  style={{ backgroundImage: 'url("data:image/svg+xml,%3csvg xmlns=%27http://www.w3.org/2000/svg%27 fill=%27none%27 viewBox=%270 0 20 20%27%3e%3cpath stroke=%27%236b7280%27 stroke-linecap=%27round%27 stroke-linejoin=%27round%27 stroke-width=%271.5%27 d=%27M6 8l4 4 4-4%27/%3e%3c/svg%3e")', backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.5rem center', backgroundSize: '1.5em 1.5em' }}
                 >
                   <option value="12">12 months</option>
                   <option value="24">24 months</option>
@@ -192,9 +187,6 @@ function SimpleLoanCalculator() {
                   <option value="72">72 months</option>
                   <option value="84">84 months</option>
                 </select>
-                <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
-                  <ChevronDown className="w-5 h-5 text-gray-500" />
-                </div>
               </div>
             </div>
           </div>

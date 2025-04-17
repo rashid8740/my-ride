@@ -1,6 +1,7 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
 import { ChevronRight, ChevronLeft, ArrowRight, Star } from "lucide-react";
+import Link from "next/link";
 
 // Enhanced Modern Slider with Animation
 const ModernSlider = () => {
@@ -281,12 +282,77 @@ const ModernSlider = () => {
   );
 };
 
-const HeroSection = () => {
+const HeroSection = ({ id }) => {
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    if (!searchQuery.trim()) return;
+    
+    // In a real app, redirect to search results
+    window.location.href = `/inventory?search=${encodeURIComponent(searchQuery)}`;
+  };
+
+  const scrollToFeatured = (e) => {
+    e.preventDefault();
+    const featuredSection = document.getElementById('featured-cars');
+    if (featuredSection) {
+      featuredSection.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   return (
-    <section className="relative w-full">
+    <section id={id} className="relative w-full">
       {/* Main Slider Section with responsive height */}
       <div className="h-[600px] sm:h-[700px] md:h-[80vh] lg:h-[85vh] mt-16 sm:mt-20">
         <ModernSlider />
+      </div>
+
+      {/* Search and Browse Container - Positioned absolutely to overlay at the bottom */}
+      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent pt-16 pb-8">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="max-w-3xl">
+            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-2">
+              Find Your Perfect <span className="text-orange-500">Drive</span>
+            </h1>
+            <p className="text-lg text-gray-200 mb-4 md:pr-8">
+              Discover our premium selection of well-maintained vehicles for your next journey
+            </p>
+
+            <div className="mb-4 space-y-3 sm:space-y-0 sm:flex sm:gap-3">
+              <Link href="/inventory" className="inline-block py-2.5 px-5 bg-orange-500 hover:bg-orange-600 text-white font-medium rounded-lg transition-all shadow-lg hover:shadow-xl w-full sm:w-auto text-center flex items-center justify-center">
+                Browse Inventory
+                <ArrowRight className="ml-2 inline-block h-4 w-4" />
+              </Link>
+              
+              <button 
+                onClick={scrollToFeatured}
+                className="inline-block py-2.5 px-5 bg-white hover:bg-gray-100 text-gray-800 font-medium rounded-lg transition-all shadow-lg hover:shadow-xl w-full sm:w-auto text-center flex items-center justify-center"
+              >
+                Check Our Featured Vehicles
+                <ChevronRight className="ml-1 inline-block h-4 w-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSearch} className="flex flex-col sm:flex-row gap-2 max-w-2xl">
+              <div className="relative flex-grow">
+                <input
+                  type="text"
+                  placeholder="Search by make, model, or keyword..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full py-2.5 px-4 rounded-lg outline-none border-2 border-transparent focus:border-orange-500 shadow-lg text-gray-800"
+                />
+              </div>
+              <button
+                type="submit"
+                className="py-2.5 px-5 bg-orange-500 hover:bg-orange-600 text-white font-medium rounded-lg transition-colors shadow-lg"
+              >
+                Search
+              </button>
+            </form>
+          </div>
+        </div>
       </div>
     </section>
   );

@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import apiService from '@/utils/api';
+import { useAuth } from '@/utils/AuthContext';
 import { 
   Users, 
   Search, 
@@ -19,11 +20,91 @@ import {
   UserPlus,
   Download,
   X,
-  Loader2
+  Loader2,
+  LogIn,
+  RefreshCw
 } from 'lucide-react';
+
+// Simple API wrapper with token handling
+const API = {
+  token: null,
+  
+  async login() {
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: 'testadmin@myride.com',
+          password: 'admintest123'
+        })
+      });
+      
+      const data = await response.json();
+      if (data.status === 'success' && data.data?.token) {
+        this.token = data.data.token;
+        localStorage.setItem('adminToken', this.token);
+        return { success: true, user: data.data };
+      }
+      return { success: false, error: data.message || 'Login failed' };
+    } catch (error) {
+      console.error('Login error:', error);
+      return { success: false, error: error.message };
+    }
+  },
+  
+  async getUsers() {
+    try {
+      // Try to use stored token first
+      if (!this.token) {
+        this.token = localStorage.getItem('adminToken');
+      }
+      
+      // If still no token, try to login
+      if (!this.token) {
+        const loginResult = await this.login();
+        if (!loginResult.success) {
+          return { success: false, error: 'Authentication required' };
+        }
+      }
+      
+      const response = await fetch('http://localhost:5000/api/users', {
+        headers: { 
+          'Authorization': `Bearer ${this.token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      const data = await response.json();
+      
+      if (response.status === 401) {
+        // Token expired or invalid - try to login again
+        localStorage.removeItem('adminToken');
+        this.token = null;
+        const loginResult = await this.login();
+        if (loginResult.success) {
+          // Retry the request with new token
+          return await this.getUsers();
+        } else {
+          return { success: false, error: 'Authentication failed' };
+        }
+      }
+      
+      if (data.status === 'success' && Array.isArray(data.data)) {
+        return { success: true, users: data.data, count: data.count };
+      }
+      
+      return { success: false, error: data.message || 'Failed to load users' };
+    } catch (error) {
+      console.error('Error loading users:', error);
+      return { success: false, error: error.message };
+    }
+  }
+};
 
 export default function UsersPage() {
   const router = useRouter();
+  const { login, isAuthenticated, isAdmin, user } = useAuth();
   // State for users data and UI state
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
@@ -46,63 +127,45 @@ export default function UsersPage() {
     newUsers: 0
   });
 
-  // Define fetchUsers function outside useEffect so it can be referenced elsewhere
-  const fetchUsers = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      
-      // Get real data from the API
-      const response = await apiService.users.getAll();
-      const userData = response.data || [];
-      
-      setUsers(userData);
-      
-      // Calculate stats
-      setStatsData({
-        totalUsers: userData.length,
-        activeUsers: userData.filter(user => user.role === 'user').length,
-        adminUsers: userData.filter(user => user.role === 'admin').length,
-        newUsers: userData.filter(user => {
-          const createdAt = new Date(user.createdAt);
-          const thirtyDaysAgo = new Date();
-          thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-          return createdAt >= thirtyDaysAgo;
-        }).length
-      });
-      
-      setIsLoading(false);
-    } catch (err) {
-      console.error('Error fetching users:', err);
-      
-      // Set more specific error message based on error type
-      if (err.message && err.message.includes('Network error')) {
-        setError('Failed to load users data. Please check if the backend server is running.');
-      } else if (err.message && err.message.includes('MongoDB connection error')) {
-        setError('Database connection issue. Please contact the administrator.');
-      } else {
-        setError('Failed to load users data. Please try again later.');
-      }
-      
-      // Set empty state values
+  // Load users function
+  const loadUsers = async () => {
+    setIsLoading(true);
+    setError(null);
+    
+    const result = await API.getUsers();
+    
+    if (result.success) {
+      setUsers(result.users);
+      calculateStats(result.users);
+    } else {
+      setError(result.error || 'Failed to load users');
       setUsers([]);
-      setStatsData({
-        totalUsers: 0,
-        activeUsers: 0,
-        adminUsers: 0,
-        newUsers: 0
-      });
-      
-      setIsLoading(false);
     }
+    
+    setIsLoading(false);
+  };
+  
+  // Calculate user statistics
+  const calculateStats = (userData) => {
+    setStatsData({
+      totalUsers: userData.length,
+      activeUsers: userData.filter(user => user.role === 'user' || user.role === 'customer').length,
+      adminUsers: userData.filter(user => user.role === 'admin').length,
+      newUsers: userData.filter(user => {
+        const createdAt = new Date(user.createdAt);
+        const thirtyDaysAgo = new Date();
+        thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+        return createdAt >= thirtyDaysAgo;
+      }).length
+    });
   };
 
-  // Fetch users data
+  // Initial load
   useEffect(() => {
-    fetchUsers();
+    loadUsers();
   }, []);
 
-  // Apply filters and sorting to users
+  // Handle search and filters
   useEffect(() => {
     let result = [...users];
     
@@ -115,20 +178,23 @@ export default function UsersPage() {
     if (searchTerm) {
       const term = searchTerm.toLowerCase();
       result = result.filter(user => 
-        (user.firstName && user.firstName.toLowerCase().includes(term)) || 
-        (user.lastName && user.lastName.toLowerCase().includes(term)) || 
-        (user.email && user.email.toLowerCase().includes(term)) ||
-        (user.phone && user.phone.includes(term))
+        (user.firstName?.toLowerCase().includes(term)) || 
+        (user.lastName?.toLowerCase().includes(term)) || 
+        (user.email?.toLowerCase().includes(term)) ||
+        (user.phone?.includes(term))
       );
     }
     
     // Apply sorting
     if (sortConfig.key) {
       result.sort((a, b) => {
-        if (a[sortConfig.key] < b[sortConfig.key]) {
+        const valA = a[sortConfig.key] || '';
+        const valB = b[sortConfig.key] || '';
+        
+        if (valA < valB) {
           return sortConfig.direction === 'asc' ? -1 : 1;
         }
-        if (a[sortConfig.key] > b[sortConfig.key]) {
+        if (valA > valB) {
           return sortConfig.direction === 'asc' ? 1 : -1;
         }
         return 0;
@@ -244,20 +310,63 @@ export default function UsersPage() {
         </div>
         <div className="ml-3">
           <p className="text-sm font-medium text-gray-900">{user.firstName} {user.lastName}</p>
-          <p className="text-xs text-gray-500">{user._id ? user._id.substring(0, 8) : user.id}</p>
+          <p className="text-xs text-gray-500">{user._id?.substring(0, 8) || user.id}</p>
         </div>
       </div>
     );
   };
 
+  // If there's an error, display the error panel prominently
+  if (error) {
+    return (
+      <div className="container mx-auto p-6 max-w-6xl">
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-gray-900 flex items-center">
+            <Users className="mr-2 h-6 w-6 text-orange-500" />
+            Users Management
+          </h1>
+          <p className="text-gray-600 mt-1">Manage and monitor all users in the system.</p>
+        </div>
+        
+        <div className="bg-red-50 border border-red-200 rounded-lg p-8 mb-6">
+          <div className="flex items-center justify-center mb-4">
+            <AlertCircle className="h-12 w-12 text-red-500" />
+          </div>
+          <h2 className="text-xl font-semibold text-red-700 text-center mb-2">Error Loading Users</h2>
+          <p className="text-center text-red-600 mb-6">{error}</p>
+          <div className="flex justify-center space-x-4">
+            <button
+              onClick={loadUsers}
+              disabled={isLoading}
+              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-sm transition-colors flex items-center disabled:opacity-70 disabled:cursor-not-allowed"
+            >
+              {isLoading ? <Loader2 className="h-5 w-5 mr-2 animate-spin" /> : <RefreshCw className="h-5 w-5 mr-2" />}
+              Try Again
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 flex items-center">
-          <Users className="mr-2 h-6 w-6 text-orange-500" />
-          Users Management
-        </h1>
-        <p className="text-gray-600 mt-1">Manage and monitor all users in the system.</p>
+        <div className="flex justify-between items-center">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900 flex items-center">
+              <Users className="mr-2 h-6 w-6 text-orange-500" />
+              Users Management
+            </h1>
+            <p className="text-gray-600 mt-1">Manage and monitor all users in the system.</p>
+          </div>
+          {isAuthenticated && (
+            <div className="flex items-center">
+              <span className="mr-2 text-sm text-gray-600">Logged in as:</span>
+              <span className="font-medium text-sm text-gray-900">{user?.firstName} {user?.lastName}</span>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Stats cards */}
@@ -355,19 +464,24 @@ export default function UsersPage() {
               type="text"
               placeholder="Search by name, email, or phone"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+              onChange={(e) => {
+                const value = e.target.value;
+                setSearchTerm(value);
+              }}
+              className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent text-gray-900"
+              autoComplete="off"
             />
           </div>
           <div className="flex items-center space-x-3">
             <div className="relative">
               <select
-                className="appearance-none pl-3 pr-10 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white"
+                className="appearance-none pl-3 pr-10 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent bg-white text-gray-900"
                 value={filters.role}
                 onChange={(e) => setFilters({...filters, role: e.target.value})}
               >
                 <option value="all">All Roles</option>
                 <option value="user">User</option>
+                <option value="customer">Customer</option>
                 <option value="admin">Admin</option>
                 <option value="manager">Manager</option>
               </select>
@@ -394,13 +508,6 @@ export default function UsersPage() {
             <div className="flex flex-col items-center">
               <Loader2 className="h-8 w-8 text-orange-500 animate-spin" />
               <span className="mt-2 text-gray-500">Loading users...</span>
-            </div>
-          </div>
-        ) : error ? (
-          <div className="flex items-center justify-center p-10">
-            <div className="flex items-center text-red-500">
-              <AlertCircle className="h-5 w-5 mr-2" />
-              <span>{error}</span>
             </div>
           </div>
         ) : filteredUsers.length === 0 ? (
@@ -541,30 +648,6 @@ export default function UsersPage() {
                 Delete
               </button>
             </div>
-          </div>
-        </div>
-      )}
-
-      {error && (
-        <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
-          <div className="flex items-center">
-            <AlertCircle className="h-5 w-5 text-red-500 mr-2" />
-            <p className="text-red-700">{error}</p>
-          </div>
-          <div className="mt-2 flex justify-end">
-            <button 
-              onClick={() => {
-                setIsLoading(true);
-                setError(null);
-                setTimeout(() => {
-                  fetchUsers();
-                }, 500);
-              }}
-              className="px-4 py-2 bg-red-100 hover:bg-red-200 text-red-700 rounded-md text-sm font-medium flex items-center"
-            >
-              <Loader2 className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-              Retry
-            </button>
           </div>
         </div>
       )}

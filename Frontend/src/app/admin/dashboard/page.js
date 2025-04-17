@@ -16,7 +16,10 @@ import {
   ShieldCheck,
   Tag,
   ArrowUpRight,
-  ChevronRight
+  ChevronRight,
+  User,
+  Eye,
+  Reply
 } from 'lucide-react';
 import apiService from '@/utils/api';
 import Link from 'next/link';
@@ -196,7 +199,7 @@ export default function AdminDashboard() {
       }
       setError(null);
       
-      console.log('Fetching dashboard data...');
+      console.log('🔍 [Admin/Dashboard] Fetching dashboard data...');
       // Add retry logic for dashboard stats
       let attempts = 0;
       const maxAttempts = 3;
@@ -204,16 +207,16 @@ export default function AdminDashboard() {
       
       while (attempts < maxAttempts) {
         try {
-          console.log(`Attempt ${attempts + 1} to fetch dashboard stats`);
+          console.log(`🔍 [Admin/Dashboard] Attempt ${attempts + 1} to fetch dashboard stats`);
           dashboardData = await apiService.dashboard.getStats();
-          console.log('Dashboard data received:', dashboardData);
+          console.log('✅ [Admin/Dashboard] Dashboard data received:', dashboardData);
           break; // Successfully got data, exit loop
         } catch (statsError) {
-          console.error(`Attempt ${attempts + 1} failed:`, statsError);
+          console.error(`❌ [Admin/Dashboard] Attempt ${attempts + 1} failed:`, statsError);
           attempts++;
           
           if (attempts >= maxAttempts) {
-            console.log('Max attempts reached, falling back to alternative data sources');
+            console.log('❌ [Admin/Dashboard] Max attempts reached, falling back to alternative data sources');
             throw statsError; // Will be caught by outer try/catch
           }
           
@@ -224,8 +227,15 @@ export default function AdminDashboard() {
       
       // If dashboard data is successfully fetched
       if (dashboardData && dashboardData.data) {
-        console.log('Using dashboard data:', dashboardData.data);
+        console.log('✅ [Admin/Dashboard] Using dashboard data:', dashboardData.data);
         
+        // Check specifically for inquiries
+        if (dashboardData.data.recentInquiries) {
+          console.log(`✅ [Admin/Dashboard] Recent inquiries count: ${dashboardData.data.recentInquiries.length}`);
+        } else {
+          console.warn('⚠️ [Admin/Dashboard] No recent inquiries found in dashboard data');
+        }
+      
         // Check for new inquiries
         const currentInquiriesCount = stats.recentInquiries.length;
         const newInquiriesCount = dashboardData.data.recentInquiries?.length || 0;
@@ -243,12 +253,12 @@ export default function AdminDashboard() {
         
         setStats((prevStats) => ({
           ...prevStats,
-          totalUsers: dashboardData.data.totalUsers || 0,
-          totalCars: dashboardData.data.totalCars || 0,
-          totalInquiries: dashboardData.data.totalInquiries || 0,
-          recentInquiries: dashboardData.data.recentInquiries || [],
-          recentUsers: dashboardData.data.recentUsers || [],
-          lowStockCars: dashboardData.data.lowStockCars || []
+            totalUsers: dashboardData.data.totalUsers || 0,
+            totalCars: dashboardData.data.totalCars || 0,
+            totalInquiries: dashboardData.data.totalInquiries || 0,
+            recentInquiries: dashboardData.data.recentInquiries || [],
+            recentUsers: dashboardData.data.recentUsers || [],
+            lowStockCars: dashboardData.data.lowStockCars || []
         }));
         
         setLastRefreshTime(Date.now());
@@ -294,12 +304,12 @@ export default function AdminDashboard() {
           
         setStats((prevStats) => ({
           ...prevStats,
-          totalUsers: usersResponse.data?.length || 0,
-          totalCars: carsResponse.data?.length || 0,
-          totalInquiries: inquiriesResponse.data?.length || 0,
-          recentInquiries,
-          recentUsers,
-          lowStockCars
+            totalUsers: usersResponse.data?.length || 0,
+            totalCars: carsResponse.data?.length || 0,
+            totalInquiries: inquiriesResponse.data?.length || 0,
+            recentInquiries,
+            recentUsers,
+            lowStockCars
         }));
 
         setLastRefreshTime(Date.now());
@@ -313,7 +323,7 @@ export default function AdminDashboard() {
       }
     }
   }, [stats.recentInquiries.length]);
-  
+    
   // Set up auto-refresh every 60 seconds
   useEffect(() => {
     // Initial fetch
@@ -328,7 +338,7 @@ export default function AdminDashboard() {
     // Clean up interval on component unmount
     return () => clearInterval(refreshInterval);
   }, [fetchDashboardData]);
-
+  
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh]">
@@ -432,6 +442,70 @@ export default function AdminDashboard() {
     }
   };
 
+  // Function to render each inquiry row
+  const renderInquiryRow = (inquiry) => {
+    // Format date
+    const formattedDate = new Date(inquiry.createdAt).toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+
+    // Get vehicle information - either from car reference or vehicleInfo field
+    const vehicleInfo = inquiry.car
+      ? `${inquiry.car.year} ${inquiry.car.make} ${inquiry.car.model}`
+      : (inquiry.vehicleInfo || 'No vehicle specified');
+
+    // Get appropriate badge color based on status
+    let statusColor = 'bg-blue-100 text-blue-800';
+    if (inquiry.status === 'inProgress') {
+      statusColor = 'bg-yellow-100 text-yellow-800';
+    } else if (inquiry.status === 'resolved') {
+      statusColor = 'bg-green-100 text-green-800';
+    }
+
+    return (
+      <tr key={inquiry._id} className="hover:bg-gray-50">
+        <td className="px-3 py-4 whitespace-nowrap">
+          <div className="flex items-center">
+            <div className="flex-shrink-0 h-8 w-8 bg-orange-100 rounded-full flex items-center justify-center">
+              <User className="h-4 w-4 text-orange-600" />
+            </div>
+            <div className="ml-3">
+              <div className="text-sm font-semibold text-gray-900">{inquiry.name}</div>
+              <div className="text-xs text-gray-600">{inquiry.email}</div>
+            </div>
+          </div>
+        </td>
+        <td className="px-3 py-4 whitespace-nowrap">
+          <div className="text-sm font-medium text-gray-800 truncate max-w-[120px]">{vehicleInfo}</div>
+        </td>
+        <td className="px-3 py-4 whitespace-nowrap">
+          <span className={`px-2 py-1 inline-flex text-xs leading-5 font-medium rounded-full ${statusColor}`}>
+            {inquiry.status.charAt(0).toUpperCase() + inquiry.status.slice(1)}
+          </span>
+        </td>
+        <td className="px-3 py-4 whitespace-nowrap text-xs text-gray-600 font-medium">
+          {formattedDate}
+        </td>
+        <td className="px-3 py-4 whitespace-nowrap text-right text-xs font-medium">
+          <button
+            onClick={() => handleViewInquiry(inquiry)}
+            className="text-orange-600 hover:text-orange-900 bg-orange-50 hover:bg-orange-100 px-2 py-1 rounded-lg transition-colors mr-1"
+          >
+            View
+          </button>
+          <button
+            onClick={() => handleReplyClick(inquiry)}
+            className="text-blue-600 hover:text-blue-900 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded-lg transition-colors"
+          >
+            Reply
+          </button>
+        </td>
+      </tr>
+    );
+  };
+
   return (
     <div>
       <div className="mb-8">
@@ -464,18 +538,18 @@ export default function AdminDashboard() {
                 <div className="flex items-center mb-3">
                   <Users className="h-4 w-4 text-white/80 mr-2" />
                   <p className="text-xs font-medium text-white/80">New Users</p>
-                </div>
+              </div>
                 <p className="text-2xl font-bold text-white">12</p>
                 <p className="text-xs text-white/70 mt-1 flex items-center">
                   <TrendingUp className="h-3 w-3 mr-1" />
                   <span>+3 from yesterday</span>
                 </p>
-              </div>
+            </div>
               <div className="bg-white/20 backdrop-blur-sm p-4 rounded-xl">
                 <div className="flex items-center mb-3">
                   <MessageSquare className="h-4 w-4 text-white/80 mr-2" />
                   <p className="text-xs font-medium text-white/80">New Inquiries</p>
-                </div>
+          </div>
                 <p className="text-2xl font-bold text-white">8</p>
                 <p className="text-xs text-white/70 mt-1 flex items-center">
                   <TrendingUp className="h-3 w-3 mr-1" />
@@ -576,14 +650,14 @@ export default function AdminDashboard() {
               <div className="text-sm text-gray-500 mb-1">Target</div>
               <div className="text-xl font-semibold text-gray-700">KSh {salesGoal.toLocaleString()}</div>
             </div>
-          </div>
-          
+        </div>
+        
           <div className="mt-4">
             <div className="flex justify-between mb-1.5">
               <div className="text-xs font-medium text-gray-500">Progress</div>
               <div className="text-xs font-semibold text-orange-600">{Math.round(salesPercentage)}%</div>
             </div>
-            <ProgressBar value={currentSales} max={salesGoal} color="orange" />
+        <ProgressBar value={currentSales} max={salesGoal} color="orange" />
           </div>
         </div>
         
@@ -701,185 +775,51 @@ export default function AdminDashboard() {
         </div>
         
         {/* Recent Inquiries */}
-        <div className="xl:col-span-2 bg-white rounded-xl shadow-sm overflow-hidden">
-          <div className="flex justify-between items-center p-6 border-b border-gray-100">
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">Recent Inquiries</h2>
-              <p className="text-xs text-gray-500 mt-1">Manage customer inquiries and requests</p>
-            </div>
-            <div className="flex items-center space-x-3">
-              {showRefreshAlert && (
-                <div className="animate-pulse bg-blue-50 text-blue-600 px-3 py-1 rounded-lg text-xs font-medium flex items-center">
-                  <span className="mr-1.5">New inquiries available!</span>
-                </div>
-              )}
-              <button 
-                onClick={() => fetchDashboardData()}
-                className="p-2 bg-gray-100 rounded-lg text-gray-600 hover:bg-gray-200 transition-colors"
-                title="Refresh inquiries"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={`${isLoading ? 'animate-spin' : ''}`}>
-                  <path d="M21 12a9 9 0 0 1-9 9c-4.97 0-9-4.03-9-9s4.03-9 9-9h3"></path>
-                  <path d="M21 3v6h-6"></path>
-                  <path d="M21 9L15 3"></path>
-                </svg>
-              </button>
-              <Link href="/admin/inquiries" className="px-3 py-1.5 bg-orange-50 text-orange-600 rounded-lg text-sm font-medium hover:bg-orange-100 transition-colors flex items-center">
-                <span>View all</span>
-                <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
-              </Link>
-            </div>
-          </div>
-          
-          <div className="px-6 py-2 bg-gray-50 border-b border-gray-100 flex justify-between items-center text-xs text-gray-500">
-            <span>
-              Last refreshed: {new Date(lastRefreshTime).toLocaleTimeString()}
-            </span>
-            <span>
-              {stats.totalInquiries} total inquiries
+        <div className="xl:col-span-2 bg-white rounded-xl shadow-sm overflow-hidden mb-8">
+          <div className="flex justify-between items-center p-6 border-b border-gray-200">
+            <div className="flex items-center">
+              <MessageSquare className="h-5 w-5 text-orange-500 mr-2" />
+            <h2 className="text-lg font-semibold text-gray-900">Recent Inquiries</h2>
               {newInquiriesCount > 0 && (
-                <span className="ml-2 px-1.5 py-0.5 bg-green-100 text-green-700 rounded-full">
-                  +{newInquiriesCount} new
+                <span className="ml-2 bg-orange-100 text-orange-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
+                  {newInquiriesCount} new
                 </span>
               )}
-            </span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <button 
+                onClick={() => fetchDashboardData(true)}
+                className="flex items-center text-sm font-medium text-orange-500 hover:text-orange-600 bg-orange-50 hover:bg-orange-100 px-3 py-1.5 rounded-lg transition-colors"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Refresh
+              </button>
+              <Link href="/admin/inquiries" className="text-sm text-gray-500 hover:text-gray-600 font-medium flex items-center hover:underline">
+              <span>View all</span>
+              <ArrowRight className="ml-1 h-4 w-4" />
+            </Link>
+            </div>
           </div>
           
           <div className="overflow-x-auto">
-            <table className="min-w-full">
+            <table className="min-w-full divide-y divide-gray-200 table-fixed">
               <thead>
                 <tr className="bg-gray-50 text-left">
-                  <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
-                  <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Vehicle</th>
-                  <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                  <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider text-right">Action</th>
+                  <th className="px-3 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">Customer</th>
+                  <th className="px-3 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">Vehicle</th>
+                  <th className="px-3 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">Status</th>
+                  <th className="px-3 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">Date</th>
+                  <th className="px-3 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider text-right w-1/6">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {stats.recentInquiries.length > 0 ? (
-                  stats.recentInquiries.map((inquiry) => (
-                    <tr key={inquiry._id} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center">
-                          <div className="h-9 w-9 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white uppercase text-xs font-semibold">
-                            {inquiry.name?.[0]}
-                          </div>
-                          <div className="ml-3">
-                            <div className="text-sm font-medium text-gray-900">{inquiry.name}</div>
-                            <div className="text-xs text-gray-500 flex items-center mt-0.5">
-                              <span className="inline-block w-2 h-2 rounded-full bg-green-500 mr-1.5"></span>
-                              {inquiry.email}
-                            </div>
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm font-medium text-gray-900">{inquiry.vehicle || 'Not specified'}</div>
-                        {inquiry.message && (
-                          <div className="text-xs text-gray-500 mt-1 max-w-xs truncate">
-                            {inquiry.message.slice(0, 50)}...
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center">
-                          <div className="relative" ref={statusDropdownRef}>
-                            <button 
-                              onClick={() => {
-                                setSelectedInquiry(inquiry._id);
-                                setStatusDropdownOpen(!statusDropdownOpen);
-                              }}
-                              className="flex items-center"
-                            >
-                              <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${
-                          inquiry.status === 'new' 
-                            ? 'bg-blue-100 text-blue-800' 
-                            : inquiry.status === 'inProgress' 
-                            ? 'bg-yellow-100 text-yellow-800' 
-                            : 'bg-green-100 text-green-800'
-                        }`}>
-                          {inquiry.status === 'new' 
-                                  ? <span className="h-1.5 w-1.5 rounded-full bg-blue-500 mr-1.5"></span>
-                            : inquiry.status === 'inProgress'
-                                  ? <Clock className="h-3.5 w-3.5 mr-1.5" />
-                                  : <Check className="h-3.5 w-3.5 mr-1.5" />
-                          }
-                          {inquiry.status === 'new' 
-                            ? 'New' 
-                            : inquiry.status === 'inProgress' 
-                            ? 'In Progress' 
-                            : 'Resolved'}
-                        </span>
-                              <ChevronRight className="h-4 w-4 ml-2 text-gray-400" />
-                            </button>
-                            
-                            {statusDropdownOpen && selectedInquiry === inquiry._id && (
-                              <div className="absolute top-full left-0 mt-1 bg-white rounded-lg shadow-lg border border-gray-200 z-10 w-40 py-1 overflow-hidden">
-                                <button
-                                  onClick={() => updateInquiryStatus(inquiry._id, 'new')}
-                                  className={`flex items-center w-full px-3 py-2 text-left text-sm ${
-                                    inquiry.status === 'new' ? 'bg-blue-50 text-blue-700' : 'hover:bg-gray-50'
-                                  }`}
-                                >
-                                  <span className="h-1.5 w-1.5 rounded-full bg-blue-500 mr-2"></span>
-                                  New
-                                </button>
-                                <button
-                                  onClick={() => updateInquiryStatus(inquiry._id, 'inProgress')}
-                                  className={`flex items-center w-full px-3 py-2 text-left text-sm ${
-                                    inquiry.status === 'inProgress' ? 'bg-yellow-50 text-yellow-700' : 'hover:bg-gray-50'
-                                  }`}
-                                >
-                                  <Clock className="h-3.5 w-3.5 mr-2 text-yellow-600" />
-                                  In Progress
-                                </button>
-                                <button
-                                  onClick={() => updateInquiryStatus(inquiry._id, 'resolved')}
-                                  className={`flex items-center w-full px-3 py-2 text-left text-sm ${
-                                    inquiry.status === 'resolved' ? 'bg-green-50 text-green-700' : 'hover:bg-gray-50'
-                                  }`}
-                                >
-                                  <Check className="h-3.5 w-3.5 mr-2 text-green-600" />
-                                  Resolved
-                                </button>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm text-gray-700 font-medium">
-                          {new Date(inquiry.createdAt).toLocaleDateString('en-US', {month: 'short', day: 'numeric'})}
-                        </div>
-                        <div className="text-xs text-gray-500 mt-0.5">
-                          {new Date(inquiry.createdAt).toLocaleTimeString('en-US', {hour: '2-digit', minute:'2-digit'})}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex justify-end">
-                          <button 
-                            className="mr-3 p-1.5 rounded-md text-gray-400 hover:text-blue-500 hover:bg-blue-50"
-                            onClick={() => {
-                              setReplyInquiry(inquiry);
-                              setReplyModalOpen(true);
-                            }}
-                          >
-                            <MessageSquare className="h-4 w-4" />
-                          </button>
-                          <Link 
-                            href={`/admin/inquiries/${inquiry._id}`} 
-                            className="p-1.5 rounded-md text-gray-400 hover:text-orange-500 hover:bg-orange-50"
-                          >
-                            <ArrowRight className="h-4 w-4" />
-                          </Link>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
+                  stats.recentInquiries.map((inquiry) => renderInquiryRow(inquiry))
                 ) : (
                   <tr>
-                    <td colSpan="5" className="px-6 py-8 text-center">
+                    <td colSpan="5" className="px-3 py-8 text-center">
                       <div className="flex flex-col items-center justify-center">
                         <div className="p-3 rounded-full bg-gray-100 mb-3">
                           <MessageSquare className="h-6 w-6 text-gray-400" />

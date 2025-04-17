@@ -5,8 +5,9 @@ import { FavoritesProvider } from "@/utils/FavoritesContext";
 import { Toaster } from "react-hot-toast";
 
 export const metadata = {
-  title: "My Ride - Car Dealership",
-  description: "Find your perfect car at My Ride, the premier car dealership",
+  title: "My Ride - Premium Car Marketplace",
+  description: "Find your perfect car at My Ride, Kenya's premier car dealership marketplace. Browse our luxury, sedan, SUV, electric, and hybrid vehicles.",
+  keywords: "cars, dealership, automotive, vehicles, buy cars, sell cars, Kenya",
 };
 
 export default function RootLayout({ children }) {

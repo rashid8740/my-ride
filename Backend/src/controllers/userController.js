@@ -1,5 +1,6 @@
 const User = require('../models/User');
 const Car = require('../models/Car');
+const mongoose = require('mongoose');
 
 // @desc    Get user profile
 // @route   GET /api/users/profile
@@ -133,6 +134,7 @@ exports.updateAvatar = async (req, res) => {
 // @access  Private
 exports.getFavorites = async (req, res) => {
   try {
+    // Get user with populated favorites for MongoDB IDs
     const user = await User.findById(req.user._id).populate('favorites');
     
     if (!user) {
@@ -141,16 +143,39 @@ exports.getFavorites = async (req, res) => {
         message: 'User not found'
       });
     }
+
+    // Prepare response data
+    const regularFavorites = user.favorites || [];
+    
+    // For local favorites, we need to respond with the IDs
+    const localFavorites = user.localFavorites || [];
+    
+    // Combine results for response
+    // For local favorites, we'll just return the carId
+    const combinedFavorites = [
+      ...regularFavorites,
+      ...localFavorites.map(fav => fav.carId)
+    ];
+    
+    // Log for debugging
+    console.log(`User ${user._id} has ${regularFavorites.length} regular favorites and ${localFavorites.length} local favorites`);
     
     res.status(200).json({
       status: 'success',
-      data: user.favorites
+      data: combinedFavorites,
+      meta: {
+        totalFavorites: combinedFavorites.length,
+        regularFavorites: regularFavorites.length,
+        localFavorites: localFavorites.length,
+        useLocalStorage: localFavorites.length > 0
+      }
     });
   } catch (error) {
     console.error('Get favorites error:', error);
     res.status(500).json({
       status: 'error',
-      message: 'Server error while retrieving favorites'
+      message: 'Server error while retrieving favorites',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
@@ -161,45 +186,42 @@ exports.getFavorites = async (req, res) => {
 exports.addToFavorites = async (req, res) => {
   try {
     const { carId } = req.params;
-    let car;
     
-    // Try to find car by ObjectId first
-    try {
-      car = await Car.findById(carId);
-    } catch (error) {
-      // If ObjectId lookup fails, try to find by alternative ID field
-      // This handles sample data with numeric IDs
-      if (error.name === 'CastError' && error.kind === 'ObjectId') {
-        console.log(`Looking up car with numeric ID: ${carId}`);
-        // Try to find car by a numeric ID field if stored in your sample data
-        car = await Car.findOne({ 
-          $or: [
-            { numericId: carId }, 
-            { alternateId: carId },
-            // For development/testing with sample data
-            { sampleId: carId }
-          ] 
-        });
-        
-        // If we still can't find it but working with sample data, just proceed
-        // This allows testing with mock/sample data
-        if (!car && (process.env.NODE_ENV === 'development' || process.env.ALLOW_SAMPLE_DATA === 'true')) {
-          console.log('Using sample/mock data car ID');
-        }
-      } else {
-        throw error;
+    // Validate carId
+    if (!carId) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Car ID is required'
+      });
+    }
+    
+    console.log(`Adding car ${carId} to favorites for user ${req.user._id}`);
+    
+    // First try to find the car in the database
+    let car = null;
+    const isValidObjectId = mongoose.Types.ObjectId.isValid(carId);
+    
+    if (isValidObjectId) {
+      try {
+        car = await Car.findById(carId);
+      } catch (carFindError) {
+        console.log('Error finding car by ID:', carFindError);
+        // Continue - we'll handle this below
       }
     }
     
-    // Check if car exists (skip this check if using sample data)
-    if (!car && !(process.env.NODE_ENV === 'development' || process.env.ALLOW_SAMPLE_DATA === 'true')) {
+    // If car not found and we're in development, allow using a local/sample ID
+    if (!car && (process.env.NODE_ENV === 'development' || process.env.ALLOW_SAMPLE_DATA === 'true')) {
+      console.log(`Car not found, but allowing sample data ID ${carId}`);
+      // In development, allow any ID to be added as a local favorite
+    } else if (!car && !(process.env.NODE_ENV === 'development' || process.env.ALLOW_SAMPLE_DATA === 'true')) {
       return res.status(404).json({
         status: 'error',
         message: 'Car not found'
       });
     }
     
-    // Find user and check if car is already in favorites
+    // Get user
     const user = await User.findById(req.user._id);
     
     if (!user) {
@@ -209,21 +231,31 @@ exports.addToFavorites = async (req, res) => {
       });
     }
     
-    // Add to favorites if not already there
-    if (!user.favorites.some(favId => favId.toString() === carId.toString())) {
-      user.favorites.push(carId);
-      await user.save();
+    // Check if already a favorite
+    if (user.isFavorite(carId)) {
+      return res.status(200).json({
+        status: 'success',
+        message: 'Car is already in favorites'
+      });
     }
     
-    res.status(200).json({
+    // Add to favorites using the model method
+    await user.addFavorite(carId);
+    
+    return res.status(200).json({
       status: 'success',
-      message: 'Car added to favorites'
+      message: 'Car added to favorites',
+      data: {
+        carId,
+        isLocalId: !isValidObjectId || !car
+      }
     });
   } catch (error) {
     console.error('Add to favorites error:', error);
     res.status(500).json({
       status: 'error',
-      message: 'Server error while adding to favorites'
+      message: 'Server error while adding to favorites',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
@@ -235,7 +267,17 @@ exports.removeFromFavorites = async (req, res) => {
   try {
     const { carId } = req.params;
     
-    // Find user
+    // Validate carId
+    if (!carId) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Car ID is required'
+      });
+    }
+    
+    console.log(`Removing car ${carId} from favorites for user ${req.user._id}`);
+    
+    // Get user
     const user = await User.findById(req.user._id);
     
     if (!user) {
@@ -245,11 +287,18 @@ exports.removeFromFavorites = async (req, res) => {
       });
     }
     
-    // Remove from favorites
-    user.favorites = user.favorites.filter(id => id.toString() !== carId.toString());
-    await user.save();
+    // Check if car is in favorites
+    if (!user.isFavorite(carId)) {
+      return res.status(200).json({
+        status: 'success',
+        message: 'Car is not in favorites'
+      });
+    }
     
-    res.status(200).json({
+    // Remove from favorites using the model method
+    await user.removeFavorite(carId);
+    
+    return res.status(200).json({
       status: 'success',
       message: 'Car removed from favorites'
     });
@@ -257,7 +306,8 @@ exports.removeFromFavorites = async (req, res) => {
     console.error('Remove from favorites error:', error);
     res.status(500).json({
       status: 'error',
-      message: 'Server error while removing from favorites'
+      message: 'Server error while removing from favorites',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
@@ -424,6 +474,55 @@ exports.updateUserStatus = async (req, res) => {
     res.status(500).json({
       status: 'error',
       message: 'Server error while updating user status',
+    });
+  }
+};
+
+// Clear local favorites for a user (admin only)
+exports.clearLocalFavorites = async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Only admins can clear local favorites
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({
+        status: 'error',
+        message: 'Not authorized to perform this action'
+      });
+    }
+    
+    // Get user document
+    const user = await User.findById(id);
+    
+    if (!user) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'User not found'
+      });
+    }
+    
+    // Store counts for response
+    const prevCount = user.localFavorites.length;
+    
+    // Clear local favorites
+    user.localFavorites = [];
+    await user.save();
+    
+    return res.status(200).json({
+      status: 'success',
+      message: 'Local favorites cleared successfully',
+      data: {
+        userId: id,
+        cleared: prevCount,
+        remainingFavorites: user.favorites.length
+      }
+    });
+  } catch (error) {
+    console.error('Error clearing local favorites:', error);
+    return res.status(500).json({
+      status: 'error',
+      message: 'Server error while clearing local favorites',
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 }; 

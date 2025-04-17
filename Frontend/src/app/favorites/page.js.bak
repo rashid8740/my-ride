@@ -1,0 +1,595 @@
+"use client";
+import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
+import { useRouter } from 'next/navigation';
+import { useAuth } from "@/utils/AuthContext";
+import { useFavorites } from "@/utils/FavoritesContext";
+import Navbar from "@/components/layout/Navbar";
+import Footer from "@/components/layout/Footer";
+import ClearFavoritesButton from "@/components/shared/ClearFavoritesButton";
+import { X, Car, Heart, AlertCircle, MapPin, Tag, Gauge, Fuel, Settings, ChevronRight, RefreshCw, Loader2, AlertTriangle } from "lucide-react";
+import { cars as sampleCars } from '@/app/inventory/data';
+
+// Add a helper function to format vehicle IDs for better display
+const formatVehicleId = (id) => {
+  if (!id) return 'Unknown';
+  
+  // If it's a MongoDB ObjectId (24 hex chars)
+  if (typeof id === 'string' && /^[0-9a-f]{24}$/i.test(id)) {
+    return `${id.substring(0, 6)}...${id.substring(id.length - 6)}`;
+  }
+  
+  // For other ID formats
+  const idStr = String(id);
+  if (idStr.length > 12) {
+    return `${idStr.substring(0, 6)}...${idStr.substring(idStr.length - 6)}`;
+  }
+  
+  return idStr;
+};
+
+export default function FavoritesPage() {
+  const router = useRouter();
+  const { isAuthenticated, user, isLoading: authLoading } = useAuth();
+  const { 
+    favorites, 
+    isLoading, 
+    error: favoritesError, 
+    removeFromFavorites, 
+    usingLocalStorage, 
+    backendAvailable,
+    refreshFavorites 
+  } = useFavorites();
+  const [removingId, setRemovingId] = useState(null);
+  const [localCarData, setLocalCarData] = useState([]);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
+  const [cars, setCars] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Handle removing a car from favorites
+  const handleRemove = async (carId) => {
+    try {
+      setRemovingId(carId);
+      const result = await removeFromFavorites(carId);
+      
+      if (result.success) {
+        // Update UI by removing the car
+        setLocalCarData(prevCars => prevCars.filter(car => 
+          String(car._id || car.id) !== String(carId)
+        ));
+      } else {
+        console.error(`Failed to remove car: ${result.message}`);
+        setError(`Failed to remove from favorites: ${result.message}`);
+      }
+    } catch (err) {
+      console.error('Error removing from favorites:', err);
+      setError('Error removing from favorites. Please try again.');
+    } finally {
+      setRemovingId(null);
+    }
+  };
+
+  // Handle manual refresh of favorites
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    setError(null); // Clear any previous errors
+    
+    try {
+      await refreshFavorites();
+      // Force refresh the local car data
+      await refreshFavoritesList();
+      
+      // Show success message for development
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Favorites refreshed successfully');
+      }
+    } catch (err) {
+      console.error('Error refreshing favorites:', err);
+      setError('Unable to refresh favorites. Please try again later.');
+    } finally {
+      // Add minimum delay for better UX
+      setTimeout(() => setIsRefreshing(false), 800);
+    }
+  };
+
+  // Redirect to login if not authenticated - with delay to avoid flash
+  useEffect(() => {
+    let redirectTimer;
+
+    // Only check auth status once auth loading is complete
+    if (!authLoading) {
+      if (!isAuthenticated) {
+        // Set a short delay to prevent flash of content
+        redirectTimer = setTimeout(() => {
+          router.push('/login');
+        }, 200);
+      }
+      setAuthChecked(true);
+    }
+
+    return () => {
+      if (redirectTimer) clearTimeout(redirectTimer);
+    };
+  }, [isAuthenticated, authLoading, router]);
+
+  // Function to refresh car list based on current favorites
+  const refreshFavoritesList = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      console.log('Current favorites:', favorites);
+      
+      if (!favorites || favorites.length === 0) {
+        console.log('No favorites found, showing empty state');
+        setLocalCarData([]);
+        return;
+      }
+
+      // Convert all favorites IDs to strings for consistent comparison
+      const favoriteIds = favorites.map(fav => {
+        if (typeof fav === 'object' && fav !== null) {
+          return String(fav._id || fav.id || fav);
+        }
+        return String(fav);
+      });
+      
+      console.log('Normalized favorite IDs:', favoriteIds);
+      
+      let resolvedCars = [];
+      
+      // Try to fetch the most up-to-date data from API first when online
+      if (backendAvailable && !usingLocalStorage) {
+        try {
+          console.log('Fetching vehicle data from API...');
+          // Fetch each vehicle individually (in parallel) to avoid missing any
+          const fetchPromises = favoriteIds.map(async (id) => {
+            try {
+              // First try the primary endpoint
+              const response = await fetch(`/api/cars/${id}`);
+              if (response.ok) {
+                const data = await response.json();
+                if (data && data.success && data.car) {
+                  console.log(`Successfully loaded car ID: ${id} from API`);
+                  return { ...data.car, source: 'api' };
+                }
+              }
+              
+              // If first endpoint fails, try alternate endpoint
+              try {
+                const altResponse = await fetch(`/api/vehicles/${id}`);
+                if (altResponse.ok) {
+                  const altData = await altResponse.json();
+                  if (altData && (altData.vehicle || altData.car)) {
+                    const vehicle = altData.vehicle || altData.car;
+                    console.log(`Successfully loaded vehicle ID: ${id} from alternate API`);
+                    return { ...vehicle, source: 'api-alt' };
+                  }
+                }
+              } catch (altErr) {
+                console.log(`Alternate API call failed for ID: ${id}`);
+              }
+              
+              // Both API calls failed for this ID
+              return null;
+            } catch (err) {
+              console.error(`Error fetching car ID: ${id}`, err);
+              return null;
+            }
+          });
+          
+          const results = await Promise.all(fetchPromises);
+          // Filter out nulls (failed fetches)
+          resolvedCars = results.filter(car => car !== null);
+          console.log(`API: Successfully loaded ${resolvedCars.length} of ${favoriteIds.length} cars`);
+        } catch (err) {
+          console.error('Error fetching from API, falling back to sample data:', err);
+          // Continue to fallback approach
+        }
+      }
+      
+      // If we couldn't fetch all cars from API, use sample data as fallback
+      if (resolvedCars.length < favoriteIds.length) {
+        console.log('Using sample car data for remaining vehicles');
+        
+        // Find IDs that weren't resolved via API
+        const resolvedIds = resolvedCars.map(car => String(car._id || car.id));
+        const unresolvedIds = favoriteIds.filter(id => !resolvedIds.includes(id));
+        console.log('Unresolved IDs to find in sample data:', unresolvedIds);
+        
+        // Try matching remaining cars from sample data
+        for (const id of unresolvedIds) {
+          let found = false;
+          
+          // Try to find the car in sample data
+          for (const car of sampleCars) {
+            // Skip undefined or null sample cars
+            if (!car) continue;
+            
+            const carId = car.id || car._id;
+            // Skip sample cars with no ID
+            if (!carId) continue;
+            
+            const carIdStr = String(carId);
+            
+            // Simple matching strategy
+            if (carIdStr === id || 
+                (Number(id) === carId && !isNaN(Number(id))) ||
+                (car.vin && car.vin === id)) {
+              
+              // Create a deep copy to avoid mutations
+              const carCopy = JSON.parse(JSON.stringify(car));
+              resolvedCars.push({
+                ...carCopy,
+                source: 'sample'
+              });
+              found = true;
+              console.log(`Found car ID: ${id} in sample data`);
+              break;
+            }
+          }
+          
+          // If not found in any data source, create a placeholder
+          if (!found) {
+            console.log(`Creating placeholder for ID: ${id}`);
+            
+            // If all fetching attempts failed, create placeholder with proper ID formatting
+            resolvedCars.push({
+              _id: id,
+              id: id,
+              title: `Vehicle ID: ${formatVehicleId(id)}`,
+              price: 'Contact for Price',
+              image: null,
+              isPlaceholder: true,
+              year: 'N/A',
+              make: 'Vehicle',
+              model: 'ID: ' + formatVehicleId(id),
+              lastUpdated: new Date().toISOString(),
+              placeholderReason: 'This vehicle could not be found in our database.',
+              notFound: true,
+              source: 'placeholder'
+            });
+          }
+        }
+      }
+      
+      console.log(`Final resolved cars: ${resolvedCars.length}`);
+      
+      // Sort cars to maintain consistent order
+      resolvedCars.sort((a, b) => {
+        // Show non-placeholders first
+        if (a.isPlaceholder && !b.isPlaceholder) return 1;
+        if (!a.isPlaceholder && b.isPlaceholder) return -1;
+        return 0;
+      });
+      
+      setLocalCarData(resolvedCars);
+      
+    } catch (err) {
+      console.error('Error loading favorite cars:', err);
+      setError('Failed to load favorite cars. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
+  }, [favorites, isLoading, backendAvailable, usingLocalStorage]);
+
+  // Load cars when favorites change
+  useEffect(() => {
+    if (!isLoading) {
+      refreshFavoritesList();
+    }
+  }, [favorites, isLoading, refreshFavoritesList]);
+
+  // Always use local car data for display since we need the full car objects
+  // to show images, details, etc.
+  const displayCars = localCarData;
+
+  // Debug the display state
+  useEffect(() => {
+    console.log("Display cars length:", displayCars.length);
+    console.log("Local car data length:", localCarData.length);
+    console.log("Using local storage:", usingLocalStorage);
+  }, [displayCars.length, localCarData.length, usingLocalStorage]);
+
+  // Show loading state while checking authentication
+  if (!authChecked || authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show auth required message
+  if (!isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center p-8 bg-white rounded-xl shadow-sm max-w-md w-full">
+          <div className="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <AlertCircle size={32} className="text-orange-500" />
+          </div>
+          <h1 className="text-2xl font-bold mb-3 text-gray-900">Authentication Required</h1>
+          <p className="text-gray-600 mb-6">Please log in to view and manage your favorite vehicles</p>
+          <Link
+            href="/login"
+            className="bg-orange-500 hover:bg-orange-600 text-white font-medium px-8 py-3 rounded-full inline-block transition-colors shadow-sm"
+          >
+            Log In to Continue
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <main className="bg-gray-50 min-h-screen">
+      <Navbar />
+
+      <div className="container mx-auto px-4 pt-32 pb-20">
+        {/* Header with favorites count and refresh button */}
+        <div className="bg-gradient-to-r from-orange-500 to-amber-500 rounded-xl p-6 mb-8 shadow-sm flex justify-between items-center">
+          <div className="text-white">
+            <h1 className="text-2xl font-bold">Your Favorites</h1>
+            <p className="text-orange-50">
+              {loading ? (
+                <span className="flex items-center">
+                  <Loader2 size={16} className="animate-spin mr-2" />
+                  Loading your favorites...
+                </span>
+              ) : (
+                <>
+                  {displayCars.length} {displayCars.length === 1 ? 'vehicle' : 'vehicles'} saved
+                  {!backendAvailable && " (Offline Mode)"}
+                  {/* Debug info */}
+                  {process.env.NODE_ENV === 'development' && (
+                    <span className="ml-2 opacity-75 text-xs">
+                      (API: {favorites.length} | Display: {displayCars.length})
+                    </span>
+                  )}
+                </>
+              )}
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleRefresh}
+              disabled={isRefreshing || loading}
+              className="bg-white/20 hover:bg-white/30 text-white rounded-full p-2 focus:outline-none disabled:opacity-50 transition-all relative"
+              aria-label="Refresh favorites"
+            >
+              <RefreshCw size={20} className={`${isRefreshing ? 'animate-spin' : ''}`} />
+              {isRefreshing && (
+                <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-orange-200 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-orange-300"></span>
+                </span>
+              )}
+            </button>
+            <ClearFavoritesButton onCleared={handleRefresh} variant="icon" />
+          </div>
+        </div>
+
+        {loading && (
+          <div className="flex justify-center my-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-orange-500"></div>
+          </div>
+        )}
+
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-8 text-red-700">
+            <p className="flex items-center font-medium">
+              <AlertTriangle size={18} className="mr-2" />
+              {error}
+            </p>
+          </div>
+        )}
+
+        {!loading && displayCars.length === 0 && (
+          <div className="text-center py-16 px-4 bg-white rounded-xl shadow-sm mx-auto max-w-lg">
+            <div className="w-20 h-20 mx-auto bg-orange-50 rounded-full flex items-center justify-center mb-6">
+              <Heart size={32} className="text-orange-300" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-800 mb-2">No Favorites Yet</h2>
+            <p className="text-gray-600 mb-8 max-w-md mx-auto">
+              Start exploring our inventory and save your favorite vehicles here for easy comparison.
+              {error && <span className="block mt-2 text-red-600 font-medium">{error}</span>}
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <Link
+                href="/inventory"
+                className="inline-flex items-center bg-orange-500 hover:bg-orange-600 text-white py-3 px-6 rounded-lg font-medium transition-colors shadow-sm"
+              >
+                Browse Vehicles <ChevronRight size={18} className="ml-1" />
+              </Link>
+              {error && (
+                <button
+                  onClick={handleRefresh}
+                  disabled={isRefreshing}
+                  className="inline-flex items-center bg-gray-200 hover:bg-gray-300 text-gray-800 py-3 px-6 rounded-lg font-medium transition-colors"
+                >
+                  {isRefreshing ? (
+                    <>
+                      <div className="w-4 h-4 border-t-2 border-b-2 border-gray-800 rounded-full animate-spin mr-2"></div>
+                      Refreshing...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw size={18} className="mr-2" />
+                      Try Again
+                    </>
+                  )}
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {!loading && displayCars.length > 0 && (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {displayCars.map((car) => (
+              <div
+                key={car.id || car._id}
+                className={`bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow border ${car.isPlaceholder ? 'border-orange-200 bg-orange-50/50' : 'border-gray-100'}`}
+              >
+                <div className="relative">
+                  {/* Placeholder Card with Available Data Display */}
+                  {car.isPlaceholder ? (
+                    <div className="relative aspect-[16/9] bg-orange-100 overflow-hidden">
+                      <div className="absolute inset-0 flex flex-col items-center justify-center p-4">
+                        {car.image ? (
+                          <img 
+                            src={car.image} 
+                            alt={car.title || `Vehicle ${formatVehicleId(car.id)}`}
+                            className="absolute inset-0 w-full h-full object-cover opacity-30"
+                          />
+                        ) : (
+                          <Car size={48} className="text-orange-300 mb-2" />
+                        )}
+                        <div className="text-center z-10">
+                          <div className="inline-block bg-white/80 backdrop-blur-sm px-3 py-1.5 rounded-full text-orange-700 font-medium text-sm mb-2 shadow-sm">
+                            Limited Information Available
+                          </div>
+                          {car.make && car.make !== "Unknown" && car.make !== "Vehicle" ? (
+                            <h3 className="font-semibold text-orange-800 bg-white/70 backdrop-blur-sm rounded px-2 py-1 inline-block shadow-sm">
+                              {car.year && car.year !== "N/A" ? car.year : ""} {car.make} {car.model && car.model !== "Unknown Model" ? car.model : ""}
+                            </h3>
+                          ) : null}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <Link href={`/cars/${car.id || car._id}`}>
+                      <div className="aspect-[16/9] overflow-hidden bg-gray-200">
+                        {(car.image || car.images?.[0]?.url) ? (
+                          <img
+                            src={car.image || car.images?.[0]?.url}
+                            alt={car.title || car.name}
+                            className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-gray-200">
+                            <Car size={48} className="text-gray-400" />
+                          </div>
+                        )}
+                      </div>
+                    </Link>
+                  )}
+                  <button
+                    onClick={() => handleRemove(car.id || car._id)}
+                    disabled={removingId === (car.id || car._id)}
+                    className="absolute top-3 right-3 bg-white/90 hover:bg-white p-2 rounded-full shadow-sm text-gray-700 hover:text-red-500 transition-colors"
+                    aria-label="Remove from favorites"
+                  >
+                    {removingId === (car.id || car._id) ? (
+                      <div className="w-5 h-5 border-t-2 border-r-2 border-red-500 rounded-full animate-spin"></div>
+                    ) : (
+                      <X size={18} />
+                    )}
+                  </button>
+                </div>
+
+                <div className="p-5">
+                  {car.isPlaceholder ? (
+                    <>
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="bg-orange-100 px-3 py-1 rounded-full">
+                          <span className="text-sm text-orange-800 font-medium">Vehicle Not Found</span>
+                        </div>
+                        <button
+                          onClick={() => handleRemove(car.id || car._id)}
+                          className="text-gray-500 hover:text-red-500 transition-colors"
+                          title="Remove from favorites"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+                      
+                      <div className="mb-3 pb-3 border-b border-gray-200">
+                        <div className="text-sm text-gray-500 mb-1">ID</div>
+                        <div className="font-mono text-sm bg-gray-100 p-2 rounded">
+                          {car.id || car._id}
+                        </div>
+                      </div>
+                      
+                      <div className="bg-orange-50 rounded-lg p-4 mb-4">
+                        <p className="text-sm text-gray-700 leading-relaxed">
+                          This vehicle is no longer available or has been removed from our inventory.
+                        </p>
+                      </div>
+                      
+                      <div className="flex items-center justify-between gap-3">
+                        <button
+                          onClick={handleRefresh}
+                          disabled={isRefreshing}
+                          className="flex items-center justify-center py-2 px-4 bg-orange-100 text-orange-700 rounded-lg font-medium hover:bg-orange-200 transition-colors flex-1"
+                        >
+                          <RefreshCw size={16} className={`mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+                          {isRefreshing ? 'Refreshing...' : 'Refresh'}
+                        </button>
+                        <Link 
+                          href="/inventory" 
+                          className="flex items-center justify-center py-2 px-4 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors flex-1"
+                        >
+                          <Car size={16} className="mr-2" />
+                          Browse Cars
+                        </Link>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <Link href={`/cars/${car.id || car._id}`}>
+                        <h3 className="font-bold text-lg mb-2 text-gray-900 hover:text-orange-600 transition-colors">
+                          {car.title || car.name || `${car.year} ${car.make} ${car.model}`}
+                        </h3>
+                      </Link>
+                      
+                      <div className="flex items-center mb-3">
+                        <div className="text-gray-700">
+                          {car.year && <span className="mr-2">{car.year}</span>}
+                          {car.mileage && (
+                            <span className="text-sm text-gray-500">
+                              {typeof car.mileage === 'number' 
+                                ? new Intl.NumberFormat().format(car.mileage) 
+                                : car.mileage} mi
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {car.price && (
+                        <div className="font-bold text-lg text-gray-900 mb-3">
+                          {typeof car.price === 'number' 
+                            ? new Intl.NumberFormat('en-US', {
+                                style: 'currency',
+                                currency: 'USD',
+                                minimumFractionDigits: 0,
+                                maximumFractionDigits: 0,
+                              }).format(car.price)
+                            : car.price}
+                        </div>
+                      )}
+                      
+                      <Link 
+                        href={`/cars/${car.id || car._id}`}
+                        className="block w-full bg-orange-500 hover:bg-orange-600 text-white text-center py-2 rounded-lg font-medium transition-colors"
+                      >
+                        View Details
+                      </Link>
+                    </>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      
+      <Footer />
+    </main>
+  );
+}

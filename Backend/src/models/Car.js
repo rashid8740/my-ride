@@ -127,12 +127,12 @@ const carSchema = new mongoose.Schema({
 
 // Virtual for formatted price (with commas)
 carSchema.virtual('formattedPrice').get(function() {
-  return this.price.toLocaleString('en-US');
+  return this.price ? this.price.toLocaleString('en-US') : '0';
 });
 
 // Virtual for formatted mileage (with commas)
 carSchema.virtual('formattedMileage').get(function() {
-  return this.mileage.toLocaleString('en-US') + ' kms';
+  return this.mileage ? this.mileage.toLocaleString('en-US') + ' kms' : '0 kms';
 });
 
 // Index for searching

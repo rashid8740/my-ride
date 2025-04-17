@@ -2,7 +2,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { Camera, Heart, MapPin, ChevronRight, Tag, Award, Clock, Activity, Check, Gauge, Fuel, Settings } from "lucide-react";
+import { Camera, Heart, MapPin, ChevronRight, Tag, Award, Clock, Activity, Check, Gauge, Fuel, Settings, X } from "lucide-react";
 import { useFavorites } from "@/utils/FavoritesContext";
 import { useAuth } from "@/utils/AuthContext";
 import { toast } from "react-hot-toast";
@@ -10,8 +10,16 @@ import { toast } from "react-hot-toast";
 export default function CarCard({ car, listView = false }) {
   const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
   const [hovered, setHovered] = useState(false);
+  const [showFavoriteButton, setShowFavoriteButton] = useState(true);
   const { isAuthenticated } = useAuth();
   const { isFavorite, toggleFavorite } = useFavorites();
+  
+  // Check if we're on the favorites page
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      setShowFavoriteButton(!window.location.pathname.includes('/favorites'));
+    }
+  }, []);
   
   const handleFavoriteToggle = async (e) => {
     e.preventDefault();
@@ -23,7 +31,7 @@ export default function CarCard({ car, listView = false }) {
     }
 
     try {
-      const result = await toggleFavorite(car.id || car._id);
+      const result = await toggleFavorite(car.id || car._id, car);
       
       if (result && result.status === 'success') {
         // Notification already handled by the FavoritesContext
@@ -124,19 +132,24 @@ export default function CarCard({ car, listView = false }) {
             </div>
           </div>
 
-          {/* Favorite button */}
-          <button
-            onClick={handleFavoriteToggle}
-            className={`absolute bottom-3 right-3 w-9 h-9 rounded-full flex items-center justify-center transition-colors ${
-              isFavorite(car.id || car._id)
-                ? "bg-orange-500 text-white"
-                : "bg-white/90 backdrop-blur-sm text-gray-700 hover:bg-white"
-            } shadow-md ${isTogglingFavorite ? "opacity-70" : ""}`}
-            disabled={isTogglingFavorite}
-            aria-label={isFavorite(car.id || car._id) ? "Remove from favorites" : "Add to favorites"}
-          >
-            <Heart size={18} fill={isFavorite(car.id || car._id) ? "currentColor" : "none"} />
-          </button>
+          {/* Favorite button - only show if not on favorites page */}
+          {showFavoriteButton && (
+            <button
+              onClick={handleFavoriteToggle}
+              className={`absolute bottom-3 right-3 ${
+                isFavorite(car.id || car._id)
+                  ? "bg-orange-500 text-white"
+                  : "bg-white/90 backdrop-blur-sm text-gray-700 hover:bg-white"
+              } w-9 h-9 rounded-full flex items-center justify-center shadow-md transition-all ${isTogglingFavorite ? "opacity-70" : ""}`}
+              disabled={isTogglingFavorite}
+              aria-label={isFavorite(car.id || car._id) ? "Remove from favorites" : "Add to favorites"}
+            >
+              <Heart 
+                size={18} 
+                fill={isFavorite(car.id || car._id) ? "currentColor" : "none"} 
+              />
+            </button>
+          )}
 
           {/* Year Badge */}
           <div className="absolute bottom-3 left-3 bg-white/90 backdrop-blur-sm text-gray-800 text-xs font-semibold px-3 py-1 rounded-full">
@@ -202,9 +215,12 @@ export default function CarCard({ car, listView = false }) {
 
             <div className="flex items-center gap-1.5">
               <Tag className="h-4 w-4 text-gray-400" />
-              <span className="truncate">
+              <Link 
+                href={`/inventory?category=${encodeURIComponent(car.category || 'N/A')}`}
+                className="truncate hover:text-orange-500 hover:underline"
+              >
                 {car.category || 'N/A'}
-              </span>
+              </Link>
             </div>
           </div>
         </div>
@@ -259,19 +275,24 @@ export default function CarCard({ car, listView = false }) {
           </div>
         </div>
 
-        {/* Favorite button */}
-        <button
-          onClick={handleFavoriteToggle}
-          className={`absolute bottom-3 right-3 w-9 h-9 rounded-full flex items-center justify-center transition-colors ${
-            isFavorite(car.id || car._id)
-              ? "bg-orange-500 text-white"
-              : "bg-white/90 backdrop-blur-sm text-gray-700 hover:bg-white"
-          } shadow-md ${isTogglingFavorite ? "opacity-70" : ""}`}
-          disabled={isTogglingFavorite}
-          aria-label={isFavorite(car.id || car._id) ? "Remove from favorites" : "Add to favorites"}
-        >
-          <Heart size={18} fill={isFavorite(car.id || car._id) ? "currentColor" : "none"} />
-        </button>
+        {/* Favorite button - only show if not on favorites page */}
+        {showFavoriteButton && (
+          <button
+            onClick={handleFavoriteToggle}
+            className={`absolute bottom-3 right-3 ${
+              isFavorite(car.id || car._id)
+                ? "bg-orange-500 text-white"
+                : "bg-white/90 backdrop-blur-sm text-gray-700 hover:bg-white"
+            } w-9 h-9 rounded-full flex items-center justify-center shadow-md transition-all ${isTogglingFavorite ? "opacity-70" : ""}`}
+            disabled={isTogglingFavorite}
+            aria-label={isFavorite(car.id || car._id) ? "Remove from favorites" : "Add to favorites"}
+          >
+            <Heart 
+              size={18} 
+              fill={isFavorite(car.id || car._id) ? "currentColor" : "none"} 
+            />
+          </button>
+        )}
 
         {/* Year Badge */}
         <div className="absolute bottom-3 left-3 bg-white/90 backdrop-blur-sm text-gray-800 text-xs font-semibold px-3 py-1 rounded-full">
@@ -322,9 +343,12 @@ export default function CarCard({ car, listView = false }) {
 
           <div className="flex items-center gap-2">
             <Tag className="h-4 w-4 text-gray-400" />
-            <span>
+            <Link 
+              href={`/inventory?category=${encodeURIComponent(car.category || 'N/A')}`}
+              className="truncate hover:text-orange-500 hover:underline"
+            >
               {car.category || 'N/A'}
-            </span>
+            </Link>
           </div>
         </div>
 

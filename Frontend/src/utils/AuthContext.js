@@ -227,7 +227,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   // Check if user is admin
-  const isAdmin = user && user.role === 'admin';
+  const isAdmin = user && (user.role === 'admin' || user.role === 'administrator');
 
   // Value to be provided by context
   const value = {
@@ -242,7 +242,8 @@ export const AuthProvider = ({ children }) => {
     forgotPassword,
     resetPassword,
     verifyEmail,
-    updateProfile
+    updateProfile,
+    getToken: () => localStorage.getItem('token')
   };
 
   return (

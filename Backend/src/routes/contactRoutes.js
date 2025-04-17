@@ -12,5 +12,6 @@ router.get('/:id', isAuthenticated, isAdmin, contactController.getInquiryById);
 router.patch('/:id/status', isAuthenticated, isAdmin, contactController.updateInquiryStatus);
 router.post('/:id/response', isAuthenticated, isAdmin, contactController.addResponse);
 router.patch('/:id/assign', isAuthenticated, isAdmin, contactController.assignInquiry);
+router.delete('/:id', isAuthenticated, isAdmin, contactController.deleteInquiry);
 
 module.exports = router;

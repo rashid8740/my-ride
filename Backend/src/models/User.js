@@ -54,8 +54,19 @@ const userSchema = new mongoose.Schema({
     country: String
   },
   favorites: [{
-    type: mongoose.Schema.Types.ObjectId,
+    type: mongoose.Schema.Types.Mixed, // Changed from ObjectId to Mixed for flexibility
     ref: 'Car'
+  }],
+  // New field to track local/sample IDs separately
+  localFavorites: [{
+    carId: {
+      type: String,
+      required: true
+    },
+    dateAdded: {
+      type: Date,
+      default: Date.now
+    }
   }],
   isVerified: {
     type: Boolean,
@@ -101,6 +112,113 @@ userSchema.pre('save', async function(next) {
 // Method to compare password
 userSchema.methods.comparePassword = async function(candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
+};
+
+// Helper method to add a favorite
+userSchema.methods.addFavorite = async function(carId) {
+  try {
+    // Ensure carId is a valid ObjectId
+    let carObjectId;
+    
+    if (typeof carId === 'string') {
+      carObjectId = new mongoose.Types.ObjectId(carId);
+    } else if (carId instanceof mongoose.Types.ObjectId) {
+      carObjectId = carId;
+    } else {
+      throw new Error('Invalid car ID format');
+    }
+    
+    // Check if the car is already in favorites
+    const isAlreadyFavorite = this.favorites.some(favId => 
+      favId.equals(carObjectId)
+    );
+
+    if (isAlreadyFavorite) {
+      return { added: false, message: 'Car already in favorites' };
+    }
+
+    // Add to favorites
+    this.favorites.push(carObjectId);
+    await this.save();
+    
+    return { added: true, message: 'Car added to favorites' };
+  } catch (error) {
+    console.error('Error adding favorite:', error);
+    throw error;
+  }
+};
+
+// Helper method to remove a favorite
+userSchema.methods.removeFavorite = async function(carId) {
+  try {
+    // For MongoDB ObjectIds
+    if (mongoose.isValidObjectId(carId)) {
+      const carObjectId = new mongoose.Types.ObjectId(carId);
+      
+      // Remove from favorites array
+      const initialLength = this.favorites.length;
+      this.favorites = this.favorites.filter(favId => !favId.equals(carObjectId));
+      
+      const removed = initialLength > this.favorites.length;
+      
+      // If nothing was removed from regular favorites, try local favorites
+      if (!removed) {
+        const initialLocalLength = this.localFavorites.length;
+        this.localFavorites = this.localFavorites.filter(fav => 
+          fav.carId !== carId.toString()
+        );
+        
+        const removedLocal = initialLocalLength > this.localFavorites.length;
+        
+        if (removedLocal) {
+          await this.save();
+          return { removed: true, message: 'Car removed from local favorites' };
+        } else {
+          return { removed: false, message: 'Car not found in favorites' };
+        }
+      }
+      
+      await this.save();
+      return { removed: true, message: 'Car removed from favorites' };
+    } 
+    // For non-MongoDB IDs (sample/local data)
+    else {
+      const initialLocalLength = this.localFavorites.length;
+      this.localFavorites = this.localFavorites.filter(fav => 
+        fav.carId !== carId.toString()
+      );
+      
+      const removedLocal = initialLocalLength > this.localFavorites.length;
+      
+      await this.save();
+      
+      if (removedLocal) {
+        return { removed: true, message: 'Car removed from local favorites' };
+      } else {
+        return { removed: false, message: 'Car not found in local favorites' };
+      }
+    }
+  } catch (error) {
+    console.error('Error removing favorite:', error);
+    throw error;
+  }
+};
+
+// Helper method to check if a car is in favorites
+userSchema.methods.isFavorite = function(carId) {
+  // Check in both regular and local favorites
+  const inRegularFavorites = this.favorites.some(favId => favId.toString() === carId.toString());
+  const inLocalFavorites = this.localFavorites.some(fav => fav.carId === carId.toString());
+  
+  return inRegularFavorites || inLocalFavorites;
+};
+
+// Helper to get all favorites (combined)
+userSchema.methods.getAllFavorites = function() {
+  const regularFavs = this.favorites.map(favId => favId.toString());
+  const localFavs = this.localFavorites.map(fav => fav.carId);
+  
+  return [...regularFavs, ...localFavs];
 };
 
 const User = mongoose.model('User', userSchema);

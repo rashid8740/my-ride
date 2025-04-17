@@ -29,6 +29,7 @@
     "validator": "^13.9.0"
   },
   "devDependencies": {
+    "node-fetch": "^2.7.0",
     "nodemon": "^2.0.22"
   }
 }

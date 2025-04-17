@@ -6,8 +6,8 @@ export default function PriceRangeSlider({ min, max, value, onChange }) {
   return (
     <div className="space-y-2">
       <div className="flex justify-between text-sm text-gray-500">
-        <span>${value[0].toLocaleString()}</span>
-        <span>${value[1].toLocaleString()}</span>
+        <span>KSh {value[0].toLocaleString()}</span>
+        <span>KSh {value[1].toLocaleString()}</span>
       </div>
       <div className="relative h-1 bg-gray-200 rounded-full">
         <div

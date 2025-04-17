@@ -106,14 +106,14 @@ export default function Footer() {
             <div className="mb-4 sm:mb-6">
               <Image
                 src="/images/logo-2.png"
-                alt="AutoDecar"
+                alt="MyRide"
                 width={180}
                 height={40}
                 className="h-8 sm:h-10 w-auto"
               />
             </div>
             <p className="text-gray-300 mb-5 max-w-md text-sm sm:text-base leading-relaxed">
-              AutoDecar is your premier destination for quality vehicles. Our
+              MyRide is your premier destination for quality vehicles in Kenya. Our
               mission is to provide an exceptional car buying experience with
               transparency, integrity, and unmatched customer service.
             </p>
@@ -129,10 +129,10 @@ export default function Footer() {
                     Phone
                   </p>
                   <a
-                    href="tel:+1-800-AUTO-CAR"
+                    href="tel:+254700123456"
                     className="text-white hover:text-orange-400 transition-colors text-sm sm:text-base"
                   >
-                    +1-800-AUTO-CAR
+                    +254 700 123 456
                   </a>
                 </div>
               </div>
@@ -146,10 +146,10 @@ export default function Footer() {
                     Email
                   </p>
                   <a
-                    href="mailto:info@autodecar.com"
+                    href="mailto:info@myride.co.ke"
                     className="text-white hover:text-orange-400 transition-colors text-sm sm:text-base"
                   >
-                    info@autodecar.com
+                    info@myride.co.ke
                   </a>
                 </div>
               </div>
@@ -163,7 +163,7 @@ export default function Footer() {
                     Location
                   </p>
                   <address className="text-white not-italic text-sm sm:text-base">
-                    1234 Auto Drive, Miami, FL 33101
+                    Ngong Road, Nairobi, Kenya
                   </address>
                 </div>
               </div>
@@ -199,24 +199,22 @@ export default function Footer() {
             <ul className="grid grid-cols-2 sm:block text-sm sm:text-base gap-x-4">
               <FooterLink href="/">Home</FooterLink>
               <FooterLink href="/about">About Us</FooterLink>
-              <FooterLink href="/cars">Inventory</FooterLink>
-              <FooterLink href="/financing">Financing</FooterLink>
-              <FooterLink href="/sell-your-car">Sell Your Car</FooterLink>
+              <FooterLink href="/inventory">Inventory</FooterLink>
+              <FooterLink href="/services">Services</FooterLink>
+              <FooterLink href="/favorites">Favorites</FooterLink>
               <FooterLink href="/contact">Contact Us</FooterLink>
-              <FooterLink href="/careers">Careers</FooterLink>
             </ul>
           </CollapsibleSection>
 
           {/* Vehicle Categories - Collapsible on Mobile */}
           <CollapsibleSection title="Vehicle Categories">
             <ul className="grid grid-cols-2 sm:block text-sm sm:text-base gap-x-4">
-              <FooterLink href="/cars/suv">SUVs</FooterLink>
-              <FooterLink href="/cars/sedan">Sedans</FooterLink>
-              <FooterLink href="/cars/luxury">Luxury</FooterLink>
-              <FooterLink href="/cars/electric">Electric</FooterLink>
-              <FooterLink href="/cars/hybrid">Hybrid</FooterLink>
-              <FooterLink href="/cars/truck">Trucks</FooterLink>
-              <FooterLink href="/cars/convertible">Convertibles</FooterLink>
+              <FooterLink href="/inventory?category=SUV">SUVs</FooterLink>
+              <FooterLink href="/inventory?category=Sedan">Sedans</FooterLink>
+              <FooterLink href="/inventory?category=Luxury">Luxury</FooterLink>
+              <FooterLink href="/inventory?category=Hatchback">Hatchback</FooterLink>
+              <FooterLink href="/inventory?category=Truck">Trucks</FooterLink>
+              <FooterLink href="/inventory?category=Coupe">Coupes</FooterLink>
             </ul>
           </CollapsibleSection>
 
@@ -268,33 +266,9 @@ export default function Footer() {
 
       {/* Bottom Bar - Simplified for Mobile */}
       <div className="bg-black/30 py-4 sm:py-6">
-        <div className="container mx-auto px-4 sm:px-8 flex flex-col md:flex-row justify-between items-center">
-          <div className="text-gray-400 text-xs sm:text-sm mb-3 md:mb-0 text-center md:text-left">
-            © {new Date().getFullYear()} AutoDecar. All rights reserved.
-          </div>
-
-          <div className="flex flex-wrap justify-center gap-x-4 sm:gap-x-6 gap-y-1 sm:gap-y-2 text-xs sm:text-sm text-gray-400">
-            <Link
-              href="/privacy"
-              className="hover:text-white transition-colors"
-            >
-              Privacy Policy
-            </Link>
-            <Link href="/terms" className="hover:text-white transition-colors">
-              Terms of Service
-            </Link>
-            <Link
-              href="/cookie-policy"
-              className="hover:text-white transition-colors"
-            >
-              Cookie Policy
-            </Link>
-            <Link
-              href="/sitemap"
-              className="hover:text-white transition-colors"
-            >
-              Sitemap
-            </Link>
+        <div className="container mx-auto px-4 sm:px-8 flex justify-center items-center">
+          <div className="text-gray-400 text-xs sm:text-sm text-center">
+            © {new Date().getFullYear()} MyRide. All rights reserved.
           </div>
         </div>
       </div>

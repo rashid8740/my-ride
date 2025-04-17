@@ -20,5 +20,6 @@ router.get('/:id', isAuthenticated, isAdmin, userController.getUserById);
 router.put('/:id', isAuthenticated, isAdmin, userController.updateUser);
 router.delete('/:id', isAuthenticated, isAdmin, userController.deleteUser);
 router.patch('/:id/status', isAuthenticated, isAdmin, userController.updateUserStatus);
+router.post('/:id/clear-local-favorites', isAuthenticated, isAdmin, userController.clearLocalFavorites);
 
 module.exports = router; 

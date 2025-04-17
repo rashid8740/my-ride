@@ -32,33 +32,27 @@ function CarCard({ car }) {
   const { isAuthenticated } = useAuth();
   const { isFavorite, toggleFavorite } = useFavorites();
   
-  const handleFavoriteClick = async (e) => {
+  const handleFavoriteToggle = async (e, car) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     if (!isAuthenticated) {
       toast.error("Please log in to add favorites");
       return;
     }
-    
+
     try {
-      setIsTogglingFavorite(true);
       const result = await toggleFavorite(car.id || car._id);
       
-      if (result.success) {
-        if (isFavorite(car.id || car._id)) {
-          toast.success("Removed from favorites");
-        } else {
-          toast.success("Added to favorites");
-        }
-      } else {
+      if (result && result.status === 'success') {
+        // Notification already handled by the FavoritesContext
+        return;
+      } else if (result && result.status === 'error') {
         toast.error(result.message || "Failed to update favorites");
       }
     } catch (error) {
       console.error("Error toggling favorite:", error);
       toast.error("Something went wrong");
-    } finally {
-      setIsTogglingFavorite(false);
     }
   };
   
@@ -94,7 +88,7 @@ function CarCard({ car }) {
 
         {/* Favorite button */}
         <button
-          onClick={handleFavoriteClick}
+          onClick={(e) => handleFavoriteToggle(e, car)}
           className={`absolute bottom-3 right-3 w-9 h-9 rounded-full flex items-center justify-center transition-colors ${
             isFavorite(car.id || car._id)
               ? "bg-orange-500 text-white"
@@ -131,14 +125,14 @@ function CarCard({ car }) {
         {/* Price */}
         <div className="flex justify-between items-center">
           <div className="text-orange-500 font-bold text-xl">
-            ${typeof car.price === 'number' 
+            KSh {typeof car.price === 'number' 
               ? car.price.toLocaleString() 
               : car.price}
           </div>
           
           {car.msrp && car.msrp > car.price && (
             <div className="text-xs text-gray-500 line-through">
-              MSRP: ${car.msrp.toLocaleString()}
+              MSRP: KSh {car.msrp.toLocaleString()}
             </div>
           )}
         </div>
@@ -250,8 +244,8 @@ export default function CarListingSection({ id }) {
           </Link>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {featuredCars.map(car => (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6">
+          {featuredCars.slice(0, 6).map(car => (
             <CarCard key={car.id} car={{...car, featured: true}} />
           ))}
         </div>

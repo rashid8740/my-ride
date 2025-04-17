@@ -105,7 +105,7 @@ const CarListItem = ({ car, onEdit, onDelete, onView }) => {
             </div>
             <div className="text-xs text-gray-500 flex items-center mt-1">
               <FileText className="h-3 w-3 mr-1 text-gray-400" />
-              VIN: {car.vin?.slice(-6) || 'N/A'}
+              VIN: <span className="font-medium">{car.vin || 'N/A'}</span>
             </div>
           </div>
         </div>
@@ -241,7 +241,7 @@ const InventoryFilters = ({ filters, availableMakes, handleFilterChange, clearFi
               placeholder="0"
               value={filters.minPrice}
               onChange={handleFilterChange}
-              className="w-full rounded-lg border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 pl-12 pr-3 py-2"
+              className="w-full rounded-lg border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 pl-12 pr-3 py-2 text-gray-900"
             />
           </div>
         </div>
@@ -259,7 +259,7 @@ const InventoryFilters = ({ filters, availableMakes, handleFilterChange, clearFi
               placeholder="Any"
               value={filters.maxPrice}
               onChange={handleFilterChange}
-              className="w-full rounded-lg border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 pl-12 pr-3 py-2"
+              className="w-full rounded-lg border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500 pl-12 pr-3 py-2 text-gray-900"
             />
           </div>
         </div>
@@ -624,7 +624,7 @@ export default function AdminInventory() {
             type="text"
             name="search"
             id="search"
-            className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg shadow-sm bg-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent sm:text-sm"
+            className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg shadow-sm bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent sm:text-sm"
             placeholder="Search inventory by make, model, VIN, or year..."
             value={filters.search}
             onChange={handleFilterChange}

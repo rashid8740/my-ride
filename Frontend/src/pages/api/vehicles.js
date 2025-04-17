@@ -1,7 +1,8 @@
 import { getAuthToken } from '@/utils/auth';
 
 export default async function handler(req, res) {
-  const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+  // Make sure we're using the full path with /api/cars
+  const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
   
   try {
     // Get the auth token
@@ -12,8 +13,8 @@ export default async function handler(req, res) {
         // Forward query parameters
         const queryString = new URLSearchParams(req.query).toString();
         const getUrl = queryString 
-          ? `${backendUrl}/cars?${queryString}` 
-          : `${backendUrl}/cars`;
+          ? `${backendUrl}/api/cars?${queryString}` 
+          : `${backendUrl}/api/cars`;
           
         const getResponse = await fetch(getUrl, {
           headers: token ? {
@@ -25,17 +26,39 @@ export default async function handler(req, res) {
         return res.status(getResponse.status).json(data);
         
       case 'POST':
-        // Create new vehicle
-        const createResponse = await fetch(`${backendUrl}/cars`, {
+        // Log the token for debugging
+        console.log('Token for vehicle creation:', token ? 'Present' : 'Missing');
+        console.log('Using backend URL:', `${backendUrl}/api/cars`);
+        
+        // Create new vehicle - ensure we're using the correct endpoint
+        const createResponse = await fetch(`${backendUrl}/api/cars`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
+            'Authorization': token ? `Bearer ${token}` : ''
           },
           body: JSON.stringify(req.body)
         });
         
-        const createData = await createResponse.json();
+        // Read the response text
+        const responseText = await createResponse.text();
+        console.log('Backend response status:', createResponse.status);
+        console.log('Backend response:', responseText.substring(0, 500));
+        
+        let createData;
+        
+        try {
+          // Try to parse the response as JSON
+          createData = JSON.parse(responseText);
+        } catch (error) {
+          // If parsing fails, return the raw text with error status
+          console.error('Failed to parse response:', responseText.substring(0, 200));
+          return res.status(createResponse.status).json({ 
+            status: 'error',
+            message: `Server returned invalid JSON: ${responseText.substring(0, 200)}...`
+          });
+        }
+        
         return res.status(createResponse.status).json(createData);
         
       default:
