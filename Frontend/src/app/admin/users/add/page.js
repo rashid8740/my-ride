@@ -165,7 +165,7 @@ export default function AddUserPage() {
                   name="firstName"
                   value={formData.firstName}
                   onChange={handleChange}
-                  className={`mt-1 block w-full border ${formErrors.firstName ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm`}
+                  className={`mt-1 block w-full border ${formErrors.firstName ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm text-gray-900`}
                 />
                 {formErrors.firstName && (
                   <p className="mt-1 text-sm text-red-600">{formErrors.firstName}</p>
@@ -182,7 +182,7 @@ export default function AddUserPage() {
                   name="lastName"
                   value={formData.lastName}
                   onChange={handleChange}
-                  className={`mt-1 block w-full border ${formErrors.lastName ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm`}
+                  className={`mt-1 block w-full border ${formErrors.lastName ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm text-gray-900`}
                 />
                 {formErrors.lastName && (
                   <p className="mt-1 text-sm text-red-600">{formErrors.lastName}</p>
@@ -199,7 +199,7 @@ export default function AddUserPage() {
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
-                  className={`mt-1 block w-full border ${formErrors.email ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm`}
+                  className={`mt-1 block w-full border ${formErrors.email ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm text-gray-900`}
                 />
                 {formErrors.email && (
                   <p className="mt-1 text-sm text-red-600">{formErrors.email}</p>
@@ -216,7 +216,7 @@ export default function AddUserPage() {
                   name="phone"
                   value={formData.phone}
                   onChange={handleChange}
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm"
+                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm text-gray-900"
                 />
               </div>
               
@@ -230,7 +230,7 @@ export default function AddUserPage() {
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
-                  className={`mt-1 block w-full border ${formErrors.password ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm`}
+                  className={`mt-1 block w-full border ${formErrors.password ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm text-gray-900`}
                 />
                 {formErrors.password && (
                   <p className="mt-1 text-sm text-red-600">{formErrors.password}</p>
@@ -247,7 +247,7 @@ export default function AddUserPage() {
                   name="confirmPassword"
                   value={formData.confirmPassword}
                   onChange={handleChange}
-                  className={`mt-1 block w-full border ${formErrors.confirmPassword ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm`}
+                  className={`mt-1 block w-full border ${formErrors.confirmPassword ? 'border-red-500' : 'border-gray-300'} rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm text-gray-900`}
                 />
                 {formErrors.confirmPassword && (
                   <p className="mt-1 text-sm text-red-600">{formErrors.confirmPassword}</p>
@@ -263,7 +263,7 @@ export default function AddUserPage() {
                   name="role"
                   value={formData.role}
                   onChange={handleChange}
-                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm"
+                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm text-gray-900"
                 >
                   <option value="user">User</option>
                   <option value="admin">Admin</option>

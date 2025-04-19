@@ -31,12 +31,13 @@ const API = {
   
   async login() {
     try {
-      const response = await fetch('http://localhost:5000/api/auth/login', {
+      const baseApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+      const response = await fetch(`${baseApiUrl}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email: 'testadmin@myride.com',
-          password: 'admintest123'
+          email: 'admin123@myride.com',
+          password: 'Admin123!'
         })
       });
       
@@ -68,27 +69,45 @@ const API = {
         }
       }
       
-      const response = await fetch('http://localhost:5000/api/users', {
+      const baseApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+      const response = await fetch(`${baseApiUrl}/api/users`, {
         headers: { 
           'Authorization': `Bearer ${this.token}`,
           'Content-Type': 'application/json'
         }
       });
       
-      const data = await response.json();
+      // Log response status for debugging
+      console.log('Users API response status:', response.status);
       
-      if (response.status === 401) {
-        // Token expired or invalid - try to login again
-        localStorage.removeItem('adminToken');
-        this.token = null;
-        const loginResult = await this.login();
-        if (loginResult.success) {
-          // Retry the request with new token
-          return await this.getUsers();
-        } else {
-          return { success: false, error: 'Authentication failed' };
+      if (!response.ok) {
+        if (response.status === 401) {
+          // Token expired or invalid - try to login again
+          localStorage.removeItem('adminToken');
+          this.token = null;
+          const loginResult = await this.login();
+          if (loginResult.success) {
+            // Retry the request with new token
+            return await this.getUsers();
+          } else {
+            return { success: false, error: 'Authentication failed' };
+          }
         }
+        
+        // Try to get error message from response
+        let errorMessage = 'Failed to load users';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorMessage;
+        } catch (e) {
+          console.error('Error parsing error response:', e);
+        }
+        
+        return { success: false, error: errorMessage };
       }
+      
+      const data = await response.json();
+      console.log('Users API response data:', data);
       
       if (data.status === 'success' && Array.isArray(data.data)) {
         return { success: true, users: data.data, count: data.count };
@@ -97,7 +116,7 @@ const API = {
       return { success: false, error: data.message || 'Failed to load users' };
     } catch (error) {
       console.error('Error loading users:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: 'Network error: ' + error.message };
     }
   }
 };

@@ -385,6 +385,13 @@ const apiService = {
         body: JSON.stringify({ isActive }),
       });
     },
+    
+    async create(userData) {
+      return apiService.request('/users', {
+        method: 'POST',
+        body: JSON.stringify(userData),
+      });
+    },
   },
   
   // New favorites endpoints
