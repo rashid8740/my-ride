@@ -301,7 +301,7 @@ const apiService = {
   },
   
   // User endpoints
-  user: {
+  users: {
     async updateProfile(profileData) {
       return apiService.request('/users/profile', {
         method: 'PUT',
@@ -322,13 +322,13 @@ const apiService = {
     
     async getFavorites() {
       // Deprecated - use favorites.getAll() instead
-      console.warn('api.user.getFavorites() is deprecated, use api.favorites.getAll() instead');
+      console.warn('api.users.getFavorites() is deprecated, use api.favorites.getAll() instead');
       return apiService.request('/favorites');
     },
     
     async addToFavorites(carId) {
       // Deprecated - use favorites.add() instead
-      console.warn('api.user.addToFavorites() is deprecated, use api.favorites.add() instead');
+      console.warn('api.users.addToFavorites() is deprecated, use api.favorites.add() instead');
       return apiService.request(`/favorites/${carId}`, {
         method: 'POST',
       });
@@ -336,60 +336,153 @@ const apiService = {
     
     async removeFromFavorites(carId) {
       // Deprecated - use favorites.remove() instead
-      console.warn('api.user.removeFromFavorites() is deprecated, use api.favorites.remove() instead');
+      console.warn('api.users.removeFromFavorites() is deprecated, use api.favorites.remove() instead');
       return apiService.request(`/favorites/${carId}`, {
         method: 'DELETE',
       });
     },
     
-    // Admin methods
+    // Admin user management endpoints
     async getAll() {
+      console.log('API: Fetching all users');
       try {
-        // Simple and direct approach
-        const result = await apiService.request('/users');
-        
-        console.log('Users API response:', result);
-        
-        if (result && result.status === 'success' && Array.isArray(result.data)) {
-          console.log(`Successfully fetched ${result.data.length} users`);
-          return result;
-        } else {
-          throw new Error('Invalid response format from server');
+        // First try admin-specific endpoint
+        try {
+          const response = await apiService.request('/admin/users');
+          console.log('Admin users endpoint response:', response);
+          
+          if (response && Array.isArray(response.users)) {
+            console.log(`Admin endpoint: Successfully fetched ${response.users.length} users`);
+            return {
+              status: 'success',
+              data: response.users,
+              count: response.users.length
+            };
+          }
+        } catch (adminError) {
+          console.log('Admin endpoint failed, trying generic users endpoint:', adminError.message);
         }
+        
+        // Fall back to standard users endpoint
+        const response = await apiService.request('/users');
+        console.log('Standard users endpoint response:', response);
+        
+        // Handle different response formats
+        if (response && response.status === 'success' && Array.isArray(response.data)) {
+          // Format: { status: 'success', data: [...] }
+          console.log(`Successfully fetched ${response.data.length} users`);
+          return response;
+        } else if (response && Array.isArray(response.users)) {
+          // Format: { users: [...] }
+          console.log(`Successfully fetched ${response.users.length} users`);
+          return {
+            status: 'success',
+            data: response.users,
+            count: response.users.length
+          };
+        } else if (response && Array.isArray(response)) {
+          // Format: [...]
+          console.log(`Successfully fetched ${response.length} users`);
+          return {
+            status: 'success',
+            data: response,
+            count: response.length
+          };
+        }
+        
+        console.error('Invalid response format from users API:', response);
+        throw new Error('Invalid response format from users API');
       } catch (error) {
-        console.error('Error in users.getAll():', error.message);
+        console.error('Error in users.getAll():', error);
         throw error;
       }
     },
     
     async getById(userId) {
-      return apiService.request(`/users/${userId}`);
+      try {
+        // Try admin endpoint first
+        try {
+          const response = await apiService.request(`/admin/users/${userId}`);
+          return response;
+        } catch (adminError) {
+          console.log('Admin user detail endpoint failed, trying standard endpoint');
+          return await apiService.request(`/users/${userId}`);
+        }
+      } catch (error) {
+        console.error(`Error fetching user ${userId}:`, error);
+        throw error;
+      }
+    },
+    
+    async create(userData) {
+      console.log('API: Creating new user', userData);
+      try {
+        // Try admin route first
+        try {
+          const response = await apiService.request('/admin/users', {
+            method: 'POST',
+            body: JSON.stringify(userData),
+          });
+          return response;
+        } catch (adminError) {
+          console.log('Admin create user endpoint failed, trying standard endpoint');
+          return await apiService.request('/users', {
+            method: 'POST',
+            body: JSON.stringify(userData),
+          });
+        }
+      } catch (error) {
+        console.error('Error creating user:', error);
+        throw error;
+      }
     },
     
     async updateUser(userId, userData) {
-      return apiService.request(`/users/${userId}`, {
-        method: 'PUT',
-        body: JSON.stringify(userData),
-      });
+      try {
+        // Try admin endpoint first
+        try {
+          const response = await apiService.request(`/admin/users/${userId}`, {
+            method: 'PUT',
+            body: JSON.stringify(userData),
+          });
+          return response;
+        } catch (adminError) {
+          console.log('Admin update user endpoint failed, trying standard endpoint');
+          return await apiService.request(`/users/${userId}`, {
+            method: 'PUT',
+            body: JSON.stringify(userData),
+          });
+        }
+      } catch (error) {
+        console.error(`Error updating user ${userId}:`, error);
+        throw error;
+      }
     },
     
     async deleteUser(userId) {
-      return apiService.request(`/users/${userId}`, {
-        method: 'DELETE',
-      });
+      try {
+        // Try admin endpoint first
+        try {
+          const response = await apiService.request(`/admin/users/${userId}`, {
+            method: 'DELETE',
+          });
+          return response;
+        } catch (adminError) {
+          console.log('Admin delete user endpoint failed, trying standard endpoint');
+          return await apiService.request(`/users/${userId}`, {
+            method: 'DELETE',
+          });
+        }
+      } catch (error) {
+        console.error(`Error deleting user ${userId}:`, error);
+        throw error;
+      }
     },
     
     async updateStatus(userId, isActive) {
       return apiService.request(`/users/${userId}/status`, {
         method: 'PATCH',
         body: JSON.stringify({ isActive }),
-      });
-    },
-    
-    async create(userData) {
-      return apiService.request('/users', {
-        method: 'POST',
-        body: JSON.stringify(userData),
       });
     },
   },

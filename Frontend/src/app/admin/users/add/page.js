@@ -97,6 +97,7 @@ export default function AddUserPage() {
         isActive: formData.isActive
       };
       
+      console.log('Creating user with data:', userData);
       await apiService.users.create(userData);
       
       setSuccessMessage('User created successfully');

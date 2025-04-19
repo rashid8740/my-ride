@@ -27,96 +27,58 @@ import {
 
 // Simple API wrapper with token handling
 const API = {
-  token: null,
-  
-  async login() {
-    try {
-      const baseApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
-      const response = await fetch(`${baseApiUrl}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: 'admin123@myride.com',
-          password: 'Admin123!'
-        })
-      });
-      
-      const data = await response.json();
-      if (data.status === 'success' && data.data?.token) {
-        this.token = data.data.token;
-        localStorage.setItem('adminToken', this.token);
-        return { success: true, user: data.data };
-      }
-      return { success: false, error: data.message || 'Login failed' };
-    } catch (error) {
-      console.error('Login error:', error);
-      return { success: false, error: error.message };
-    }
-  },
-  
   async getUsers() {
     try {
-      // Try to use stored token first
-      if (!this.token) {
-        this.token = localStorage.getItem('adminToken');
-      }
+      // Check if the user is already authenticated via the auth context
+      const token = localStorage.getItem('token');
+      console.log('Current token available:', token ? 'Yes' : 'No');
       
-      // If still no token, try to login
-      if (!this.token) {
-        const loginResult = await this.login();
-        if (!loginResult.success) {
-          return { success: false, error: 'Authentication required' };
+      // Use the correct users property (not user)
+      console.log('Fetching users using apiService.users.getAll()');
+      
+      try {
+        const result = await apiService.users.getAll();
+        console.log('Users API response:', result);
+        
+        if (result && result.status === 'success' && Array.isArray(result.data)) {
+          console.log(`Successfully fetched ${result.data.length} users`);
+          return { success: true, users: result.data, count: result.data.length };
+        } else {
+          console.error('Invalid response format:', result);
+          return { 
+            success: false, 
+            error: 'Failed to load users. The server returned an unexpected response format.' 
+          };
         }
-      }
-      
-      const baseApiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
-      const response = await fetch(`${baseApiUrl}/api/users`, {
-        headers: { 
-          'Authorization': `Bearer ${this.token}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      // Log response status for debugging
-      console.log('Users API response status:', response.status);
-      
-      if (!response.ok) {
-        if (response.status === 401) {
-          // Token expired or invalid - try to login again
-          localStorage.removeItem('adminToken');
-          this.token = null;
-          const loginResult = await this.login();
-          if (loginResult.success) {
-            // Retry the request with new token
-            return await this.getUsers();
-          } else {
-            return { success: false, error: 'Authentication failed' };
-          }
+      } catch (error) {
+        console.error('Error fetching users:', error);
+        
+        // Provide more descriptive error messages based on error type
+        if (error.message && error.message.includes('Network Error')) {
+          return { 
+            success: false, 
+            error: 'Network error: Unable to connect to the server. Please check your internet connection.' 
+          };
+        } else if (error.message && error.message.includes('404')) {
+          return { 
+            success: false, 
+            error: 'The users API endpoint could not be found. Please contact the administrator.' 
+          };
+        } else if (error.message && error.message.includes('401')) {
+          return { 
+            success: false, 
+            error: 'Authentication required. Please log in again.' 
+          };
         }
         
-        // Try to get error message from response
-        let errorMessage = 'Failed to load users';
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.message || errorMessage;
-        } catch (e) {
-          console.error('Error parsing error response:', e);
-        }
-        
-        return { success: false, error: errorMessage };
+        return { 
+          success: false, 
+          error: `Failed to load users: ${error.message}` 
+        };
       }
-      
-      const data = await response.json();
-      console.log('Users API response data:', data);
-      
-      if (data.status === 'success' && Array.isArray(data.data)) {
-        return { success: true, users: data.data, count: data.count };
-      }
-      
-      return { success: false, error: data.message || 'Failed to load users' };
     } catch (error) {
-      console.error('Error loading users:', error);
-      return { success: false, error: 'Network error: ' + error.message };
+      console.error('Error in getUsers:', error);
+      return { success: false, error: 'Error loading users: ' + error.message };
     }
   }
 };
@@ -146,22 +108,74 @@ export default function UsersPage() {
     newUsers: 0
   });
 
+  // Check if user is admin
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setError("You must be logged in to access this page");
+      console.error("Not authenticated - Need to login first");
+    } else if (!isAdmin) {
+      setError("You need admin privileges to access this page");
+      console.error("Not an admin user - Access denied");
+    } else {
+      // User is authenticated and is admin, proceed to load users
+      loadUsers();
+    }
+  }, [isAuthenticated, isAdmin]);
+
   // Load users function
   const loadUsers = async () => {
     setIsLoading(true);
     setError(null);
     
-    const result = await API.getUsers();
-    
-    if (result.success) {
-      setUsers(result.users);
-      calculateStats(result.users);
-    } else {
-      setError(result.error || 'Failed to load users');
-      setUsers([]);
+    // Detailed auth log for debugging
+    console.log('=== Auth Status Debug ===');
+    console.log('isAuthenticated:', isAuthenticated);
+    console.log('isAdmin:', isAdmin);
+    console.log('User object:', user);
+    console.log('Token exists:', !!localStorage.getItem('token'));
+    if (localStorage.getItem('token')) {
+      console.log('Token preview:', localStorage.getItem('token').substring(0, 15) + '...');
     }
+    console.log('=====================');
     
-    setIsLoading(false);
+    // Try up to 2 times to load users
+    let attempts = 0;
+    const maxAttempts = 2;
+    
+    while (attempts < maxAttempts) {
+      attempts++;
+      console.log(`Attempt ${attempts} of ${maxAttempts} to load users`);
+      
+      try {
+        const result = await API.getUsers();
+        console.log('API response:', result);
+        
+        if (result.success) {
+          setUsers(result.users);
+          calculateStats(result.users);
+          setIsLoading(false);
+          return; // Exit on success
+        } else if (attempts < maxAttempts) {
+          // Wait before retrying
+          console.log(`Retrying in 1 second... (Error: ${result.error})`);
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        } else {
+          // Final failure
+          setError(result.error || 'Failed to load users after multiple attempts');
+          setUsers([]);
+          setIsLoading(false);
+        }
+      } catch (error) {
+        console.error('Unexpected error in loadUsers:', error);
+        if (attempts < maxAttempts) {
+          console.log('Retrying after error...');
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        } else {
+          setError(`Critical error: ${error.message}`);
+          setIsLoading(false);
+        }
+      }
+    }
   };
   
   // Calculate user statistics
@@ -178,11 +192,6 @@ export default function UsersPage() {
       }).length
     });
   };
-
-  // Initial load
-  useEffect(() => {
-    loadUsers();
-  }, []);
 
   // Handle search and filters
   useEffect(() => {
@@ -353,15 +362,35 @@ export default function UsersPage() {
           </div>
           <h2 className="text-xl font-semibold text-red-700 text-center mb-2">Error Loading Users</h2>
           <p className="text-center text-red-600 mb-6">{error}</p>
-          <div className="flex justify-center space-x-4">
-            <button
-              onClick={loadUsers}
-              disabled={isLoading}
-              className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-sm transition-colors flex items-center disabled:opacity-70 disabled:cursor-not-allowed"
-            >
-              {isLoading ? <Loader2 className="h-5 w-5 mr-2 animate-spin" /> : <RefreshCw className="h-5 w-5 mr-2" />}
-              Try Again
-            </button>
+          <div className="space-y-4">
+            <div className="bg-white p-4 rounded-lg border border-red-100">
+              <h3 className="font-medium text-gray-900 mb-2">Troubleshooting Steps:</h3>
+              <ul className="list-disc pl-5 space-y-1 text-gray-700">
+                <li>Check your internet connection</li>
+                <li>Verify that the backend server is running</li>
+                <li>Confirm you have admin privileges</li>
+                <li>Try logging out and logging back in</li>
+              </ul>
+            </div>
+            
+            <div className="flex justify-center space-x-4 mt-4">
+              <button
+                onClick={loadUsers}
+                disabled={isLoading}
+                className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg shadow-sm transition-colors flex items-center disabled:opacity-70 disabled:cursor-not-allowed"
+              >
+                {isLoading ? <Loader2 className="h-5 w-5 mr-2 animate-spin" /> : <RefreshCw className="h-5 w-5 mr-2" />}
+                Try Again
+              </button>
+              
+              <Link
+                href="/login"
+                className="px-6 py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium rounded-lg shadow-sm transition-colors flex items-center"
+              >
+                <LogIn className="h-5 w-5 mr-2" />
+                Re-authenticate
+              </Link>
+            </div>
           </div>
         </div>
       </div>
