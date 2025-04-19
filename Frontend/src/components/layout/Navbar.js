@@ -204,25 +204,18 @@ export default function Navbar() {
           <div className="flex items-center space-x-6 text-sm">
             <div className="flex items-center">
               <Phone size={14} className="mr-2 text-orange-400" />
-              <span>+1-800-AUTO-CAR</span>
+              <span>+254-722-123-456</span>
             </div>
             <span className="text-gray-400">|</span>
             <span>Open: Mon-Fri 9am - 7pm</span>
           </div>
 
           <div className="flex items-center space-x-4 text-sm">
-            <Link
-              href="/dealerships"
-              className="text-gray-300 hover:text-white"
-            >
-              Dealerships
-            </Link>
-            <Link href="/careers" className="text-gray-300 hover:text-white">
-              Careers
-            </Link>
-            <Link href="/help" className="text-gray-300 hover:text-white">
-              Help Center
-            </Link>
+            <span className="text-gray-300">Nairobi, Kenya</span>
+            <span className="text-gray-400">|</span>
+            <span className="text-gray-300">Top-Rated Service</span>
+            <span className="text-gray-400">|</span>
+            <span className="text-gray-300">Best Prices Guaranteed</span>
           </div>
         </div>
       </div>
