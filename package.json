@@ -9,6 +9,7 @@
     "start:frontend": "cd Frontend && npm run dev",
     "start:backend": "cd Backend && npm run dev",
     "install:all": "npm install && cd Frontend && npm install && cd ../Backend && npm install",
+    "build": "cd Frontend && npm run build",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [

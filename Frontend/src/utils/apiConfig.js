@@ -3,7 +3,7 @@
  * 
  * This utility handles determining the correct backend URL based on the environment:
  * - In development: Uses localhost
- * - In production: Uses the deployed backend URL or falls back to API gateway URL
+ * - In production: Uses local backend or falls back to localhost
  */
 
 // Helper to determine if we're running on the server side
@@ -22,21 +22,18 @@ export function getBackendUrl() {
     return configuredUrl;
   }
 
-  // Determine if we're in production or development
-  const isProduction = process.env.NODE_ENV === 'production';
-  
-  if (isProduction) {
-    // In production, use the main API URL or the Vercel deployment URL
-    // Note: You should set NEXT_PUBLIC_API_URL in your Vercel environment variables
-    const productionUrl = 'https://api.my-ride.com';
-    console.log(`Using production backend URL: ${productionUrl}`);
-    return productionUrl;
-  } else {
-    // In development, use localhost
-    const devUrl = 'http://localhost:5000';
-    console.log(`Using development backend URL: ${devUrl}`);
-    return devUrl;
-  }
+  // For both development and production, default to localhost
+  // This assumes the backend is running on the same server
+  const localUrl = 'http://localhost:5000';
+  console.log(`Using local backend URL: ${localUrl}`);
+  return localUrl;
+}
+
+/**
+ * Get MongoDB connection string
+ */
+export function getMongoDBUri() {
+  return 'mongodb+srv://rashdi8740:Up6MrE69mLM7gwsB@cluster0.chaq15e.mongodb.net/';
 }
 
 /**
@@ -82,5 +79,6 @@ export async function checkBackendHealth() {
 // Default export with all utilities
 export default {
   getBackendUrl,
+  getMongoDBUri,
   checkBackendHealth
 }; 
