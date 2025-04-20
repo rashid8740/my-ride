@@ -2,26 +2,13 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { DollarSign, Shield, Wrench, ChevronRight, ChevronDown, Check, CreditCard, ShieldCheck, Tool } from "lucide-react";
+import { DollarSign, Shield, Wrench, ChevronRight, ChevronDown, Check, CreditCard, ShieldCheck } from "lucide-react";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
-import { keyframes } from "@emotion/react";
-
-const fadeInUp = keyframes`
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-`;
 
 const styles = {
-  '@keyframes fadeInUp': fadeInUp,
   '.animate-fade-in-up': {
-    animation: `${fadeInUp} 0.6s ease-out forwards`,
+    animation: 'fadeInUp 0.6s ease-out forwards',
   },
   '.animation-delay-300': {
     animationDelay: '300ms',
@@ -29,14 +16,14 @@ const styles = {
 };
 
 // Enhanced ServiceCard component with better shadows and contrast
-function ServiceCard({ icon, title, description, features }) {
+function ServiceCard({ icon: Icon, title, description, features }) {
   const [expanded, setExpanded] = useState(false);
   
   return (
     <div className="bg-white rounded-lg shadow-md p-6 mb-6 border border-gray-100 hover:shadow-lg transition-all group hover:border-orange-200">
       <div className="flex mb-4">
         <div className="w-12 h-12 bg-orange-100 rounded-full flex items-center justify-center shadow-sm mr-4 group-hover:bg-orange-200 transition-colors">
-          {icon}
+          {Icon && <Icon className="h-6 w-6 text-orange-600" />}
         </div>
         <div className="flex-1">
           <h3 className="text-xl font-semibold text-gray-900 mb-2 group-hover:text-orange-600 transition-colors">{title}</h3>
@@ -381,7 +368,7 @@ export default function ServicesPage() {
                 
                 <div className="grid md:grid-cols-2 gap-4 md:gap-6 mb-6 md:mb-8">
                   <ServiceCard 
-                    icon={Tool}
+                    icon={Wrench}
                     title="Regular Servicing"
                     description="Scheduled maintenance to keep your vehicle in peak condition."
                     features={[
