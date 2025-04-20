@@ -1,8 +1,12 @@
 {
+    "version": 2,
     "builds": [
       {
         "src": "Frontend/package.json",
-        "use": "@vercel/next"
+        "use": "@vercel/next",
+        "config": {
+          "buildCommand": "cd Frontend && ./vercel-build.sh"
+        }
       }
     ],
     "routes": [

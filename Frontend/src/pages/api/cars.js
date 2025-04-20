@@ -1,7 +1,9 @@
 import { getAuthToken } from '@/utils/auth';
+import { getBackendUrl } from '@/utils/apiConfig';
 
 export default async function handler(req, res) {
-  const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+  // Get the backend URL from our configuration utility
+  const backendUrl = getBackendUrl();
   
   try {
     // Get the auth token
@@ -27,54 +29,42 @@ export default async function handler(req, res) {
         return res.status(getResponse.status).json(data);
         
       case 'POST':
-        // Log the token for debugging
-        console.log('Token for vehicle creation (from /api/cars):', token ? 'Present' : 'Missing');
+        // Only allow authenticated users to create cars
+        if (!token) {
+          return res.status(401).json({ 
+            status: 'error',
+            message: 'Unauthorized. Please login.' 
+          });
+        }
+        
         console.log('Using backend URL:', `${backendUrl}/api/cars`);
         
-        // Create new vehicle - ensure we're using the correct endpoint
+        // Create new car
         const createResponse = await fetch(`${backendUrl}/api/cars`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': token ? `Bearer ${token}` : ''
+            'Authorization': `Bearer ${token}`
           },
           body: JSON.stringify(req.body)
         });
         
-        // Read the response text
-        const responseText = await createResponse.text();
-        console.log('Backend response status:', createResponse.status);
-        console.log('Backend response:', responseText.substring(0, 500));
-        
-        let createData;
-        
-        try {
-          // Try to parse the response as JSON
-          createData = JSON.parse(responseText);
-          
-          // Log the created car ID
-          if (createData.status === 'success' && createData.data && createData.data._id) {
-            console.log('Successfully created car with ID:', createData.data._id);
-          }
-        } catch (error) {
-          // If parsing fails, return the raw text with error status
-          console.error('Failed to parse response:', responseText.substring(0, 200));
-          return res.status(createResponse.status).json({ 
-            status: 'error',
-            message: `Server returned invalid JSON: ${responseText.substring(0, 200)}...`
-          });
-        }
+        const createData = await createResponse.json();
         
         return res.status(createResponse.status).json(createData);
         
       default:
-        return res.status(405).json({ message: 'Method not allowed' });
+        return res.status(405).json({ 
+          status: 'error',
+          message: 'Method not allowed' 
+        });
     }
   } catch (error) {
-    console.error('API route error:', error);
+    console.error('API Error:', error);
     return res.status(500).json({ 
       status: 'error',
-      message: error.message || 'An error occurred while processing your request' 
+      message: 'Internal server error',
+      details: error.message
     });
   }
 } 
