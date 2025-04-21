@@ -158,8 +158,7 @@ export default function InventoryPage() {
   const [backendStatus, setBackendStatus] = useState({
     checked: false,
     connected: false,
-    message: 'Checking backend connection...',
-    useDirectFetch: false
+    message: 'Checking backend connection...'
   });
   
   // Debug mode toggle
@@ -230,13 +229,6 @@ export default function InventoryPage() {
     const fetchCars = async () => {
       setLoading(true);
       setError(null);
-      
-      // If we've determined that direct fetching works better, use that
-      if (backendStatus.checked && backendStatus.connected && backendStatus.useDirectFetch) {
-        console.log('Using direct fetch method since API layer had issues');
-        await fetchCarsDirectly();
-        return;
-      }
       
       try {
         // Build query parameters based on filters
@@ -393,48 +385,8 @@ export default function InventoryPage() {
   useEffect(() => {
     const checkBackendConnectivity = async () => {
       try {
-        // First try our API layer
         const response = await fetch('/api/backend-check');
         const data = await response.json();
-        
-        // If our API layer failed to connect, try a direct check
-        if (!data.connected) {
-          console.log('API layer check failed, trying direct check...');
-          try {
-            // Try to directly access the backend
-            const directResponse = await fetch('https://my-ride-backend-tau.vercel.app/api/health', {
-              method: 'GET',
-              headers: { 'Content-Type': 'application/json' },
-              signal: AbortSignal.timeout(5000)
-            });
-            
-            const directData = await directResponse.json();
-            console.log('Direct backend health check:', directData);
-            
-            if (directResponse.ok) {
-              // If direct check succeeds, we'll use the direct URL for data
-              setBackendStatus({
-                checked: true,
-                connected: true,
-                message: 'Backend connected directly successfully',
-                details: {
-                  ...data,
-                  directCheck: {
-                    ok: true,
-                    data: directData
-                  }
-                },
-                useDirectFetch: true
-              });
-              
-              // Try to fetch cars directly with this connection
-              await fetchCarsDirectly();
-              return;
-            }
-          } catch (directError) {
-            console.error('Direct backend check failed:', directError);
-          }
-        }
         
         setBackendStatus({
           checked: true,
@@ -469,95 +421,6 @@ export default function InventoryPage() {
     // Run the check when component mounts
     checkBackendConnectivity();
   }, []);
-
-  // Fetch cars directly from backend (bypassing API layer)
-  const fetchCarsDirectly = async () => {
-    setLoading(true);
-    setError(null);
-    
-    try {
-      // Build query parameters based on filters
-      const queryParams = new URLSearchParams();
-      
-      if (filters.category) queryParams.append('category', filters.category);
-      if (filters.minPrice) queryParams.append('minPrice', filters.minPrice);
-      if (filters.maxPrice) queryParams.append('maxPrice', filters.maxPrice);
-      if (filters.minYear) queryParams.append('minYear', filters.minYear);
-      if (filters.maxYear) queryParams.append('maxYear', filters.maxYear);
-      if (filters.fuel) queryParams.append('fuel', filters.fuel);
-      if (filters.transmission) queryParams.append('transmission', filters.transmission);
-      if (searchTerm) queryParams.append('search', searchTerm);
-      
-      // Set sort parameter
-      switch (sortBy) {
-        case 'newest':
-          queryParams.append('sort', 'year_desc');
-          break;
-        case 'oldest':
-          queryParams.append('sort', 'year_asc');
-          break;
-        case 'priceAsc':
-          queryParams.append('sort', 'price_asc');
-          break;
-        case 'priceDesc':
-          queryParams.append('sort', 'price_desc');
-          break;
-        default:
-          queryParams.append('sort', 'year_desc');
-      }
-      
-      // Direct fetch from backend
-      const backendUrl = 'https://my-ride-backend-tau.vercel.app';
-      console.log(`Direct fetch from backend: ${backendUrl}/api/cars?${queryParams.toString()}`);
-      
-      const response = await fetch(`${backendUrl}/api/cars?${queryParams.toString()}`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-        signal: AbortSignal.timeout(8000)
-      });
-      
-      const result = await response.json();
-      console.log('Direct API response:', result);
-      
-      if (result && result.data && Array.isArray(result.data)) {
-        setCars(result.data);
-        
-        // Set featured cars
-        if (!filters.category && !filters.minPrice && !filters.maxPrice && 
-            !filters.minYear && !filters.maxYear && !filters.fuel && 
-            !filters.transmission && !searchTerm) {
-          try {
-            const featuredResponse = await fetch(`${backendUrl}/api/cars/featured`);
-            if (featuredResponse.ok) {
-              const featuredResult = await featuredResponse.json();
-              if (featuredResult && featuredResult.data) {
-                setFeaturedCars(featuredResult.data);
-              }
-            }
-          } catch (featuredError) {
-            console.error('Error fetching featured cars directly:', featuredError);
-            setFeaturedCars([]);
-          }
-        } else {
-          setFeaturedCars([]);
-        }
-      } else {
-        // Fallback to sample data if API returns no results
-        console.log('No cars found in direct API response, using sample data');
-        setCars(sampleCars);
-        setFeaturedCars(sampleCars.filter(car => car.featured));
-      }
-    } catch (err) {
-      console.error('Error directly fetching cars:', err);
-      setError(`Failed to load vehicles directly. ${err.message}`);
-      
-      // Fallback to sample data on error
-      setCars(sampleCars);
-      setFeaturedCars(sampleCars.filter(car => car.featured));
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <>
