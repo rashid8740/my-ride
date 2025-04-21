@@ -6,15 +6,15 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
  * @returns {string} The API URL
  */
 export function getApiUrl() {
-  // Prioritize environment variable
+  // Prioritize environment variable, then fallback to production URL if in production, and local if not
   if (process.env.NEXT_PUBLIC_API_URL) {
     return process.env.NEXT_PUBLIC_API_URL;
   }
   
   // Check if we're in a browser and in production
   if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
-    // Production fallback - use Render deployment which is more reliable than Vercel for APIs
-    return 'https://my-ride-api.onrender.com';
+    // Your actual deployed backend URL
+    return 'https://backend-my-ride.vercel.app';
   }
   
   // Default for local development
@@ -62,25 +62,6 @@ export async function apiRequest(endpoint, options = {}) {
  */
 export async function checkBackendHealth() {
   try {
-    // First try our internal API route, which has better error handling
-    if (typeof window !== 'undefined') {
-      try {
-        const origin = window.location.origin;
-        const response = await fetch(`${origin}/api/backend-health`);
-        
-        if (response.ok) {
-          const data = await response.json();
-          console.log('Backend health status:', data);
-          return data.connected;
-        }
-        
-        console.warn('Internal health check failed, trying direct connection');
-      } catch (internalError) {
-        console.warn('Error using internal health check:', internalError);
-      }
-    }
-    
-    // Fall back to direct connection if internal check fails
     const response = await fetch(`${getApiUrl()}/api/health`, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },

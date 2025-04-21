@@ -36,6 +36,7 @@ import CarCard from "@/components/inventory/CarCard";
 import SidebarFilters from "@/components/inventory/SidebarFilters";
 import MobileFilters from "@/components/inventory/MobileFilters";
 import { filterOptions } from "./data";
+import BackendStatus from '@/components/debug/BackendStatus';
 
 // Sample cars data for development - replace with API call in production
 const sampleCars = [
@@ -593,18 +594,21 @@ export default function InventoryPage() {
                     </div>
                   </div>
                 ) : error ? (
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-6 my-4">
-                    <div className="flex items-start">
-                      <AlertCircle className="text-red-500 mr-3 mt-0.5" size={20} />
-                      <div>
-                        <h3 className="font-medium text-red-800">Error Loading Inventory</h3>
-                        <p className="text-red-700 text-sm mt-1">{error}</p>
+                  <div className="flex flex-col items-center justify-center py-12">
+                    <div className="w-full max-w-3xl">
+                      <div className="p-6 bg-white rounded-lg shadow text-center">
+                        <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+                        <h3 className="text-xl font-bold text-gray-900 mb-2">Error Loading Inventory</h3>
+                        <p className="text-gray-600 mb-6">{error}</p>
                         <button 
-                          onClick={() => window.location.reload()}
-                          className="mt-3 text-sm bg-white px-3 py-1.5 border border-red-300 text-red-600 rounded-md hover:bg-red-50"
+                          onClick={() => window.location.reload()} 
+                          className="px-6 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
                         >
                           Try Again
                         </button>
+                        
+                        {/* Add the backend status component for debugging */}
+                        <BackendStatus />
                       </div>
                     </div>
                   </div>
