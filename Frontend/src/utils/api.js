@@ -6,15 +6,15 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
  * @returns {string} The API URL
  */
 export function getApiUrl() {
-  // Prioritize environment variable, then fallback to production URL if in production, and local if not
+  // Prioritize environment variable
   if (process.env.NEXT_PUBLIC_API_URL) {
     return process.env.NEXT_PUBLIC_API_URL;
   }
   
   // Check if we're in a browser and in production
   if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
-    // Your actual deployed backend URL
-    return 'https://backend-my-ride.vercel.app';
+    // Production fallback - use Render deployment which is more reliable than Vercel for APIs
+    return 'https://my-ride-api.onrender.com';
   }
   
   // Default for local development
