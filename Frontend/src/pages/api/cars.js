@@ -1,11 +1,7 @@
 import { getAuthToken } from '@/utils/auth';
-import { getApiUrl } from '@/utils/api';
 
 export default async function handler(req, res) {
-  // Get the configured backend URL with fallbacks
-  const backendUrl = getApiUrl();
-  
-  console.log('API handler using backend URL:', backendUrl);
+  const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
   
   try {
     // Get the auth token
@@ -21,33 +17,14 @@ export default async function handler(req, res) {
           
         console.log('GET request to:', getUrl);
         
-        try {
-          const getResponse = await fetch(getUrl, {
-            headers: token ? {
-              'Authorization': `Bearer ${token}`
-            } : {}
-          });
-          
-          if (!getResponse.ok) {
-            const errorText = await getResponse.text();
-            console.error(`Backend error (${getResponse.status}):`, errorText);
-            return res.status(getResponse.status).json({ 
-              status: 'error',
-              message: `Backend returned error: ${getResponse.status}`,
-              details: errorText.substring(0, 200)
-            });
-          }
-          
-          const data = await getResponse.json();
-          return res.status(getResponse.status).json(data);
-        } catch (fetchError) {
-          console.error('Fetch error in GET /api/cars:', fetchError);
-          return res.status(500).json({
-            status: 'error',
-            message: 'Failed to connect to backend',
-            details: fetchError.message
-          });
-        }
+        const getResponse = await fetch(getUrl, {
+          headers: token ? {
+            'Authorization': `Bearer ${token}`
+          } : {}
+        });
+        
+        const data = await getResponse.json();
+        return res.status(getResponse.status).json(data);
         
       case 'POST':
         // Log the token for debugging

@@ -22,9 +22,7 @@ const corsOptions = {
   origin: [
     'http://localhost:3000',
     'https://my-ride-frontend.vercel.app',
-    'https://my-ride-frontend-git-main-rashid8740.vercel.app',
-    'https://my-ride.vercel.app',
-    'https://my-ride-tau.vercel.app'
+    'https://my-ride.vercel.app'
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],

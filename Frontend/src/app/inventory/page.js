@@ -28,8 +28,7 @@ import {
   Gauge,
   Heart,
   ArrowRight,
-  Loader2,
-  Database
+  Loader2
 } from "lucide-react";
 import Footer from "@/components/layout/Footer";
 import Navbar from "@/components/layout/Navbar";
@@ -154,17 +153,6 @@ export default function InventoryPage() {
   // Featured cars
   const [featuredCars, setFeaturedCars] = useState([]);
 
-  // Backend connectivity check
-  const [backendStatus, setBackendStatus] = useState({
-    checked: false,
-    connected: false,
-    message: 'Checking backend connection...'
-  });
-  
-  // Debug mode toggle
-  const [showDebugInfo, setShowDebugInfo] = useState(false);
-  const [envInfo, setEnvInfo] = useState(null);
-
   // Check for URL parameters to set initial filters
   useEffect(() => {
     // Get parameters from URL
@@ -263,15 +251,10 @@ export default function InventoryPage() {
         
         // Fetch data from API
         console.log('Fetching cars from API with params:', queryParams.toString());
-        const apiUrl = `/api/cars?${queryParams.toString()}`;
-        console.log('Full API URL:', apiUrl);
-        
-        const response = await fetch(apiUrl);
+        const response = await fetch(`/api/cars?${queryParams.toString()}`);
         
         if (!response.ok) {
-          const errorText = await response.text();
-          console.error(`API error (${response.status}):`, errorText);
-          throw new Error(`Error fetching cars: ${response.status} - ${errorText.substring(0, 100)}`);
+          throw new Error(`Error fetching cars: ${response.status}`);
         }
         
         const result = await response.json();
@@ -380,47 +363,6 @@ export default function InventoryPage() {
   };
   
   const activeFilterCount = getActiveFilterCount();
-
-  // Backend connectivity check
-  useEffect(() => {
-    const checkBackendConnectivity = async () => {
-      try {
-        const response = await fetch('/api/backend-check');
-        const data = await response.json();
-        
-        setBackendStatus({
-          checked: true,
-          connected: data.connected,
-          message: data.connected 
-            ? 'Backend connected successfully' 
-            : `Backend connection failed: ${data.message || 'Unknown error'}`,
-          details: data
-        });
-        
-        console.log('Backend connectivity check:', data);
-        
-        // Also fetch environment info for debugging
-        try {
-          const envResponse = await fetch('/api/environment');
-          const envData = await envResponse.json();
-          setEnvInfo(envData);
-          console.log('Environment info:', envData);
-        } catch (envError) {
-          console.error('Failed to fetch environment info:', envError);
-        }
-      } catch (error) {
-        console.error('Error checking backend connectivity:', error);
-        setBackendStatus({
-          checked: true,
-          connected: false,
-          message: `Error checking backend: ${error.message}`,
-        });
-      }
-    };
-    
-    // Run the check when component mounts
-    checkBackendConnectivity();
-  }, []);
 
   return (
     <>
@@ -651,73 +593,18 @@ export default function InventoryPage() {
                     </div>
                   </div>
                 ) : error ? (
-                  <div className="flex flex-col gap-4 text-center py-10 px-4">
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-4 flex flex-col items-center">
-                      <AlertCircle size={36} className="text-red-500 mb-2" />
-                      <h3 className="text-red-700 text-lg font-semibold mb-2">Error Loading Inventory</h3>
-                      <p className="text-red-600 mb-4">{error}</p>
-                      
-                      {/* Backend connectivity status */}
-                      <div className="mt-2 w-full max-w-lg mx-auto">
-                        <div className="bg-gray-50 border border-gray-200 rounded-md p-3 text-sm">
-                          <div className="flex items-center mb-2">
-                            <Database size={16} className="mr-2 text-gray-500" />
-                            <span className="font-medium">Backend Connectivity Status:</span>
-                          </div>
-                          
-                          {!backendStatus.checked ? (
-                            <div className="flex items-center text-amber-600">
-                              <Loader2 size={14} className="mr-2 animate-spin" />
-                              <span>Checking backend connection...</span>
-                            </div>
-                          ) : backendStatus.connected ? (
-                            <div className="flex items-center text-green-600">
-                              <Check size={14} className="mr-2" />
-                              <span>{backendStatus.message}</span>
-                            </div>
-                          ) : (
-                            <div className="flex flex-col gap-1 text-red-600">
-                              <div className="flex items-center">
-                                <X size={14} className="mr-2 flex-shrink-0" />
-                                <span>{backendStatus.message}</span>
-                              </div>
-                              {backendStatus.details && (
-                                <div className="text-xs text-gray-600 mt-1 bg-gray-100 p-2 rounded overflow-auto max-h-32">
-                                  <pre className="whitespace-pre-wrap">
-                                    {JSON.stringify(backendStatus.details, null, 2)}
-                                  </pre>
-                                </div>
-                              )}
-                            </div>
-                          )}
-                          
-                          <div className="mt-3 flex justify-center gap-2">
-                            <button
-                              onClick={() => window.location.reload()}
-                              className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md text-sm flex items-center"
-                            >
-                              <ArrowRight size={14} className="mr-1" />
-                              Reload Page
-                            </button>
-                            
-                            <button
-                              onClick={() => setShowDebugInfo(!showDebugInfo)}
-                              className="bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-md text-sm flex items-center"
-                            >
-                              <Database size={14} className="mr-1" />
-                              {showDebugInfo ? 'Hide Debug Info' : 'Show Debug Info'}
-                            </button>
-                          </div>
-                          
-                          {showDebugInfo && envInfo && (
-                            <div className="mt-4 text-xs text-gray-600 bg-gray-100 p-3 rounded overflow-auto max-h-72">
-                              <h4 className="font-medium text-gray-700 mb-1">Environment Information:</h4>
-                              <pre className="whitespace-pre-wrap">
-                                {JSON.stringify(envInfo, null, 2)}
-                              </pre>
-                            </div>
-                          )}
-                        </div>
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-6 my-4">
+                    <div className="flex items-start">
+                      <AlertCircle className="text-red-500 mr-3 mt-0.5" size={20} />
+                      <div>
+                        <h3 className="font-medium text-red-800">Error Loading Inventory</h3>
+                        <p className="text-red-700 text-sm mt-1">{error}</p>
+                        <button 
+                          onClick={() => window.location.reload()}
+                          className="mt-3 text-sm bg-white px-3 py-1.5 border border-red-300 text-red-600 rounded-md hover:bg-red-50"
+                        >
+                          Try Again
+                        </button>
                       </div>
                     </div>
                   </div>
