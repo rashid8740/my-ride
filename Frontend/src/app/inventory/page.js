@@ -250,15 +250,35 @@ export default function InventoryPage() {
             queryParams.append('sort', 'year_desc');
         }
         
-        // Fetch data from API
+        // First try the internal API route
         console.log('Fetching cars from API with params:', queryParams.toString());
-        const response = await fetch(`/api/cars?${queryParams.toString()}`);
+        let response;
+        let result;
+        let fetchSucceeded = false;
         
-        if (!response.ok) {
-          throw new Error(`Error fetching cars: ${response.status}`);
+        try {
+          response = await fetch(`/api/cars?${queryParams.toString()}`);
+          
+          if (response.ok) {
+            result = await response.json();
+            fetchSucceeded = true;
+          }
+        } catch (innerError) {
+          console.warn('Internal API route failed, trying direct backend:', innerError);
         }
         
-        const result = await response.json();
+        // If internal API route failed, try direct API call
+        if (!fetchSucceeded) {
+          const backendUrl = 'https://myridev1.000webhostapp.com';
+          response = await fetch(`${backendUrl}/api/cars?${queryParams.toString()}`);
+          
+          if (!response.ok) {
+            throw new Error(`Error fetching cars: ${response.status}`);
+          }
+          
+          result = await response.json();
+        }
+        
         console.log('API response:', result);
         
         if (result && result.data && Array.isArray(result.data)) {
@@ -268,12 +288,27 @@ export default function InventoryPage() {
           if (!filters.category && !filters.minPrice && !filters.maxPrice && 
               !filters.minYear && !filters.maxYear && !filters.fuel && 
               !filters.transmission && !searchTerm) {
-            const featuredResponse = await fetch('/api/cars/featured');
-            if (featuredResponse.ok) {
-              const featuredResult = await featuredResponse.json();
-              if (featuredResult && featuredResult.data) {
-                setFeaturedCars(featuredResult.data);
+            try {
+              // Try internal API route for featured cars first
+              let featuredResponse = await fetch('/api/cars/featured');
+              let featuredResult;
+              
+              if (!featuredResponse.ok) {
+                // If internal API fails, try direct backend
+                const backendUrl = 'https://myridev1.000webhostapp.com';
+                featuredResponse = await fetch(`${backendUrl}/api/cars/featured`);
               }
+              
+              if (featuredResponse.ok) {
+                featuredResult = await featuredResponse.json();
+                if (featuredResult && featuredResult.data) {
+                  setFeaturedCars(featuredResult.data);
+                }
+              }
+            } catch (featuredError) {
+              console.warn('Error fetching featured cars:', featuredError);
+              // Use sample featured cars as fallback
+              setFeaturedCars(sampleCars.filter(car => car.featured));
             }
           } else {
             setFeaturedCars([]);

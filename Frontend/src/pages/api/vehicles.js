@@ -2,8 +2,10 @@ import { getAuthToken } from '@/utils/auth';
 import { getApiUrl } from '@/utils/api';
 
 export default async function handler(req, res) {
-  // Use the same getApiUrl function to ensure consistency with authentication
-  const backendUrl = getApiUrl();
+  // Use the getApiUrl function but add a fallback for Vercel
+  const backendUrl = process.env.VERCEL 
+    ? 'https://myridev1.000webhostapp.com' 
+    : getApiUrl();
   
   try {
     // Get the auth token
