@@ -13,7 +13,8 @@ export function getApiUrl() {
   
   // Check if we're in a browser and in production
   if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
-    return 'https://my-ride-backend.vercel.app';
+    // Your actual deployed backend URL
+    return 'https://backend-my-ride.vercel.app';
   }
   
   // Default for local development
