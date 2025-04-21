@@ -2,6 +2,39 @@
 
 A full-stack car dealership application with a React frontend and Node.js backend.
 
+## Deployment Instructions
+
+### Vercel Deployment
+
+This project should be deployed as a monorepo to Vercel, with the frontend serving as the main application.
+
+#### Configuration
+
+1. Connect your GitHub repository to Vercel
+2. Set the following settings:
+   - Build Command: `./build.sh`
+   - Output Directory: `Frontend/.next`
+   - Install Command: `npm install`
+
+3. Add environment variables:
+   - `NEXT_PUBLIC_API_URL`: URL to your deployed backend API
+
+#### Separate Backend Deployment
+
+The backend needs to be deployed separately:
+
+1. Create a new Vercel project
+2. Set the root directory to `/Backend`
+3. Add environment variables:
+   - `MONGODB_URI`: Your MongoDB connection string 
+   - `JWT_SECRET`: Secret for JWT token generation
+
+## Local Development
+
+1. Clone the repository
+2. Install dependencies: `npm run install:all`
+3. Start both frontend and backend: `npm run dev`
+
 ## Project Structure
 
 This project contains two main directories:

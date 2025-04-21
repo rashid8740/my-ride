@@ -4,7 +4,8 @@
   "description": "Car dealership application with separate frontend and backend",
   "main": "index.js",
   "scripts": {
-    "start": "bash restart.sh",
+    "build": "./build.sh",
+    "start": "cd Frontend && npm run start",
     "dev": "bash restart.sh",
     "start:frontend": "cd Frontend && npm run dev",
     "start:backend": "cd Backend && npm run dev",

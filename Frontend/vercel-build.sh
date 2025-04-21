@@ -28,38 +28,30 @@ npm install --force
 
 # Install required emotion dependencies
 echo "Installing @emotion/react and @emotion/styled..."
-npm install @emotion/react @emotion/styled
+npm install @emotion/react @emotion/styled @babel/core @emotion/babel-plugin
 
-# Create a minimal next.config.js to handle environment vars
+# Create a minimal next.config.js
 echo "Setting up next.config.js..."
 cat > next.config.js << 'EOL'
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  swcMinify: true,
-  poweredByHeader: false,
   env: {
-    // Make sure environment variables are properly passed
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000',
-  },
-  webpack: (config) => {
-    // Fix module resolution issues
-    config.optimization.moduleIds = 'deterministic';
-    return config;
   }
 }
 
 module.exports = nextConfig
 EOL
 
-# Create a .env.local file if needed
+# Create a .env.local file for the build
 echo "Setting up .env.local for build process..."
 if [ -n "$NEXT_PUBLIC_API_URL" ]; then
   echo "NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL" > .env.local
   echo "Created .env.local with API URL"
 else 
-  echo "NEXT_PUBLIC_API_URL=http://localhost:5000" > .env.local
-  echo "Created .env.local with default localhost API URL"
+  echo "NEXT_PUBLIC_API_URL=https://my-ride-backend.vercel.app" > .env.local
+  echo "Created .env.local with default backend API URL"
 fi
 
 # Run the build
