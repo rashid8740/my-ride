@@ -11,14 +11,9 @@ export function getApiUrl() {
     return process.env.NEXT_PUBLIC_API_URL;
   }
   
-  // Check if we're in Vercel production environment
-  if (process.env.VERCEL_ENV === 'production') {
-    return 'https://my-ride-backend-tau.vercel.app';
-  }
-  
   // Check if we're in a browser and in production
   if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
-    return 'https://my-ride-backend-tau.vercel.app';
+    return 'https://my-ride-backend.vercel.app';
   }
   
   // Default for local development
