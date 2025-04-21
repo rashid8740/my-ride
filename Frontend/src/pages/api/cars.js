@@ -3,7 +3,15 @@ import { getApiUrl } from '@/utils/api';
 
 export default async function handler(req, res) {
   // Get the configured backend URL with fallbacks
-  const backendUrl = getApiUrl();
+  let backendUrl;
+  
+  try {
+    backendUrl = getApiUrl();
+  } catch (error) {
+    // Fallback to hardcoded URL if getApiUrl fails
+    backendUrl = 'https://my-ride-backend-tau.vercel.app';
+    console.error('Error getting API URL, using fallback:', backendUrl, error);
+  }
   
   console.log('API handler using backend URL:', backendUrl);
   
@@ -25,7 +33,9 @@ export default async function handler(req, res) {
           const getResponse = await fetch(getUrl, {
             headers: token ? {
               'Authorization': `Bearer ${token}`
-            } : {}
+            } : {},
+            // Add timeout to avoid hanging requests
+            signal: AbortSignal.timeout(8000)
           });
           
           if (!getResponse.ok) {
@@ -45,7 +55,8 @@ export default async function handler(req, res) {
           return res.status(500).json({
             status: 'error',
             message: 'Failed to connect to backend',
-            details: fetchError.message
+            details: fetchError.message,
+            backendUrl: backendUrl // Include the backend URL for debugging
           });
         }
         

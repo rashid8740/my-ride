@@ -1,7 +1,15 @@
 import { getApiUrl } from '@/utils/api';
 
 export default async function handler(req, res) {
-  const backendUrl = getApiUrl();
+  // Ensure we get the production backend URL for Vercel deployment
+  let backendUrl = 'https://my-ride-backend-tau.vercel.app';
+  
+  // Try to get the backend URL from our utility
+  try {
+    backendUrl = getApiUrl();
+  } catch (error) {
+    console.error('Error getting API URL:', error);
+  }
   
   console.log('Checking backend connectivity to:', backendUrl);
   
@@ -15,6 +23,8 @@ export default async function handler(req, res) {
       headers: {
         'Content-Type': 'application/json'
       },
+      // Add timeout to avoid hanging requests
+      signal: AbortSignal.timeout(5000)
     });
     
     // Get the response as text first for better error logging
@@ -45,7 +55,8 @@ export default async function handler(req, res) {
       backendUrl,
       message: 'Failed to connect to backend',
       error: error.message,
-      connected: false
+      connected: false,
+      suggestion: 'The backend might be down or inaccessible. Please try a direct request to: ' + backendUrl
     });
   }
 } 

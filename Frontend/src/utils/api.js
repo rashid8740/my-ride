@@ -6,17 +6,20 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
  * @returns {string} The API URL
  */
 export function getApiUrl() {
-  // Prioritize environment variable, then fallback to production URL if in production, and local if not
-  if (process.env.NEXT_PUBLIC_API_URL) {
-    return process.env.NEXT_PUBLIC_API_URL;
+  // Check if we're in a server environment
+  if (typeof window === 'undefined') {
+    return process.env.NEXT_PUBLIC_API_URL || 'https://my-ride-backend-tau.vercel.app';
   }
   
-  // Check if we're in a browser and in production
-  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
-    return 'https://my-ride-backend.vercel.app';
+  // Check if we're in production (Vercel) environment
+  if (window.location.hostname.includes('vercel.app') || 
+      window.location.hostname.includes('my-ride') || 
+      !window.location.hostname.includes('localhost')) {
+    // Always use the production backend URL in production
+    return 'https://my-ride-backend-tau.vercel.app';
   }
   
-  // Default for local development
+  // For local development
   return 'http://localhost:5000';
 }
 
