@@ -3,13 +3,7 @@ import { getApiUrl } from '@/utils/api';
 
 export default async function handler(req, res) {
   // Get the configured backend URL with fallbacks
-  let backendUrl = getApiUrl();
-  
-  // Explicit production URL fallback for Vercel deployments
-  if (backendUrl === 'http://localhost:5000' && process.env.VERCEL_ENV === 'production') {
-    backendUrl = 'https://my-ride-backend-tau.vercel.app';
-    console.log('Forcing backend URL to production URL in Vercel environment');
-  }
+  const backendUrl = getApiUrl();
   
   console.log('API handler using backend URL:', backendUrl);
   

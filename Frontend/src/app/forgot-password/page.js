@@ -3,8 +3,11 @@
 import ForgotPassword from '@/components/auth/ForgotPassword';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
-// Metadata is defined in layout.js
 
+export const metadata = {
+  title: "Forgot Password | AutoDecar",
+  description: "Reset your AutoDecar account password",
+};
 
 export default function ForgotPasswordPage() {
   return (

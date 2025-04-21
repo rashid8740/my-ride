@@ -6,17 +6,13 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
  * @returns {string} The API URL
  */
 export function getApiUrl() {
-  // First check for environment variable
+  // Prioritize environment variable, then fallback to production URL if in production, and local if not
   if (process.env.NEXT_PUBLIC_API_URL) {
     return process.env.NEXT_PUBLIC_API_URL;
   }
   
-  // For Vercel deployments, hardcode the backend URL
-  const isVercel = 
-    typeof process !== 'undefined' && 
-    process.env.VERCEL_ENV === 'production';
-  
-  if (isVercel) {
+  // Check if we're in Vercel production environment
+  if (process.env.VERCEL_ENV === 'production') {
     return 'https://my-ride-backend-tau.vercel.app';
   }
   
