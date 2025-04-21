@@ -62,6 +62,25 @@ export async function apiRequest(endpoint, options = {}) {
  */
 export async function checkBackendHealth() {
   try {
+    // First try our internal API route, which has better error handling
+    if (typeof window !== 'undefined') {
+      try {
+        const origin = window.location.origin;
+        const response = await fetch(`${origin}/api/backend-health`);
+        
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Backend health status:', data);
+          return data.connected;
+        }
+        
+        console.warn('Internal health check failed, trying direct connection');
+      } catch (internalError) {
+        console.warn('Error using internal health check:', internalError);
+      }
+    }
+    
+    // Fall back to direct connection if internal check fails
     const response = await fetch(`${getApiUrl()}/api/health`, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
