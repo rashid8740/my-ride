@@ -1,9 +1,11 @@
 {
-    "version": 2,
     "builds": [
       {
         "src": "Frontend/package.json",
-        "use": "@vercel/next"
+        "use": "@vercel/next",
+        "config": {
+          "buildCommand": "cd Frontend && ./vercel-build.sh"
+        }
       }
     ],
     "routes": [
@@ -11,7 +13,5 @@
         "src": "/(.*)",
         "dest": "Frontend/$1"
       }
-    ],
-    "buildCommand": "cd Frontend && npm install @emotion/react @emotion/styled && npm run build",
-    "outputDirectory": "Frontend/.next"
+    ]
   }

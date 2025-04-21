@@ -1,0 +1,12 @@
+{
+  "presets": ["next/babel"],
+  "plugins": [
+    [
+      "@emotion",
+      {
+        "labelFormat": "[local]",
+        "sourceMap": true
+      }
+    ]
+  ]
+} 

@@ -17,8 +17,19 @@ const favoriteRoutes = require('./routes/favoriteRoutes');
 // Create Express app
 const app = express();
 
+// Enhanced CORS configuration to allow multiple origins including Vercel domains
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow all origins in this case
+    callback(null, true);
+  },
+  credentials: true, // Allow cookies with requests
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+};
+
 // Middleware
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

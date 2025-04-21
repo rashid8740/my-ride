@@ -1,20 +1,19 @@
 import { getAuthToken } from '@/utils/auth';
-import { getBackendUrl } from '@/utils/apiConfig';
 
 export default async function handler(req, res) {
   const { id } = req.query;
-  const backendUrl = getBackendUrl();
+  const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
   
   try {
     // Get the auth token
     const token = getAuthToken(req);
     
     if (req.method === 'GET') {
-      console.log(`Handling API request for car ID: ${id} with backend URL: ${backendUrl}`);
+      console.log(`Fetching car with ID: ${id} from backend`);
       
       // Get car by ID endpoint
       const getUrl = `${backendUrl}/api/cars/${id}`;
-      console.log('Fetching car from:', getUrl);
+      console.log('GET request to:', getUrl);
       
       const getResponse = await fetch(getUrl, {
         headers: token ? {
@@ -33,60 +32,63 @@ export default async function handler(req, res) {
       return res.status(getResponse.status).json(data);
     }
     
-    // All methods below need authentication
-    if (!token) {
-      return res.status(401).json({ 
-        status: 'error', 
-        message: 'Unauthorized. Please login.'
-      });
-    }
-    
+    // Handle PUT/PATCH (update)
     if (req.method === 'PUT' || req.method === 'PATCH') {
-      // Update car by ID
-      const updateUrl = `${backendUrl}/api/cars/${id}`;
+      console.log(`Updating car with ID: ${id}`);
+      console.log('Update payload:', JSON.stringify(req.body));
       
+      // Log the token to verify it's available
+      console.log('Token available for update:', token ? 'YES' : 'NO');
+      
+      const updateUrl = `${backendUrl}/api/cars/${id}`;
       const updateResponse = await fetch(updateUrl, {
-        method: 'PUT',
+        method: req.method,
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': token ? `Bearer ${token}` : ''
         },
         body: JSON.stringify(req.body)
       });
       
-      const updateData = await updateResponse.json();
-      return res.status(updateResponse.status).json(updateData);
+      const responseText = await updateResponse.text();
+      console.log('Update response status:', updateResponse.status);
+      console.log('Update response:', responseText.substring(0, 500));
+      
+      try {
+        const data = JSON.parse(responseText);
+        return res.status(updateResponse.status).json(data);
+      } catch (error) {
+        console.error('Failed to parse update response:', error);
+        return res.status(updateResponse.status).json({ 
+          status: 'error',
+          message: `Failed to parse response: ${responseText.substring(0, 200)}...`
+        });
+      }
     }
     
+    // Handle DELETE
     if (req.method === 'DELETE') {
-      // Delete car by ID
-      const deleteUrl = `${backendUrl}/api/cars/${id}`;
+      console.log(`Deleting car with ID: ${id}`);
       
+      const deleteUrl = `${backendUrl}/api/cars/${id}`;
       const deleteResponse = await fetch(deleteUrl, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': token ? `Bearer ${token}` : ''
         }
       });
       
-      if (deleteResponse.status === 204) {
-        return res.status(204).end();
-      }
-      
-      const deleteData = await deleteResponse.json();
-      return res.status(deleteResponse.status).json(deleteData);
+      const data = await deleteResponse.json();
+      return res.status(deleteResponse.status).json(data);
     }
     
-    return res.status(405).json({ 
-      status: 'error',
-      message: 'Method not allowed'
-    });
+    // Method not allowed
+    return res.status(405).json({ message: 'Method not allowed' });
   } catch (error) {
-    console.error('API Error:', error);
+    console.error('API route error:', error);
     return res.status(500).json({ 
       status: 'error',
-      message: 'Internal server error',
-      details: error.message
+      message: error.message || 'An error occurred while processing your request' 
     });
   }
 } 
