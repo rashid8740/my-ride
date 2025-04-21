@@ -1,5 +1,76 @@
 // src/utils/api.js
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5001';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+
+/**
+ * Get the base API URL with proper fallbacks
+ * @returns {string} The API URL
+ */
+export function getApiUrl() {
+  // Prioritize environment variable, then fallback to production URL if in production, and local if not
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL;
+  }
+  
+  // Check if we're in a browser and in production
+  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+    return 'https://my-ride-backend.vercel.app';
+  }
+  
+  // Default for local development
+  return 'http://localhost:5000';
+}
+
+/**
+ * Make an API request with proper error handling
+ * @param {string} endpoint - API endpoint without leading slash
+ * @param {Object} options - Fetch options
+ * @returns {Promise<Object>} Response data
+ */
+export async function apiRequest(endpoint, options = {}) {
+  const baseUrl = getApiUrl();
+  const url = `${baseUrl}/${endpoint.startsWith('api/') ? endpoint : `api/${endpoint}`}`;
+  
+  try {
+    // Add default headers if not provided
+    const headers = options.headers || {};
+    if (!headers['Content-Type'] && !(options.body instanceof FormData)) {
+      headers['Content-Type'] = 'application/json';
+    }
+    
+    const response = await fetch(url, {
+      ...options,
+      headers
+    });
+    
+    // Check if the network response is ok
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `API request failed with status ${response.status}`);
+    }
+    
+    return await response.json();
+  } catch (error) {
+    console.error(`API request to ${url} failed:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Check if the backend is accessible
+ * @returns {Promise<boolean>} Whether the backend is accessible
+ */
+export async function checkBackendHealth() {
+  try {
+    const response = await fetch(`${getApiUrl()}/api/health`, {
+      method: 'GET',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    return response.ok;
+  } catch (error) {
+    console.error('Backend health check failed:', error);
+    return false;
+  }
+}
 
 /**
  * API service for making requests to the backend

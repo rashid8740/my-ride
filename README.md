@@ -2,39 +2,6 @@
 
 A full-stack car dealership application with a React frontend and Node.js backend.
 
-## Deployment Instructions
-
-### Vercel Deployment
-
-This project should be deployed as a monorepo to Vercel, with the frontend serving as the main application.
-
-#### Configuration
-
-1. Connect your GitHub repository to Vercel
-2. Set the following settings:
-   - Build Command: `./build.sh`
-   - Output Directory: `Frontend/.next`
-   - Install Command: `npm install`
-
-3. Add environment variables:
-   - `NEXT_PUBLIC_API_URL`: URL to your deployed backend API
-
-#### Separate Backend Deployment
-
-The backend needs to be deployed separately:
-
-1. Create a new Vercel project
-2. Set the root directory to `/Backend`
-3. Add environment variables:
-   - `MONGODB_URI`: Your MongoDB connection string 
-   - `JWT_SECRET`: Secret for JWT token generation
-
-## Local Development
-
-1. Clone the repository
-2. Install dependencies: `npm run install:all`
-3. Start both frontend and backend: `npm run dev`
-
 ## Project Structure
 
 This project contains two main directories:
@@ -175,6 +142,89 @@ This project is licensed under the ISC License.
 - [Next.js](https://nextjs.org/)
 - [Express](https://expressjs.com/)
 - [MongoDB](https://www.mongodb.com/)
-- [Tailwind CSS](https://tailwindcss.com/) 
+- [Tailwind CSS](https://tailwindcss.com/)
+
+## Deployment Guide
+
+### Frontend Deployment on Vercel
+
+1. Make sure your repository is on GitHub
+2. Connect your repository to Vercel
+3. Add the following environment variables in your Vercel project settings:
+   - `NEXT_PUBLIC_API_URL`: Your backend API URL (e.g., https://my-ride-backend.vercel.app)
+   - `NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME`: Your Cloudinary cloud name
+   - `NEXT_PUBLIC_CLOUDINARY_API_KEY`: Your Cloudinary API key
+   - `CLOUDINARY_API_SECRET`: Your Cloudinary API secret
+
+### Backend Deployment on Vercel
+
+1. Make sure your repository is on GitHub
+2. Create a new project on Vercel for the backend
+3. Set the root directory to `Backend`
+4. Add the following environment variables:
+   - `MONGODB_URI`: Your MongoDB connection string
+   - `JWT_SECRET`: A secure secret for JWT token generation
+   - `PORT`: 5000 (if needed)
+
+### Troubleshooting
+
+If you encounter a "Network error" when accessing the deployed frontend:
+
+1. Check that your backend is deployed and running
+2. Verify that environment variables are set correctly on Vercel
+3. Check that CORS is configured to allow your frontend domain
+4. Test the backend health endpoint directly (e.g., https://my-ride-backend.vercel.app/api/health)
+
+## Local Development
+
+### Prerequisites
+
+- Node.js
+- MongoDB
+
+### Setup Instructions
+
+1. Clone the repository
+2. Install dependencies
+
+```bash
+npm run install:all
+```
+
+3. Create a `.env` file in the Backend directory:
+
+```
+MONGODB_URI=your_mongodb_uri
+JWT_SECRET=your_jwt_secret
+```
+
+4. Create a `.env.local` file in the Frontend directory:
+
+```
+NEXT_PUBLIC_API_URL=http://localhost:5000
+```
+
+5. Run the application
+
+```bash
+npm run dev
+```
+
+This will start both the frontend and backend servers.
+
+## Features
+
+- Browse available cars
+- Filter by type, make, model, etc.
+- Contact the dealership
+- Admin dashboard for inventory management
+
+## Additional Notes
+
+- This README provides a comprehensive overview of the project, its structure, and its features.
+- Deployment instructions are included for both frontend and backend.
+- Local development setup is detailed for both frontend and backend.
+- The README ends with a summary of the project's features.
+
  
  

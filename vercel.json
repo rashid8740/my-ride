@@ -1,6 +1,10 @@
 {
-    "buildCommand": "./build.sh",
-    "outputDirectory": "Frontend/.next",
+    "builds": [
+      {
+        "src": "Frontend/package.json",
+        "use": "@vercel/next"
+      }
+    ],
     "routes": [
       {
         "src": "/(.*)",

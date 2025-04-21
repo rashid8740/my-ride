@@ -17,15 +17,16 @@ const favoriteRoutes = require('./routes/favoriteRoutes');
 // Create Express app
 const app = express();
 
-// Enhanced CORS configuration to allow multiple origins including Vercel domains
+// Configure CORS with specific origins
 const corsOptions = {
-  origin: function (origin, callback) {
-    // Allow all origins in this case
-    callback(null, true);
-  },
-  credentials: true, // Allow cookies with requests
+  origin: [
+    'http://localhost:3000',
+    'https://my-ride-frontend.vercel.app',
+    'https://my-ride.vercel.app'
+  ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true
 };
 
 // Middleware
