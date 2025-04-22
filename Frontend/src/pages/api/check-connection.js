@@ -5,9 +5,13 @@ const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://rashdi8740:Up6MrE6
 const DB_NAME = 'test';
 
 export default async function handler(req, res) {
+  console.log('Check-connection API called');
+  
   let client = null;
   
   try {
+    console.log('Connecting to MongoDB:', MONGODB_URI.replace(/\/\/([^:]+):[^@]+@/, '//***:***@'));
+    
     // Attempt to connect to MongoDB directly
     client = await MongoClient.connect(MONGODB_URI, {
       useNewUrlParser: true,

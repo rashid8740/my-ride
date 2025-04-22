@@ -130,13 +130,18 @@ export const FavoritesProvider = ({ children }) => {
     const checkBackendAvailability = async () => {
       try {
         const backendUrl = process.env.NEXT_PUBLIC_API_URL || 
-                           (typeof window !== 'undefined' && window.location.hostname !== 'localhost' 
+                          (typeof window !== 'undefined' && window.location.hostname !== 'localhost' 
                             ? 'https://my-ride-backend-git-main-rashid8740s-projects.vercel.app' 
                             : 'http://localhost:5000');
         
         console.log("Checking backend availability at:", backendUrl);
         
-        const response = await fetch(`${backendUrl}/api/health`, { 
+        // Fix URL construction to avoid /api/api duplication
+        const healthEndpoint = backendUrl === '/api' 
+          ? '/api/health'
+          : `${backendUrl}/api/health`;
+          
+        const response = await fetch(healthEndpoint, { 
           method: 'GET',
           headers: { 'Content-Type': 'application/json' }
         });

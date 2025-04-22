@@ -72,7 +72,13 @@ export async function apiRequest(endpoint, options = {}) {
  */
 export async function checkBackendHealth() {
   try {
-    const response = await fetch(`${getApiUrl()}/api/health`, {
+    const baseUrl = getApiUrl();
+    // Prevent /api/api duplication
+    const healthEndpoint = baseUrl === '/api' 
+      ? '/api/health'  // Already includes /api
+      : `${baseUrl}/api/health`;
+      
+    const response = await fetch(healthEndpoint, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
     });
@@ -91,7 +97,22 @@ const apiService = {
    * Base method for making HTTP requests
    */
   async request(endpoint, options = {}) {
-    const url = `${API_URL}/api${endpoint}`;
+    // Handle both external and internal API routes
+    const baseApiUrl = getApiUrl();
+    
+    // Fix URL construction to avoid duplication
+    let url;
+    if (baseApiUrl === '/api') {
+      // For internal API routes, ensure we don't duplicate /api
+      url = endpoint.startsWith('/')
+        ? `/api${endpoint}`
+        : `/api/${endpoint}`;
+        
+      console.log(`Using internal API route: ${url}`);
+    } else {
+      // For external API, construct URL normally
+      url = `${baseApiUrl}/api${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+    }
     
     const isImportantRequest = endpoint.includes('/auth/login') || endpoint.includes('/users');
     
