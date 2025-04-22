@@ -1,84 +1,91 @@
-import { getAuthToken } from '@/utils/auth';
-import { getApiUrl } from '@/utils/api';
+import { MongoClient } from 'mongodb';
+
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://rashdi8740:Up6MrE69mLM7gwsB@cluster0.chaq15e.mongodb.net/';
+const DB_NAME = 'my-ride';
+
+// Connect to MongoDB
+let cachedClient = null;
+let cachedDb = null;
+
+async function connectToDatabase() {
+  if (cachedClient && cachedDb) {
+    return { client: cachedClient, db: cachedDb };
+  }
+
+  const client = await MongoClient.connect(MONGODB_URI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+  });
+
+  const db = client.db(DB_NAME);
+  
+  cachedClient = client;
+  cachedDb = db;
+  
+  return { client, db };
+}
 
 export default async function handler(req, res) {
-  // Use the getApiUrl function but add a fallback for Vercel
-  const backendUrl = process.env.VERCEL 
-    ? 'https://myridev1.000webhostapp.com' 
-    : getApiUrl();
-  
   try {
-    // Get the auth token
-    const token = getAuthToken(req);
+    // Connect to MongoDB
+    const { db } = await connectToDatabase();
     
-    switch (req.method) {
-      case 'GET':
-        // Forward query parameters
-        const queryString = new URLSearchParams(req.query).toString();
-        const getUrl = queryString 
-          ? `${backendUrl}/api/cars?${queryString}` 
-          : `${backendUrl}/api/cars`;
-          
-        console.log('GET request to:', getUrl);
-        
-        const getResponse = await fetch(getUrl, {
-          headers: token ? {
-            'Authorization': `Bearer ${token}`
-          } : {}
-        });
-        
-        const data = await getResponse.json();
-        return res.status(getResponse.status).json(data);
-        
-      case 'POST':
-        // Log the token for debugging
-        console.log('Token for vehicle creation (from /api/cars):', token ? 'Present' : 'Missing');
-        console.log('Using backend URL:', `${backendUrl}/api/cars`);
-        
-        // Create new vehicle - ensure we're using the correct endpoint
-        const createResponse = await fetch(`${backendUrl}/api/cars`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': token ? `Bearer ${token}` : ''
-          },
-          body: JSON.stringify(req.body)
-        });
-        
-        // Read the response text
-        const responseText = await createResponse.text();
-        console.log('Backend response status:', createResponse.status);
-        console.log('Backend response:', responseText.substring(0, 500));
-        
-        let createData;
-        
-        try {
-          // Try to parse the response as JSON
-          createData = JSON.parse(responseText);
-          
-          // Log the created car ID
-          if (createData.status === 'success' && createData.data && createData.data._id) {
-            console.log('Successfully created car with ID:', createData.data._id);
-          }
-        } catch (error) {
-          // If parsing fails, return the raw text with error status
-          console.error('Failed to parse response:', responseText.substring(0, 200));
-          return res.status(createResponse.status).json({ 
-            status: 'error',
-            message: `Server returned invalid JSON: ${responseText.substring(0, 200)}...`
-          });
-        }
-        
-        return res.status(createResponse.status).json(createData);
-        
-      default:
-        return res.status(405).json({ message: 'Method not allowed' });
+    // Get query parameters
+    const { type, make, model, year, sort, limit = 20, page = 1 } = req.query;
+    
+    // Build query
+    const query = {};
+    if (type) query.type = type;
+    if (make) query.make = make;
+    if (model) query.model = model;
+    if (year) query.year = parseInt(year);
+    
+    // Build sort options
+    let sortOptions = { createdAt: -1 }; // Default sort
+    if (sort) {
+      if (sort === 'price-asc') sortOptions = { price: 1 };
+      if (sort === 'price-desc') sortOptions = { price: -1 };
+      if (sort === 'year-asc') sortOptions = { year: 1 };
+      if (sort === 'year-desc') sortOptions = { year: -1 };
+      if (sort === 'latest') sortOptions = { createdAt: -1 };
     }
+    
+    // Pagination
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+    
+    // Get cars from database
+    const cars = await db
+      .collection('cars')
+      .find(query)
+      .sort(sortOptions)
+      .skip(skip)
+      .limit(parseInt(limit))
+      .toArray();
+    
+    // Get total count
+    const totalCount = await db
+      .collection('cars')
+      .countDocuments(query);
+    
+    // Calculate total pages
+    const totalPages = Math.ceil(totalCount / parseInt(limit));
+    
+    // Return response
+    return res.status(200).json({
+      status: 'success',
+      data: cars,
+      pagination: {
+        total: totalCount,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        pages: totalPages,
+      },
+    });
   } catch (error) {
-    console.error('API route error:', error);
-    return res.status(500).json({ 
+    console.error('Error fetching cars:', error);
+    return res.status(500).json({
       status: 'error',
-      message: error.message || 'An error occurred while processing your request' 
+      message: 'Failed to fetch cars',
     });
   }
 } 

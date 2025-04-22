@@ -1,11 +1,18 @@
 // src/utils/api.js
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://rashdi8740:Up6MrE69mLM7gwsB@cluster0.chaq15e.mongodb.net/';
 
 /**
  * Get the base API URL with proper fallbacks
  * @returns {string} The API URL
  */
 export function getApiUrl() {
+  // Check if we're in Vercel serverless functions, use direct MongoDB
+  if (process.env.VERCEL) {
+    console.log("Running in Vercel serverless functions");
+    return '/api'; // Use internal API routes
+  }
+  
   // Prioritize environment variable, then fallback to production URL if in production, and local if not
   if (process.env.NEXT_PUBLIC_API_URL) {
     return process.env.NEXT_PUBLIC_API_URL;
@@ -13,11 +20,15 @@ export function getApiUrl() {
   
   // Check if we're in a browser and in production
   if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
-    return 'https://my-ride-backend-git-main-rashid8740s-projects.vercel.app';
+    return '/api'; // Use internal API routes in production
   }
   
   // Default for local development
   return 'http://localhost:5000';
+}
+
+export function getMongoUri() {
+  return MONGODB_URI;
 }
 
 /**
