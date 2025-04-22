@@ -1,9 +1,8 @@
 import { getAuthToken } from '@/utils/auth';
-import { getApiUrl } from '@/utils/api';
 
 export default async function handler(req, res) {
   const { id } = req.query;
-  const backendUrl = getApiUrl();
+  const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
   
   try {
     // Get the auth token
