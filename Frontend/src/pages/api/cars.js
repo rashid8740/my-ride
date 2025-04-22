@@ -1,7 +1,9 @@
 import { getAuthToken } from '@/utils/auth';
+import { getApiUrl } from '@/utils/api';
 
 export default async function handler(req, res) {
-  const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+  // Use the getApiUrl helper to ensure proper backend URL
+  const backendUrl = getApiUrl();
   
   try {
     // Get the auth token
@@ -17,14 +19,56 @@ export default async function handler(req, res) {
           
         console.log('GET request to:', getUrl);
         
-        const getResponse = await fetch(getUrl, {
-          headers: token ? {
-            'Authorization': `Bearer ${token}`
-          } : {}
-        });
+        // Add timeout to the fetch request
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
         
-        const data = await getResponse.json();
-        return res.status(getResponse.status).json(data);
+        try {
+          const getResponse = await fetch(getUrl, {
+            headers: token ? {
+              'Authorization': `Bearer ${token}`
+            } : {},
+            signal: controller.signal
+          });
+          
+          clearTimeout(timeoutId); // Clear the timeout
+          
+          if (!getResponse.ok) {
+            console.error(`Backend returned error status: ${getResponse.status}`);
+            // Try to read error message from response
+            let errorText;
+            try {
+              const errorData = await getResponse.json();
+              errorText = errorData.message || `Backend returned status ${getResponse.status}`;
+            } catch (e) {
+              errorText = `Backend returned status ${getResponse.status}`;
+            }
+            
+            return res.status(getResponse.status).json({
+              status: 'error',
+              message: errorText
+            });
+          }
+          
+          const data = await getResponse.json();
+          console.log('Successfully fetched cars data');
+          return res.status(getResponse.status).json(data);
+        } catch (fetchError) {
+          clearTimeout(timeoutId);
+          console.error('Fetch error in cars API:', fetchError);
+          
+          if (fetchError.name === 'AbortError') {
+            return res.status(504).json({
+              status: 'error',
+              message: 'Request to backend timed out'
+            });
+          }
+          
+          return res.status(500).json({ 
+            status: 'error',
+            message: fetchError.message || 'Failed to communicate with the backend server'
+          });
+        }
         
       case 'POST':
         // Log the token for debugging
