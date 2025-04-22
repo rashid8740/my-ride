@@ -13,6 +13,8 @@
     }
   ],
   "env": {
-    "MONGODB_URI": "mongodb+srv://rashdi8740:Up6MrE69mLM7gwsB@cluster0.chaq15e.mongodb.net/"
+    "MONGODB_URI": "mongodb+srv://rashdi8740:Up6MrE69mLM7gwsB@cluster0.chaq15e.mongodb.net/",
+    "PORT": "5000",
+    "NODE_ENV": "production"
   }
 } 
