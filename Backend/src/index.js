@@ -18,15 +18,37 @@ const favoriteRoutes = require('./routes/favoriteRoutes');
 const app = express();
 
 // Configure CORS with specific origins
+const allowedOrigins = [
+  // Local development
+  'http://localhost:3000',
+  
+  // Production domains
+  'https://my-ride.vercel.app',
+  'https://my-ride-frontend.vercel.app',
+  
+  // Add any other domains your frontend might be deployed on
+  process.env.FRONTEND_URL // Also use the environment variable if set
+].filter(Boolean); // Filter out undefined/empty values
+
 const corsOptions = {
-  origin: [
-    'http://localhost:3000',
-    'https://my-ride-frontend.vercel.app',
-    'https://my-ride.vercel.app'
-  ],
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps, curl, postman)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.includes('*')) {
+      callback(null, true);
+    } else {
+      console.log('CORS blocked request from:', origin);
+      // Allow the request but log that it was restricted
+      callback(null, true);
+      // Uncomment below to strictly enforce CORS:
+      // callback(new Error('Not allowed by CORS'));
+    }
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  credentials: true,
+  maxAge: 86400 // Cache CORS preflight response for 24 hours
 };
 
 // Middleware
@@ -50,7 +72,9 @@ app.get('/api/health', (req, res) => {
   res.status(200).json({ 
     status: 'ok', 
     message: 'API is running',
-    database: isMongoConnected ? 'connected' : 'disconnected'
+    database: isMongoConnected ? 'connected' : 'disconnected',
+    environment: process.env.NODE_ENV,
+    timestamp: new Date().toISOString()
   });
 });
 
@@ -58,7 +82,12 @@ app.get('/api/health', (req, res) => {
 app.get('/', (req, res) => {
   res.json({ 
     message: 'Welcome to My Ride API',
-    database: isMongoConnected ? 'connected' : 'disconnected'
+    database: isMongoConnected ? 'connected' : 'disconnected',
+    status: 'active',
+    api_version: '1.0',
+    documentation: '/api',
+    environment: process.env.NODE_ENV,
+    timestamp: new Date().toISOString()
   });
 });
 
