@@ -19,11 +19,11 @@
     }
   ],
   "env": {
-    "MONGODB_URI": "mongodb+srv://rashdi8740:Up6MrE69mLM7gwsB@cluster0.chaq15e.mongodb.net/test",
+    "MONGODB_URI": "mongodb+srv://rashdi8740:Up6MrE69mLM7gwsB@cluster0.chaq15e.mongodb.net/",
     "JWT_SECRET": "your_jwt_secret_key_here",
     "JWT_EXPIRES_IN": "30d",
     "NODE_ENV": "production",
-    "FRONTEND_URL": "https://my-ride.vercel.app",
+    "FRONTEND_URL": "https://my-ride-sigma.vercel.app",
     "ALLOW_SAMPLE_DATA": "true",
     "CLOUDINARY_CLOUD_NAME": "dghr3juaj",
     "CLOUDINARY_API_KEY": "284321333125128",
