@@ -129,7 +129,14 @@ export const FavoritesProvider = ({ children }) => {
   useEffect(() => {
     const checkBackendAvailability = async () => {
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/health`, { 
+        const backendUrl = process.env.NEXT_PUBLIC_API_URL || 
+                           (typeof window !== 'undefined' && window.location.hostname !== 'localhost' 
+                            ? 'https://my-ride-backend-tau.vercel.app' 
+                            : 'http://localhost:5000');
+        
+        console.log("Checking backend availability at:", backendUrl);
+        
+        const response = await fetch(`${backendUrl}/api/health`, { 
           method: 'GET',
           headers: { 'Content-Type': 'application/json' }
         });
