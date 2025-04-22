@@ -257,7 +257,7 @@ export default function InventoryPage() {
         const result = await response.json();
         console.log('API response:', result);
         
-        if (result && result.data && Array.isArray(result.data)) {
+        if (result && result.data && Array.isArray(result.data) && result.data.length > 0) {
           setCars(result.data);
         } else {
           // Fallback to sample data if API returns no results
@@ -266,10 +266,15 @@ export default function InventoryPage() {
         }
       } catch (err) {
         console.error('Error fetching cars:', err);
-        setError('Failed to load vehicles. Please try again later.');
+        setError('Failed to load vehicles from API. Showing sample data instead.');
         
-        // Fallback to sample data on error
+        // Always fallback to sample data on error
         setCars(sampleCars);
+        
+        // Clear error after 5 seconds
+        setTimeout(() => {
+          setError(null);
+        }, 5000);
       } finally {
         setLoading(false);
       }
