@@ -401,7 +401,7 @@ export default function InventoryPage() {
         </div>
         
         {/* Main content */}
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto px-4 py-8 bg-white">
           <div className="flex flex-col md:flex-row gap-8">
             {/* Sidebar filters - Desktop */}
             <div className="hidden md:block w-72 flex-shrink-0">
