@@ -401,189 +401,191 @@ export default function InventoryPage() {
         </div>
         
         {/* Main content */}
-        <div className="container mx-auto px-4 py-8 bg-white">
-          <div className="flex flex-col md:flex-row gap-8">
-            {/* Sidebar filters - Desktop */}
-            <div className="hidden md:block w-72 flex-shrink-0">
-              <div className="bg-white rounded-xl shadow-sm border border-gray-100 sticky top-[130px]">
-                <div className="p-4 border-b border-gray-100">
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-semibold text-gray-900 flex items-center">
-                      <Sliders size={18} className="mr-2 text-orange-500" />
-                      Filters
-                    </h3>
+        <section className="bg-white">
+          <div className="container mx-auto px-4 py-8">
+            <div className="flex flex-col md:flex-row gap-8">
+              {/* Sidebar filters - Desktop */}
+              <div className="hidden md:block w-72 flex-shrink-0">
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100 sticky top-[130px]">
+                  <div className="p-4 border-b border-gray-100">
+                    <div className="flex items-center justify-between">
+                      <h3 className="font-semibold text-gray-900 flex items-center">
+                        <Sliders size={18} className="mr-2 text-orange-500" />
+                        Filters
+                      </h3>
+                      {activeFilterCount > 0 && (
+                        <button
+                          onClick={handleResetFilters}
+                          className="text-xs bg-orange-50 text-orange-600 hover:bg-orange-100 px-2.5 py-1 rounded-full font-medium transition-colors"
+                        >
+                          Clear all
+                        </button>
+                      )}
+                    </div>
                     {activeFilterCount > 0 && (
-                      <button
-                        onClick={handleResetFilters}
-                        className="text-xs bg-orange-50 text-orange-600 hover:bg-orange-100 px-2.5 py-1 rounded-full font-medium transition-colors"
-                      >
-                        Clear all
-                      </button>
+                      <div className="mt-2 text-sm text-gray-500">
+                        {activeFilterCount} {activeFilterCount === 1 ? 'filter' : 'filters'} applied
+                      </div>
                     )}
                   </div>
-                  {activeFilterCount > 0 && (
-                    <div className="mt-2 text-sm text-gray-500">
-                      {activeFilterCount} {activeFilterCount === 1 ? 'filter' : 'filters'} applied
-                    </div>
-                  )}
-                </div>
-                
-                <div className="p-4">
-                  <SidebarFilters
-                    filterOptions={filterOptions}
-                    filters={filters}
-                    updateFilter={handleFilterChange}
-                    resetFilters={handleResetFilters}
-                  />
-                </div>
-              </div>
-            </div>
-            
-            {/* Main Content */}
-            <div className="flex-1">
-              {/* Mobile Filter Button */}
-              <div className="flex items-center justify-between bg-white lg:hidden mb-4 p-3 rounded-lg shadow-sm">
-                <button
-                  onClick={toggleMobileFilters}
-                  className="flex items-center space-x-2 text-gray-700"
-                >
-                  <Filter size={18} />
-                  <span className="font-medium">Filters</span>
-                  {activeFilterCount > 0 && (
-                    <span className="ml-1.5 bg-orange-100 text-orange-600 text-xs px-1.5 py-0.5 rounded-full">
-                      {activeFilterCount}
-                    </span>
-                  )}
-                </button>
-                
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => toggleViewMode('grid')}
-                    className={`p-2 rounded-md ${viewMode === 'grid' ? 'bg-gray-100 text-orange-500' : 'text-gray-500'}`}
-                  >
-                    <Grid3X3 size={18} />
-                  </button>
-                  <button
-                    onClick={() => toggleViewMode('list')}
-                    className={`p-2 rounded-md ${viewMode === 'list' ? 'bg-gray-100 text-orange-500' : 'text-gray-500'}`}
-                  >
-                    <List size={18} />
-                  </button>
+                  
+                  <div className="p-4">
+                    <SidebarFilters
+                      filterOptions={filterOptions}
+                      filters={filters}
+                      updateFilter={handleFilterChange}
+                      resetFilters={handleResetFilters}
+                    />
+                  </div>
                 </div>
               </div>
               
-              {/* Sorting & Results Info */}
-              <div className="bg-white rounded-lg shadow-sm p-4 mb-5 flex flex-wrap justify-between items-center gap-4">
-                <div className="text-sm text-gray-500 flex items-center">
-                  <Car size={16} className="mr-2 text-gray-400" />
-                  <span className="font-medium text-gray-900">{cars.length}</span>{" "}
-                  vehicles found
-                </div>
-
-                <div className="flex flex-wrap items-center gap-4">
-                  {/* Desktop View Mode Toggles */}
-                  <div className="hidden lg:flex items-center bg-gray-100 rounded-md p-1">
+              {/* Main Content */}
+              <div className="flex-1">
+                {/* Mobile Filter Button */}
+                <div className="flex items-center justify-between bg-white lg:hidden mb-4 p-3 rounded-lg shadow-sm">
+                  <button
+                    onClick={toggleMobileFilters}
+                    className="flex items-center space-x-2 text-gray-700"
+                  >
+                    <Filter size={18} />
+                    <span className="font-medium">Filters</span>
+                    {activeFilterCount > 0 && (
+                      <span className="ml-1.5 bg-orange-100 text-orange-600 text-xs px-1.5 py-0.5 rounded-full">
+                        {activeFilterCount}
+                      </span>
+                    )}
+                  </button>
+                  
+                  <div className="flex items-center gap-1">
                     <button
                       onClick={() => toggleViewMode('grid')}
-                      className={`p-1.5 rounded ${viewMode === 'grid' ? 'bg-white shadow-sm text-orange-500' : 'text-gray-500'}`}
+                      className={`p-2 rounded-md ${viewMode === 'grid' ? 'bg-gray-100 text-orange-500' : 'text-gray-500'}`}
                     >
                       <Grid3X3 size={18} />
                     </button>
                     <button
                       onClick={() => toggleViewMode('list')}
-                      className={`p-1.5 rounded ${viewMode === 'list' ? 'bg-white shadow-sm text-orange-500' : 'text-gray-500'}`}
+                      className={`p-2 rounded-md ${viewMode === 'list' ? 'bg-gray-100 text-orange-500' : 'text-gray-500'}`}
                     >
                       <List size={18} />
                     </button>
                   </div>
-                  
-                  {/* Sort Options */}
-                  <div className="relative">
-                    <select
-                      className="appearance-none bg-gray-50 border border-gray-200 rounded-md py-2 pl-3 pr-8 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
-                      value={sortBy}
-                      onChange={handleSortChange}
-                    >
-                      <option value="newest">Newest First</option>
-                      <option value="oldest">Oldest First</option>
-                      <option value="price-asc">Price: Low to High</option>
-                      <option value="price-desc">Price: High to Low</option>
-                      <option value="mileage-asc">Mileage: Low to High</option>
-                    </select>
-                    <ChevronDown
-                      size={16}
-                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"
-                    />
-                  </div>
                 </div>
-              </div>
-
-              {/* Mobile Filters Panel */}
-              {mobileFiltersVisible && (
-                <MobileFilters
-                  filterOptions={filterOptions}
-                  filters={filters}
-                  updateFilter={handleFilterChange}
-                  resetFilters={handleResetFilters}
-                  closeFilters={toggleMobileFilters}
-                />
-              )}
-
-              {/* Loading State */}
-              {loading ? (
-                <div className="flex items-center justify-center py-16 bg-white rounded-xl shadow-sm">
-                  <div className="text-center">
-                    <Loader2 className="h-12 w-12 mx-auto text-orange-500 animate-spin mb-4" />
-                    <p className="text-gray-600 font-medium">Loading inventory...</p>
-                    <p className="text-gray-500 text-sm mt-1">Finding the perfect ride for you</p>
+                
+                {/* Sorting & Results Info */}
+                <div className="bg-white rounded-lg shadow-sm p-4 mb-5 flex flex-wrap justify-between items-center gap-4">
+                  <div className="text-sm text-gray-500 flex items-center">
+                    <Car size={16} className="mr-2 text-gray-400" />
+                    <span className="font-medium text-gray-900">{cars.length}</span>{" "}
+                    vehicles found
                   </div>
-                </div>
-              ) : error ? (
-                <div className="bg-red-50 border border-red-200 rounded-lg p-6 my-4">
-                  <div className="flex items-start">
-                    <AlertCircle className="text-red-500 mr-3 mt-0.5" size={20} />
-                    <div>
-                      <h3 className="font-medium text-red-800">Error Loading Inventory</h3>
-                      <p className="text-red-700 text-sm mt-1">{error}</p>
-                      <button 
-                        onClick={() => window.location.reload()}
-                        className="mt-3 text-sm bg-white px-3 py-1.5 border border-red-300 text-red-600 rounded-md hover:bg-red-50"
+
+                  <div className="flex flex-wrap items-center gap-4">
+                    {/* Desktop View Mode Toggles */}
+                    <div className="hidden lg:flex items-center bg-gray-100 rounded-md p-1">
+                      <button
+                        onClick={() => toggleViewMode('grid')}
+                        className={`p-1.5 rounded ${viewMode === 'grid' ? 'bg-white shadow-sm text-orange-500' : 'text-gray-500'}`}
                       >
-                        Try Again
+                        <Grid3X3 size={18} />
                       </button>
+                      <button
+                        onClick={() => toggleViewMode('list')}
+                        className={`p-1.5 rounded ${viewMode === 'list' ? 'bg-white shadow-sm text-orange-500' : 'text-gray-500'}`}
+                      >
+                        <List size={18} />
+                      </button>
+                    </div>
+                    
+                    {/* Sort Options */}
+                    <div className="relative">
+                      <select
+                        className="appearance-none bg-gray-50 border border-gray-200 rounded-md py-2 pl-3 pr-8 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        value={sortBy}
+                        onChange={handleSortChange}
+                      >
+                        <option value="newest">Newest First</option>
+                        <option value="oldest">Oldest First</option>
+                        <option value="price-asc">Price: Low to High</option>
+                        <option value="price-desc">Price: High to Low</option>
+                        <option value="mileage-asc">Mileage: Low to High</option>
+                      </select>
+                      <ChevronDown
+                        size={16}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"
+                      />
                     </div>
                   </div>
                 </div>
-              ) : cars.length === 0 ? (
-                <div className="bg-white rounded-xl shadow-sm p-8 text-center">
-                  <X className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No vehicles found</h3>
-                  <p className="text-gray-500 mb-6">We couldn't find any vehicles matching your criteria.</p>
-                  <button
-                    onClick={handleResetFilters}
-                    className="px-4 py-2 bg-orange-100 text-orange-600 rounded-md font-medium hover:bg-orange-200 transition-colors"
-                  >
-                    Clear All Filters
-                  </button>
-                </div>
-              ) : (
-                /* Car Grid or List View */
-                <div className={viewMode === 'grid' 
-                  ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6" 
-                  : "space-y-4"
-                }>
-                  {cars.map(car => (
-                    <CarCard 
-                      key={car.id} 
-                      car={car} 
-                      listView={viewMode === 'list'} 
-                    />
-                  ))}
-                </div>
-              )}
+
+                {/* Mobile Filters Panel */}
+                {mobileFiltersVisible && (
+                  <MobileFilters
+                    filterOptions={filterOptions}
+                    filters={filters}
+                    updateFilter={handleFilterChange}
+                    resetFilters={handleResetFilters}
+                    closeFilters={toggleMobileFilters}
+                  />
+                )}
+
+                {/* Loading State */}
+                {loading ? (
+                  <div className="flex items-center justify-center py-16 bg-white rounded-xl shadow-sm">
+                    <div className="text-center">
+                      <Loader2 className="h-12 w-12 mx-auto text-orange-500 animate-spin mb-4" />
+                      <p className="text-gray-600 font-medium">Loading inventory...</p>
+                      <p className="text-gray-500 text-sm mt-1">Finding the perfect ride for you</p>
+                    </div>
+                  </div>
+                ) : error ? (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-6 my-4">
+                    <div className="flex items-start">
+                      <AlertCircle className="text-red-500 mr-3 mt-0.5" size={20} />
+                      <div>
+                        <h3 className="font-medium text-red-800">Error Loading Inventory</h3>
+                        <p className="text-red-700 text-sm mt-1">{error}</p>
+                        <button 
+                          onClick={() => window.location.reload()}
+                          className="mt-3 text-sm bg-white px-3 py-1.5 border border-red-300 text-red-600 rounded-md hover:bg-red-50"
+                        >
+                          Try Again
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : cars.length === 0 ? (
+                  <div className="bg-white rounded-xl shadow-sm p-8 text-center">
+                    <X className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No vehicles found</h3>
+                    <p className="text-gray-500 mb-6">We couldn't find any vehicles matching your criteria.</p>
+                    <button
+                      onClick={handleResetFilters}
+                      className="px-4 py-2 bg-orange-100 text-orange-600 rounded-md font-medium hover:bg-orange-200 transition-colors"
+                    >
+                      Clear All Filters
+                    </button>
+                  </div>
+                ) : (
+                  /* Car Grid or List View */
+                  <div className={viewMode === 'grid' 
+                    ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6" 
+                    : "space-y-4"
+                  }>
+                    {cars.map(car => (
+                      <CarCard 
+                        key={car.id} 
+                        car={car} 
+                        listView={viewMode === 'list'} 
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        </div>
+        </section>
       </main>
       
       <Footer />
