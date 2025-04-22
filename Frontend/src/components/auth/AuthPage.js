@@ -58,16 +58,49 @@ const LoginForm = ({ onToggle }) => {
   const checkBackendStatus = async () => {
     try {
       setConnectionStatus("Checking connection to backend server...");
-      const response = await fetch(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000');
-      if (response.ok) {
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      console.log("Checking backend health at:", backendUrl);
+      
+      // Try health endpoint first
+      try {
+        const healthUrl = `${backendUrl}/api/health`;
+        const healthResponse = await fetch(healthUrl, { 
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+          // Abort after 8 seconds
+          signal: AbortSignal.timeout(8000)
+        });
+        
+        if (healthResponse.ok) {
+          const healthData = await healthResponse.json();
+          setConnectionStatus(`✅ Backend server is accessible (${healthData.status || 'ok'})`);
+          return true;
+        }
+      } catch (healthErr) {
+        console.log("Health check failed, trying root endpoint...");
+      }
+      
+      // Fallback to root endpoint
+      const rootResponse = await fetch(backendUrl, { 
+        method: 'GET',
+        // Abort after 8 seconds
+        signal: AbortSignal.timeout(8000)
+      });
+      
+      if (rootResponse.ok) {
         setConnectionStatus("✅ Backend server is accessible");
         return true;
       } else {
-        setConnectionStatus("❌ Backend server returned an error");
+        setConnectionStatus(`❌ Backend server returned status ${rootResponse.status}`);
         return false;
       }
     } catch (err) {
-      setConnectionStatus("❌ Cannot connect to backend server. Is it running?");
+      console.error("Backend check error:", err);
+      if (err.name === 'TimeoutError' || err.name === 'AbortError') {
+        setConnectionStatus("❌ Connection to backend timed out");
+      } else {
+        setConnectionStatus("❌ Cannot connect to backend server. Is it running?");
+      }
       return false;
     }
   };
@@ -80,14 +113,15 @@ const LoginForm = ({ onToggle }) => {
       return;
     }
     
-    // Show connection status when logging in as admin
-    if (email.toLowerCase() === "admin@myride.com") {
-      await checkBackendStatus();
-    }
-    
     try {
       setIsSubmitting(true);
       setError("");
+      
+      // Always check connection status for transparency
+      const isConnected = await checkBackendStatus();
+      if (!isConnected) {
+        console.warn("Login proceeding despite connectivity warning");
+      }
       
       console.log("Attempting login with:", email);
       const result = await login({ email, password });
@@ -109,11 +143,14 @@ const LoginForm = ({ onToggle }) => {
       router.push("/");
     } catch (err) {
       console.error("Login error in form:", err);
-      setError(err.message || "Login failed. Please check your credentials.");
       
-      // If it's admin login and we got a network error, check backend connectivity
-      if (email.toLowerCase() === "admin@myride.com" && err.message?.includes("Network error")) {
+      if (err.message?.includes("Invalid response from server")) {
+        setError("We're having trouble connecting to the server. Please try again later.");
+      } else if (err.message?.includes("Network error") || err.message?.includes("timed out")) {
+        setError("Can't reach the server. Please check your internet connection and try again.");
         await checkBackendStatus();
+      } else {
+        setError(err.message || "Login failed. Please check your credentials.");
       }
     } finally {
       setIsSubmitting(false);

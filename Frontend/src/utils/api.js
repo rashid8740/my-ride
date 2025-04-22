@@ -80,7 +80,8 @@ const apiService = {
    * Base method for making HTTP requests
    */
   async request(endpoint, options = {}) {
-    const url = `${API_URL}/api${endpoint}`;
+    // Use getApiUrl to ensure correct URL in all environments
+    const url = `${getApiUrl()}/api${endpoint}`;
     
     const isImportantRequest = endpoint.includes('/auth/login') || endpoint.includes('/users');
     
@@ -101,9 +102,6 @@ const apiService = {
       if (isImportantRequest) {
         console.log('Using token for request:', token.substring(0, 15) + '...');
       }
-    } else if (endpoint.startsWith('/users') && !endpoint.includes('/profile')) {
-      // Non-profile user endpoints typically require authentication
-      console.warn('Making request to protected endpoint without authentication token:', endpoint);
     }
     
     const config = {
@@ -111,9 +109,17 @@ const apiService = {
       headers,
     };
     
+    // Set up timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 second timeout
+    config.signal = controller.signal;
+    
     try {
       // Send the request
       const response = await fetch(url, config);
+      
+      // Clear timeout
+      clearTimeout(timeoutId);
       
       // For debugging - log important responses
       if (isImportantRequest) {
@@ -168,12 +174,47 @@ const apiService = {
       
       return data;
     } catch (error) {
+      // Clear timeout if there was an error
+      clearTimeout(timeoutId);
+      
       console.error('API request error:', error);
+      
+      // Handle timeout errors
+      if (error.name === 'AbortError') {
+        throw new Error('Request timed out. Please try again later.');
+      }
       
       // Network errors or other fetch failures
       if (error.name === 'TypeError') {
         if (error.message.includes('NetworkError') || error.message.includes('Failed to fetch')) {
           console.error('Network error details:', error);
+          
+          // Special case for login, try with direct API call as a fallback
+          if (endpoint === '/auth/login' && options.method === 'POST') {
+            try {
+              // Try a direct login with the backend URL
+              console.log('Attempting direct login with backend as fallback...');
+              const directResponse = await fetch(`${getApiUrl()}/api/auth/login`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: options.body,
+                // Don't use controller signal for fallback to avoid abort
+              });
+              
+              if (directResponse.ok) {
+                const directData = await directResponse.json();
+                console.log('Direct login succeeded');
+                return directData;
+              } else {
+                console.log('Direct login failed:', directResponse.status);
+              }
+            } catch (directError) {
+              console.error('Direct login attempt failed:', directError);
+            }
+          }
+          
           throw new Error('Network error. Please check if the backend server is running and accessible.');
         }
       }
