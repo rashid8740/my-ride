@@ -36,7 +36,6 @@ import CarCard from "@/components/inventory/CarCard";
 import SidebarFilters from "@/components/inventory/SidebarFilters";
 import MobileFilters from "@/components/inventory/MobileFilters";
 import { filterOptions } from "./data";
-import BackendStatus from '@/components/debug/BackendStatus';
 
 // Sample cars data for development - replace with API call in production
 const sampleCars = [
@@ -250,81 +249,26 @@ export default function InventoryPage() {
             queryParams.append('sort', 'year_desc');
         }
         
-        // First try the internal API route
+        // Fetch data from API
         console.log('Fetching cars from API with params:', queryParams.toString());
-        let response;
-        let result;
-        let fetchSucceeded = false;
+        const response = await fetch(`/api/cars?${queryParams.toString()}`);
         
-        try {
-          response = await fetch(`/api/cars?${queryParams.toString()}`);
-          
-          if (response.ok) {
-            result = await response.json();
-            fetchSucceeded = true;
-          }
-        } catch (innerError) {
-          console.warn('Internal API route failed, trying direct backend:', innerError);
+        if (!response.ok) {
+          throw new Error(`Error fetching cars: ${response.status}`);
         }
         
-        // If internal API route failed, try direct API call
-        if (!fetchSucceeded) {
-          const backendUrl = 'https://myridev1.000webhostapp.com';
-          response = await fetch(`${backendUrl}/api/cars?${queryParams.toString()}`);
-          
-          if (!response.ok) {
-            throw new Error(`Error fetching cars: ${response.status}`);
-          }
-          
-          result = await response.json();
-        }
-        
+        const result = await response.json();
         console.log('API response:', result);
         
         if (result && result.data && Array.isArray(result.data)) {
           setCars(result.data);
-          
-          // Set featured cars (only on initial load with no filters)
-          if (!filters.category && !filters.minPrice && !filters.maxPrice && 
-              !filters.minYear && !filters.maxYear && !filters.fuel && 
-              !filters.transmission && !searchTerm) {
-            try {
-              // Try internal API route for featured cars first
-              let featuredResponse = await fetch('/api/cars/featured');
-              let featuredResult;
-              
-              if (!featuredResponse.ok) {
-                // If internal API fails, try direct backend
-                const backendUrl = 'https://myridev1.000webhostapp.com';
-                featuredResponse = await fetch(`${backendUrl}/api/cars/featured`);
-              }
-              
-              if (featuredResponse.ok) {
-                featuredResult = await featuredResponse.json();
-                if (featuredResult && featuredResult.data) {
-                  setFeaturedCars(featuredResult.data);
-                }
-              }
-            } catch (featuredError) {
-              console.warn('Error fetching featured cars:', featuredError);
-              // Use sample featured cars as fallback
-              setFeaturedCars(sampleCars.filter(car => car.featured));
-            }
-          } else {
-            setFeaturedCars([]);
-          }
+          // We don't need to fetch featured cars anymore
+          setFeaturedCars([]);
         } else {
           // Fallback to sample data if API returns no results
           console.log('No cars found in API response, using sample data');
           setCars(sampleCars);
-          
-          if (!filters.category && !filters.minPrice && !filters.maxPrice && 
-              !filters.minYear && !filters.maxYear && !filters.fuel && 
-              !filters.transmission && !searchTerm) {
-            setFeaturedCars(sampleCars.filter(car => car.featured));
-          } else {
-            setFeaturedCars([]);
-          }
+          setFeaturedCars([]);
         }
       } catch (err) {
         console.error('Error fetching cars:', err);
@@ -332,14 +276,7 @@ export default function InventoryPage() {
         
         // Fallback to sample data on error
         setCars(sampleCars);
-        
-        if (!filters.category && !filters.minPrice && !filters.maxPrice && 
-            !filters.minYear && !filters.maxYear && !filters.fuel && 
-            !filters.transmission && !searchTerm) {
-          setFeaturedCars(sampleCars.filter(car => car.featured));
-        } else {
-          setFeaturedCars([]);
-        }
+        setFeaturedCars([]);
       } finally {
         setLoading(false);
       }
@@ -470,26 +407,6 @@ export default function InventoryPage() {
           </div>
         </div>
         
-        {/* Featured Cars - Show only when no filters are active */}
-        {featuredCars.length > 0 && activeFilterCount === 0 && !searchTerm && (
-          <section className="py-8 md:py-12 bg-white">
-            <div className="container mx-auto px-4 md:px-8">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">Featured Vehicles</h2>
-                <Link href="/inventory" className="text-orange-500 hover:text-orange-600 font-medium flex items-center">
-                  View all <ArrowRight size={16} className="ml-1" />
-                </Link>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {featuredCars.map(car => (
-                  <CarCard key={car.id} car={{...car, featured: true}} />
-                ))}
-              </div>
-            </div>
-          </section>
-        )}
-
         <section className="py-8 bg-gray-50">
           <div className="container mx-auto px-4 md:px-8">
             <div className="flex flex-col lg:flex-row gap-8">
@@ -629,21 +546,18 @@ export default function InventoryPage() {
                     </div>
                   </div>
                 ) : error ? (
-                  <div className="flex flex-col items-center justify-center py-12">
-                    <div className="w-full max-w-3xl">
-                      <div className="p-6 bg-white rounded-lg shadow text-center">
-                        <AlertCircle className="h-12 w-12 text-red-500 mx-auto mb-4" />
-                        <h3 className="text-xl font-bold text-gray-900 mb-2">Error Loading Inventory</h3>
-                        <p className="text-gray-600 mb-6">{error}</p>
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-6 my-4">
+                    <div className="flex items-start">
+                      <AlertCircle className="text-red-500 mr-3 mt-0.5" size={20} />
+                      <div>
+                        <h3 className="font-medium text-red-800">Error Loading Inventory</h3>
+                        <p className="text-red-700 text-sm mt-1">{error}</p>
                         <button 
-                          onClick={() => window.location.reload()} 
-                          className="px-6 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
+                          onClick={() => window.location.reload()}
+                          className="mt-3 text-sm bg-white px-3 py-1.5 border border-red-300 text-red-600 rounded-md hover:bg-red-50"
                         >
                           Try Again
                         </button>
-                        
-                        {/* Add the backend status component for debugging */}
-                        <BackendStatus />
                       </div>
                     </div>
                   </div>
