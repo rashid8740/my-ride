@@ -149,6 +149,9 @@ export default function InventoryPage() {
   
   // Mobile filters visibility state
   const [mobileFiltersVisible, setMobileFiltersVisible] = useState(false);
+  
+  // Featured cars
+  const [featuredCars, setFeaturedCars] = useState([]);
 
   // Check for URL parameters to set initial filters
   useEffect(() => {
@@ -257,24 +260,50 @@ export default function InventoryPage() {
         const result = await response.json();
         console.log('API response:', result);
         
-        if (result && result.data && Array.isArray(result.data) && result.data.length > 0) {
+        if (result && result.data && Array.isArray(result.data)) {
           setCars(result.data);
+          
+          // Set featured cars (only on initial load with no filters)
+          if (!filters.category && !filters.minPrice && !filters.maxPrice && 
+              !filters.minYear && !filters.maxYear && !filters.fuel && 
+              !filters.transmission && !searchTerm) {
+            const featuredResponse = await fetch('/api/cars/featured');
+            if (featuredResponse.ok) {
+              const featuredResult = await featuredResponse.json();
+              if (featuredResult && featuredResult.data) {
+                setFeaturedCars(featuredResult.data);
+              }
+            }
+          } else {
+            setFeaturedCars([]);
+          }
         } else {
           // Fallback to sample data if API returns no results
           console.log('No cars found in API response, using sample data');
           setCars(sampleCars);
+          
+          if (!filters.category && !filters.minPrice && !filters.maxPrice && 
+              !filters.minYear && !filters.maxYear && !filters.fuel && 
+              !filters.transmission && !searchTerm) {
+            setFeaturedCars(sampleCars.filter(car => car.featured));
+          } else {
+            setFeaturedCars([]);
+          }
         }
       } catch (err) {
         console.error('Error fetching cars:', err);
-        setError('Failed to load vehicles from API. Showing sample data instead.');
+        setError('Failed to load vehicles. Please try again later.');
         
-        // Always fallback to sample data on error
+        // Fallback to sample data on error
         setCars(sampleCars);
         
-        // Clear error after 5 seconds
-        setTimeout(() => {
-          setError(null);
-        }, 5000);
+        if (!filters.category && !filters.minPrice && !filters.maxPrice && 
+            !filters.minYear && !filters.maxYear && !filters.fuel && 
+            !filters.transmission && !searchTerm) {
+          setFeaturedCars(sampleCars.filter(car => car.featured));
+        } else {
+          setFeaturedCars([]);
+        }
       } finally {
         setLoading(false);
       }
@@ -405,12 +434,31 @@ export default function InventoryPage() {
           </div>
         </div>
         
-        {/* Main content */}
-        <section className="bg-white">
-          <div className="container mx-auto px-4 py-8">
-            <div className="flex flex-col md:flex-row gap-8">
-              {/* Sidebar filters - Desktop */}
-              <div className="hidden md:block w-72 flex-shrink-0">
+        {/* Featured Cars - Show only when no filters are active */}
+        {featuredCars.length > 0 && activeFilterCount === 0 && !searchTerm && (
+          <section className="py-8 md:py-12 bg-white">
+            <div className="container mx-auto px-4 md:px-8">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-gray-900">Featured Vehicles</h2>
+                <Link href="/inventory" className="text-orange-500 hover:text-orange-600 font-medium flex items-center">
+                  View all <ArrowRight size={16} className="ml-1" />
+                </Link>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {featuredCars.map(car => (
+                  <CarCard key={car.id} car={{...car, featured: true}} />
+                ))}
+              </div>
+            </div>
+          </section>
+        )}
+
+        <section className="py-8 bg-gray-50">
+          <div className="container mx-auto px-4 md:px-8">
+            <div className="flex flex-col lg:flex-row gap-8">
+              {/* Sidebar Filters - Desktop */}
+              <div className="hidden lg:block w-72 flex-shrink-0">
                 <div className="bg-white rounded-xl shadow-sm border border-gray-100 sticky top-[130px]">
                   <div className="p-4 border-b border-gray-100">
                     <div className="flex items-center justify-between">

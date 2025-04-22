@@ -1,18 +1,11 @@
 // src/utils/api.js
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://rashdi8740:Up6MrE69mLM7gwsB@cluster0.chaq15e.mongodb.net/test';
 
 /**
  * Get the base API URL with proper fallbacks
  * @returns {string} The API URL
  */
 export function getApiUrl() {
-  // Check if we're in Vercel serverless functions, use direct MongoDB
-  if (process.env.VERCEL) {
-    console.log("Running in Vercel serverless functions");
-    return '/api'; // Use internal API routes
-  }
-  
   // Prioritize environment variable, then fallback to production URL if in production, and local if not
   if (process.env.NEXT_PUBLIC_API_URL) {
     return process.env.NEXT_PUBLIC_API_URL;
@@ -20,15 +13,11 @@ export function getApiUrl() {
   
   // Check if we're in a browser and in production
   if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
-    return '/api'; // Use internal API routes in production
+    return 'https://my-ride-backend.vercel.app';
   }
   
   // Default for local development
   return 'http://localhost:5000';
-}
-
-export function getMongoUri() {
-  return MONGODB_URI;
 }
 
 /**
@@ -72,13 +61,7 @@ export async function apiRequest(endpoint, options = {}) {
  */
 export async function checkBackendHealth() {
   try {
-    const baseUrl = getApiUrl();
-    // Prevent /api/api duplication
-    const healthEndpoint = baseUrl === '/api' 
-      ? '/api/health'  // Already includes /api
-      : `${baseUrl}/api/health`;
-      
-    const response = await fetch(healthEndpoint, {
+    const response = await fetch(`${getApiUrl()}/api/health`, {
       method: 'GET',
       headers: { 'Content-Type': 'application/json' },
     });
@@ -97,22 +80,7 @@ const apiService = {
    * Base method for making HTTP requests
    */
   async request(endpoint, options = {}) {
-    // Handle both external and internal API routes
-    const baseApiUrl = getApiUrl();
-    
-    // Fix URL construction to avoid duplication
-    let url;
-    if (baseApiUrl === '/api') {
-      // For internal API routes, ensure we don't duplicate /api
-      url = endpoint.startsWith('/')
-        ? `/api${endpoint}`
-        : `/api/${endpoint}`;
-        
-      console.log(`Using internal API route: ${url}`);
-    } else {
-      // For external API, construct URL normally
-      url = `${baseApiUrl}/api${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
-    }
+    const url = `${API_URL}/api${endpoint}`;
     
     const isImportantRequest = endpoint.includes('/auth/login') || endpoint.includes('/users');
     

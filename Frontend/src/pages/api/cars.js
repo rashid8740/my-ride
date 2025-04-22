@@ -1,144 +1,80 @@
-import { MongoClient } from 'mongodb';
-
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://rashdi8740:Up6MrE69mLM7gwsB@cluster0.chaq15e.mongodb.net/test';
-const DB_NAME = 'test'; // Make sure this matches your actual database name
-
-// Connect to MongoDB
-let cachedClient = null;
-let cachedDb = null;
-
-async function connectToDatabase() {
-  if (cachedClient && cachedDb) {
-    console.log('Using cached database connection');
-    return { client: cachedClient, db: cachedDb };
-  }
-
-  console.log('Creating new database connection');
-  console.log('Connection URI (masked):', MONGODB_URI.replace(/\/\/([^:]+):[^@]+@/, '//***:***@'));
-  
-  try {
-    // Updated MongoDB client options for version 6+
-    const client = await MongoClient.connect(MONGODB_URI);
-    
-    const db = client.db(DB_NAME);
-    
-    // Test the connection by listing collections
-    const collections = await db.listCollections().toArray();
-    console.log('Connected to MongoDB. Collections available:', collections.map(c => c.name));
-    
-    cachedClient = client;
-    cachedDb = db;
-    
-    return { client, db };
-  } catch (error) {
-    console.error('MongoDB connection error:', error);
-    throw error;
-  }
-}
+import { getAuthToken } from '@/utils/auth';
 
 export default async function handler(req, res) {
-  console.log('API route /api/cars called with query:', req.query);
+  const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
   
   try {
-    // Connect to MongoDB
-    const { db } = await connectToDatabase();
+    // Get the auth token
+    const token = getAuthToken(req);
     
-    // Get query parameters
-    const { 
-      category, type, make, model, minYear, maxYear, year, 
-      minPrice, maxPrice, fuel, transmission, sort, 
-      limit = 20, page = 1, search 
-    } = req.query;
-    
-    // Build query
-    const query = {};
-    
-    // Handle various filter combinations
-    if (category) query.category = category;
-    if (type) query.type = type;
-    if (make) query.make = make;
-    if (model) query.model = model;
-    if (fuel) query.fuel = fuel;
-    if (transmission) query.transmission = transmission;
-    
-    // Handle year as single value or range
-    if (year) {
-      query.year = parseInt(year);
-    } else if (minYear || maxYear) {
-      query.year = {};
-      if (minYear) query.year.$gte = parseInt(minYear);
-      if (maxYear) query.year.$lte = parseInt(maxYear);
+    switch (req.method) {
+      case 'GET':
+        // Forward query parameters
+        const queryString = new URLSearchParams(req.query).toString();
+        const getUrl = queryString 
+          ? `${backendUrl}/api/cars?${queryString}` 
+          : `${backendUrl}/api/cars`;
+          
+        console.log('GET request to:', getUrl);
+        
+        const getResponse = await fetch(getUrl, {
+          headers: token ? {
+            'Authorization': `Bearer ${token}`
+          } : {}
+        });
+        
+        const data = await getResponse.json();
+        return res.status(getResponse.status).json(data);
+        
+      case 'POST':
+        // Log the token for debugging
+        console.log('Token for vehicle creation (from /api/cars):', token ? 'Present' : 'Missing');
+        console.log('Using backend URL:', `${backendUrl}/api/cars`);
+        
+        // Create new vehicle - ensure we're using the correct endpoint
+        const createResponse = await fetch(`${backendUrl}/api/cars`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': token ? `Bearer ${token}` : ''
+          },
+          body: JSON.stringify(req.body)
+        });
+        
+        // Read the response text
+        const responseText = await createResponse.text();
+        console.log('Backend response status:', createResponse.status);
+        console.log('Backend response:', responseText.substring(0, 500));
+        
+        let createData;
+        
+        try {
+          // Try to parse the response as JSON
+          createData = JSON.parse(responseText);
+          
+          // Log the created car ID
+          if (createData.status === 'success' && createData.data && createData.data._id) {
+            console.log('Successfully created car with ID:', createData.data._id);
+          }
+        } catch (error) {
+          // If parsing fails, return the raw text with error status
+          console.error('Failed to parse response:', responseText.substring(0, 200));
+          return res.status(createResponse.status).json({ 
+            status: 'error',
+            message: `Server returned invalid JSON: ${responseText.substring(0, 200)}...`
+          });
+        }
+        
+        return res.status(createResponse.status).json(createData);
+        
+      default:
+        return res.status(405).json({ message: 'Method not allowed' });
     }
-    
-    // Handle price range
-    if (minPrice || maxPrice) {
-      query.price = {};
-      if (minPrice) query.price.$gte = parseInt(minPrice);
-      if (maxPrice) query.price.$lte = parseInt(maxPrice);
-    }
-    
-    // Handle search term (across multiple fields)
-    if (search) {
-      const searchRegex = new RegExp(search, 'i');
-      query.$or = [
-        { title: searchRegex },
-        { make: searchRegex },
-        { model: searchRegex },
-        { description: searchRegex }
-      ];
-    }
-    
-    console.log('MongoDB query:', JSON.stringify(query));
-    
-    // Build sort options
-    let sortOptions = { createdAt: -1 }; // Default sort
-    if (sort) {
-      if (sort === 'price_asc' || sort === 'price-asc') sortOptions = { price: 1 };
-      if (sort === 'price_desc' || sort === 'price-desc') sortOptions = { price: -1 };
-      if (sort === 'year_asc' || sort === 'year-asc') sortOptions = { year: 1 };
-      if (sort === 'year_desc' || sort === 'year-desc') sortOptions = { year: -1 };
-      if (sort === 'latest') sortOptions = { createdAt: -1 };
-    }
-    
-    // Pagination
-    const skip = (parseInt(page) - 1) * parseInt(limit);
-    
-    // Get cars from database
-    const cars = await db
-      .collection('cars')
-      .find(query)
-      .sort(sortOptions)
-      .skip(skip)
-      .limit(parseInt(limit))
-      .toArray();
-    
-    console.log(`Found ${cars.length} cars matching query`);
-    
-    // Get total count
-    const totalCount = await db
-      .collection('cars')
-      .countDocuments(query);
-    
-    // Calculate total pages
-    const totalPages = Math.ceil(totalCount / parseInt(limit));
-    
-    // Return response
-    return res.status(200).json({
-      status: 'success',
-      data: cars,
-      pagination: {
-        total: totalCount,
-        page: parseInt(page),
-        limit: parseInt(limit),
-        pages: totalPages,
-      },
-    });
   } catch (error) {
-    console.error('Error in /api/cars endpoint:', error);
-    return res.status(500).json({
+    console.error('API route error:', error);
+    return res.status(500).json({ 
       status: 'error',
-      message: 'Failed to fetch cars',
-      error: error.message,
+      message: error.message || 'An error occurred while processing your request' 
     });
   }
 } 
