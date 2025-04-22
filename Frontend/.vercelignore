@@ -1,0 +1,3 @@
+# Skip caching specific files
+.next/
+.vercel/ 
