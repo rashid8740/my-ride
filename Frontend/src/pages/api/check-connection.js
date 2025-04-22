@@ -1,7 +1,8 @@
 // /api/check-connection
 import { MongoClient } from 'mongodb';
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://rashdi8740:Up6MrE69mLM7gwsB@cluster0.chaq15e.mongodb.net/';
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://rashdi8740:Up6MrE69mLM7gwsB@cluster0.chaq15e.mongodb.net/test';
+const DB_NAME = 'test';
 
 export default async function handler(req, res) {
   let client = null;
@@ -18,11 +19,16 @@ export default async function handler(req, res) {
     const admin = client.db().admin();
     const listDatabases = await admin.listDatabases({ nameOnly: true });
     
+    // Check if we can access the test database
+    const testDb = client.db(DB_NAME);
+    const collections = await testDb.listCollections().toArray();
+    
     return res.status(200).json({
       status: 'success',
       connected: true,
       message: 'Successfully connected to MongoDB',
       databaseCount: listDatabases.databases.length,
+      testDbCollections: collections.map(c => c.name),
       timestamp: new Date().toISOString()
     });
   } catch (error) {

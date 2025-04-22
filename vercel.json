@@ -12,7 +12,7 @@
       }
     ],
     "env": {
-      "MONGODB_URI": "mongodb+srv://rashdi8740:Up6MrE69mLM7gwsB@cluster0.chaq15e.mongodb.net/",
+      "MONGODB_URI": "mongodb+srv://rashdi8740:Up6MrE69mLM7gwsB@cluster0.chaq15e.mongodb.net/test",
       "NEXT_PUBLIC_API_URL": "https://my-ride-backend-git-main-rashid8740s-projects.vercel.app"
     }
   }

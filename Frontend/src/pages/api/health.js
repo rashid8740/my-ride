@@ -1,7 +1,7 @@
 import { MongoClient } from 'mongodb';
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://rashdi8740:Up6MrE69mLM7gwsB@cluster0.chaq15e.mongodb.net/';
-const DB_NAME = 'my-ride';
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://rashdi8740:Up6MrE69mLM7gwsB@cluster0.chaq15e.mongodb.net/test';
+const DB_NAME = 'test';
 
 export default async function handler(req, res) {
   let client = null;
@@ -18,13 +18,18 @@ export default async function handler(req, res) {
     const adminDb = client.db('admin');
     const dbInfo = await adminDb.command({ listDatabases: 1, nameOnly: true });
     
+    // Check if we can access the specific database
+    const testDb = client.db(DB_NAME);
+    const collections = await testDb.listCollections().toArray();
+    
     return res.status(200).json({
       status: 'ok',
       message: 'API is running',
       database: 'connected',
       dbInfo: {
         databaseCount: dbInfo.databases.length,
-        databaseNames: dbInfo.databases.map(db => db.name).slice(0, 5) // Only show first 5 for security
+        databaseNames: dbInfo.databases.map(db => db.name).slice(0, 5), // Only show first 5 for security
+        testDbCollections: collections.length
       },
       timestamp: new Date().toISOString()
     });

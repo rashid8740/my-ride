@@ -1,6 +1,6 @@
 // src/utils/api.js
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://rashdi8740:Up6MrE69mLM7gwsB@cluster0.chaq15e.mongodb.net/';
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://rashdi8740:Up6MrE69mLM7gwsB@cluster0.chaq15e.mongodb.net/test';
 
 /**
  * Get the base API URL with proper fallbacks
