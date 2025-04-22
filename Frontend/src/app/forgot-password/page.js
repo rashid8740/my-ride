@@ -4,10 +4,7 @@ import ForgotPassword from '@/components/auth/ForgotPassword';
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
 
-export const metadata = {
-  title: "Forgot Password | AutoDecar",
-  description: "Reset your AutoDecar account password",
-};
+// Metadata cannot be exported from client components
 
 export default function ForgotPasswordPage() {
   return (
