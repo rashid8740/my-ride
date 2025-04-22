@@ -58,42 +58,76 @@ const LoginForm = ({ onToggle }) => {
   const checkBackendStatus = async () => {
     try {
       setConnectionStatus("Checking connection to backend server...");
+      
+      // Try the configured API URL first
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-      console.log("Checking backend health at:", backendUrl);
+      console.log("Checking primary backend at:", backendUrl);
       
-      // Try health endpoint first
-      try {
-        const healthUrl = `${backendUrl}/api/health`;
-        const healthResponse = await fetch(healthUrl, { 
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' },
-          // Abort after 8 seconds
-          signal: AbortSignal.timeout(8000)
-        });
-        
-        if (healthResponse.ok) {
-          const healthData = await healthResponse.json();
-          setConnectionStatus(`✅ Backend server is accessible (${healthData.status || 'ok'})`);
-          return true;
+      // List of potential backend URLs to try in order
+      const backendUrls = [
+        backendUrl,
+        'https://my-ride-backend.onrender.com',
+        'https://my-ride-backend.vercel.app'
+      ];
+      
+      // Try each backend URL
+      for (const url of backendUrls) {
+        try {
+          // Try health endpoint first
+          const healthUrl = `${url}/api/health`;
+          console.log("Trying health endpoint at:", healthUrl);
+          
+          const healthResponse = await fetch(healthUrl, { 
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' },
+            // Abort after 5 seconds to try next quickly
+            signal: AbortSignal.timeout(5000)
+          });
+          
+          if (healthResponse.ok) {
+            // Found a working backend!
+            try {
+              const healthData = await healthResponse.json();
+              setConnectionStatus(`✅ Backend server is accessible at ${url} (${healthData.status || 'ok'})`);
+              // If this isn't the primary URL, suggest updating the environment variable
+              if (url !== backendUrl) {
+                console.log(`Found working backend at ${url}. Consider updating your NEXT_PUBLIC_API_URL.`);
+              }
+              return true;
+            } catch (parseError) {
+              console.log("Health endpoint returned non-JSON response:", parseError);
+              setConnectionStatus(`✅ Backend server is accessible at ${url}`);
+              return true;
+            }
+          }
+        } catch (healthErr) {
+          console.log(`Health check failed for ${url}:`, healthErr);
         }
-      } catch (healthErr) {
-        console.log("Health check failed, trying root endpoint...");
+        
+        // If health check failed, try root endpoint
+        try {
+          console.log("Trying root endpoint at:", url);
+          const rootResponse = await fetch(url, { 
+            method: 'GET',
+            // Abort after 5 seconds
+            signal: AbortSignal.timeout(5000)
+          });
+          
+          if (rootResponse.ok) {
+            setConnectionStatus(`✅ Backend server is accessible at ${url}`);
+            if (url !== backendUrl) {
+              console.log(`Found working backend at ${url}. Consider updating your NEXT_PUBLIC_API_URL.`);
+            }
+            return true;
+          }
+        } catch (rootErr) {
+          console.log(`Root endpoint check failed for ${url}:`, rootErr);
+        }
       }
       
-      // Fallback to root endpoint
-      const rootResponse = await fetch(backendUrl, { 
-        method: 'GET',
-        // Abort after 8 seconds
-        signal: AbortSignal.timeout(8000)
-      });
-      
-      if (rootResponse.ok) {
-        setConnectionStatus("✅ Backend server is accessible");
-        return true;
-      } else {
-        setConnectionStatus(`❌ Backend server returned status ${rootResponse.status}`);
-        return false;
-      }
+      // If we got here, no backends worked
+      setConnectionStatus(`❌ Cannot connect to any backend servers. Please check if the backend is deployed.`);
+      return false;
     } catch (err) {
       console.error("Backend check error:", err);
       if (err.name === 'TimeoutError' || err.name === 'AbortError') {

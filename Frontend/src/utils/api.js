@@ -13,7 +13,15 @@ export function getApiUrl() {
   
   // Check if we're in a browser and in production
   if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
-    return 'https://my-ride-backend.vercel.app';
+    // Try different production backends in order of preference
+    // This helps with fallbacks if one service is down
+    
+    // Return render.com backend (better reliability)
+    return 'https://my-ride-backend.onrender.com';
+    
+    // Fallbacks commented out to use only the main backend above
+    // return 'https://my-ride-backend.vercel.app';
+    // return 'https://my-ride-api.herokuapp.com';
   }
   
   // Default for local development
