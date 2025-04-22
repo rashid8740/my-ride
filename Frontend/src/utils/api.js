@@ -13,7 +13,7 @@ export function getApiUrl() {
   
   // Check if we're in a browser and in production
   if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
-    return 'https://my-ride-backend-tau.vercel.app';
+    return 'https://my-ride-backend-git-main-rashid8740s-projects.vercel.app';
   }
   
   // Default for local development

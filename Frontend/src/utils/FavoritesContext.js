@@ -131,7 +131,7 @@ export const FavoritesProvider = ({ children }) => {
       try {
         const backendUrl = process.env.NEXT_PUBLIC_API_URL || 
                            (typeof window !== 'undefined' && window.location.hostname !== 'localhost' 
-                            ? 'https://my-ride-backend-tau.vercel.app' 
+                            ? 'https://my-ride-backend-git-main-rashid8740s-projects.vercel.app' 
                             : 'http://localhost:5000');
         
         console.log("Checking backend availability at:", backendUrl);

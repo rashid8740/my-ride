@@ -1,7 +1,10 @@
 // /api/check-connection
 export default async function handler(req, res) {
   // Get the backend URL from environment variables
-  const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+  const backendUrl = process.env.NEXT_PUBLIC_API_URL || 
+                    (typeof window !== 'undefined' && window.location.hostname !== 'localhost' 
+                     ? 'https://my-ride-backend-git-main-rashid8740s-projects.vercel.app' 
+                     : 'http://localhost:5000');
   
   try {
     // Attempt to connect to the backend health endpoint
