@@ -21,12 +21,6 @@ const nextConfig = {
       },
     ];
   },
-  // Make sure all pages fallback to index for client-side routing
-  async exportPathMap() {
-    return {
-      '/': { page: '/' },
-    };
-  },
   // Ensure trailing slashes are handled consistently
   trailingSlash: false,
 }
