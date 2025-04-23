@@ -1,11 +1,7 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "package.json",
-      "use": "@vercel/next"
-    }
-  ],
+  "buildCommand": "next build",
+  "framework": "nextjs",
   "routes": [
     {
       "src": "/api/(.*)",
@@ -38,12 +34,16 @@
       "dest": "/robots.txt"
     },
     {
+      "handle": "filesystem"
+    },
+    {
       "src": "/(.*)",
-      "dest": "/"
+      "status": 404,
+      "dest": "/404"
     }
   ],
   "env": {
-    "NEXT_PUBLIC_API_URL": "https://my-ride-backend-tau.vercel.app",
+    "NEXT_PUBLIC_API_URL": "https://my-ride-hhne.vercel.app",
     "NEXT_PUBLIC_SITE_URL": "https://my-ride-git-main-rashid8740s-projects.vercel.app"
   }
 } 
