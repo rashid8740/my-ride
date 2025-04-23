@@ -4,7 +4,7 @@ export default async function handler(req, res) {
     console.log("Starting authenticated fix process...");
     
     // Step 1: Login as admin to get a token
-    const loginResponse = await fetch('http://localhost:5000/api/auth/login', {
+    const loginResponse = await fetch('https://my-ride-hhne.vercel.app/api/auth/login', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -35,7 +35,7 @@ export default async function handler(req, res) {
     
     // Step 2: Get car details to confirm it exists
     const carId = '67f1826a4d0870549fe6f515';
-    const getCarResponse = await fetch(`http://localhost:5000/api/cars/${carId}`, {
+    const getCarResponse = await fetch(`https://my-ride-hhne.vercel.app/api/cars/${carId}`, {
       headers: {
         'Authorization': `Bearer ${token}`
       }
@@ -72,7 +72,7 @@ export default async function handler(req, res) {
     
     console.log(`Updating car ${carId} with ${images.length} images...`);
     
-    const updateResponse = await fetch(`http://localhost:5000/api/cars/${carId}`, {
+    const updateResponse = await fetch(`https://my-ride-hhne.vercel.app/api/cars/${carId}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',

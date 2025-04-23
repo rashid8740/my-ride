@@ -25,6 +25,13 @@ const allowedOrigins = [
   // Production domains
   'https://my-ride.vercel.app',
   'https://my-ride-frontend.vercel.app',
+  'https://my-ride-git-main-rashid8740s-projects.vercel.app',
+  'https://my-ride-evn1kfka8-rashid8740s-projects.vercel.app',
+  'https://my-ride-axp0zkmm0-rashid8740s-projects.vercel.app',
+  
+  // Dynamic Vercel preview deployments (wildcard would be better but we'll list patterns)
+  'https://my-ride-git-*.vercel.app',
+  'https://my-ride-*-rashid8740s-projects.vercel.app',
   
   // Add any other domains your frontend might be deployed on
   process.env.FRONTEND_URL // Also use the environment variable if set
@@ -35,15 +42,21 @@ const corsOptions = {
     // Allow requests with no origin (like mobile apps, curl, postman)
     if (!origin) return callback(null, true);
     
-    if (allowedOrigins.indexOf(origin) !== -1 || allowedOrigins.includes('*')) {
-      callback(null, true);
-    } else {
-      console.log('CORS blocked request from:', origin);
-      // Allow the request but log that it was restricted
-      callback(null, true);
-      // Uncomment below to strictly enforce CORS:
-      // callback(new Error('Not allowed by CORS'));
+    // Check for exact match
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      return callback(null, true);
     }
+    
+    // Check for wildcard patterns (for Vercel preview deployments)
+    for (const pattern of allowedOrigins) {
+      if (pattern.includes('*') && new RegExp('^' + pattern.replace('*', '.*') + '$').test(origin)) {
+        return callback(null, true);
+      }
+    }
+    
+    // In production, we'll log but allow all origins to prevent blocking
+    console.log('CORS request from:', origin);
+    return callback(null, true);
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
@@ -93,12 +106,21 @@ app.get('/', (req, res) => {
 
 // Connect to MongoDB with improved options
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/my-ride';
+console.log(`Connecting to MongoDB: ${MONGODB_URI.split('@')[0].replace(/:.+@/, ':****@')}...`);
+
+// Ensure we have the right database name
+let mongoURI = MONGODB_URI;
+if (!mongoURI.includes('/my-ride') && !mongoURI.endsWith('/')) {
+  // Add database name if not present
+  mongoURI = `${mongoURI}/my-ride`;
+  console.log('Added database name to connection string');
+}
 
 // Added connection options for better stability
 const mongooseOptions = {
   useNewUrlParser: true,
   useUnifiedTopology: true,
-  serverSelectionTimeoutMS: 5000, // Keep initial connection attempt fast
+  serverSelectionTimeoutMS: 10000, // Increased timeout for Vercel
   socketTimeoutMS: 45000, // Longer socket timeout
   family: 4, // Use IPv4, skip IPv6
   maxPoolSize: 10, // Maximum connection pool size
@@ -106,18 +128,28 @@ const mongooseOptions = {
   retryWrites: true, // Retry write operations
 };
 
-// Connect to MongoDB
-mongoose.connect(MONGODB_URI, mongooseOptions)
-  .then(() => {
-    console.log('Connected to MongoDB');
-    isMongoConnected = true;
-  })
-  .catch((error) => {
-    console.error('MongoDB connection error:', error);
-    isMongoConnected = false;
-    // Don't exit the process to keep the API running
-    // process.exit(1);
-  });
+// Function to handle connection with retries
+const connectWithRetry = (retryCount = 5) => {
+  return mongoose.connect(mongoURI, mongooseOptions)
+    .then(() => {
+      console.log('Connected to MongoDB successfully');
+      isMongoConnected = true;
+    })
+    .catch((error) => {
+      console.error(`MongoDB connection error (attempt ${6 - retryCount}/5):`, error.message);
+      isMongoConnected = false;
+      
+      if (retryCount > 0) {
+        console.log(`Retrying connection in 3 seconds... (${retryCount} attempts left)`);
+        setTimeout(() => connectWithRetry(retryCount - 1), 3000);
+      } else {
+        console.error('Failed to connect to MongoDB after multiple attempts.');
+      }
+    });
+};
+
+// Start the initial connection
+connectWithRetry();
 
 // Listen for MongoDB connection events
 mongoose.connection.on('connected', () => {

@@ -13,15 +13,8 @@ export function getApiUrl() {
   
   // Check if we're in a browser and in production
   if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
-    // Try different production backends in order of preference
-    // This helps with fallbacks if one service is down
-    
-    // Return render.com backend (better reliability)
-    return 'https://my-ride-backend.onrender.com';
-    
-    // Fallbacks commented out to use only the main backend above
-    // return 'https://my-ride-backend.vercel.app';
-    // return 'https://my-ride-api.herokuapp.com';
+    // Return the correct backend URL
+    return 'https://my-ride-hhne.vercel.app';
   }
   
   // Default for local development
@@ -112,15 +105,24 @@ const apiService = {
       }
     }
     
-    const config = {
-      ...options,
-      headers,
-    };
-    
-    // Set up timeout
+    // Create fetch config with proper signal handling
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 second timeout
-    config.signal = controller.signal;
+    
+    // Build config object properly to include signal
+    const config = {
+      method: options.method || 'GET',
+      headers,
+      body: options.body,
+      credentials: options.credentials,
+      cache: options.cache,
+      redirect: options.redirect,
+      referrer: options.referrer,
+      referrerPolicy: options.referrerPolicy,
+      integrity: options.integrity,
+      keepalive: options.keepalive,
+      signal: controller.signal
+    };
     
     try {
       // Send the request
