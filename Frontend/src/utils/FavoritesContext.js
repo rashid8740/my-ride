@@ -4,8 +4,25 @@ import { useAuth } from './AuthContext';
 import apiService from './api';
 import { toast } from 'react-hot-toast';
 
-// Create the favorites context
-const FavoritesContext = createContext();
+// Create the favorites context with initial values
+const FavoritesContext = createContext({
+  favorites: [],
+  isLoading: false,
+  error: null,
+  isFavorite: () => Boolean(false),
+  addToFavorites: async () => ({ success: false }),
+  removeFromFavorites: async () => ({ success: false }),
+  toggleFavorite: async () => ({ success: false }),
+  syncFavorites: async () => Boolean(false),
+  clearLocalFavorites: () => Boolean(false),
+  favoritesCount: 0,
+  usingLocalStorage: false,
+  backendAvailable: false,
+  refreshFavorites: async () => [],
+  isAuthSynced: false,
+  canUseBackend: false,
+  isAuthenticated: false
+});
 
 // LocalStorage key for favorites
 const LOCAL_FAVORITES_KEY = 'my-ride-favorites';
@@ -129,14 +146,41 @@ export const FavoritesProvider = ({ children }) => {
   useEffect(() => {
     const checkBackendAvailability = async () => {
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/health`, { 
-          method: 'GET',
-          headers: { 'Content-Type': 'application/json' }
-        });
-        setBackendAvailable(response.ok);
-        console.log("Backend availability check:", response.ok ? "✅ Available" : "❌ Unavailable");
+        // Get the backend URL with proper fallback
+        const backendUrl = process.env.NEXT_PUBLIC_API_URL || 
+                          (typeof window !== 'undefined' && window.location.hostname !== 'localhost' 
+                           ? 'https://my-ride-hhne.vercel.app' 
+                           : 'http://localhost:5000');
+        
+        console.log("Checking backend availability at:", backendUrl);
+        
+        // Use a timeout for the request to prevent hanging
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+        
+        try {
+          const response = await fetch(`${backendUrl}/api/health`, { 
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' },
+            signal: controller.signal
+          });
+          
+          clearTimeout(timeoutId);
+          setBackendAvailable(response.ok);
+          
+          console.log("Backend availability check:", response.ok ? "✅ Available" : "❌ Unavailable");
+          
+          if (response.ok) {
+            const data = await response.json();
+            console.log("Backend health data:", data);
+          }
+        } catch (fetchError) {
+          clearTimeout(timeoutId);
+          console.error("Fetch error during health check:", fetchError);
+          setBackendAvailable(false);
+        }
       } catch (error) {
-        console.log('Backend unavailable:', error);
+        console.error('Backend unavailable:', error);
         setBackendAvailable(false);
       }
     };
