@@ -1,18 +1,40 @@
 {
-    "builds": [
-      {
-        "src": "Frontend/package.json",
-        "use": "@vercel/next"
-      }
-    ],
+    "buildCommand": "cd Frontend && npm run build",
+    "outputDirectory": "Frontend/.next",
+    "installCommand": "cd Frontend && npm install",
+    "framework": "nextjs",
     "routes": [
       {
+        "src": "/api/(.*)",
+        "dest": "/Frontend/api/$1"
+      },
+      {
+        "src": "/_next/static/(.*)",
+        "dest": "/Frontend/_next/static/$1"
+      },
+      {
+        "src": "/_next/(.*)",
+        "dest": "/Frontend/_next/$1"
+      },
+      {
+        "src": "/static/(.*)",
+        "dest": "/Frontend/static/$1"
+      },
+      {
+        "src": "/favicon.ico",
+        "dest": "/Frontend/favicon.ico"
+      },
+      {
+        "src": "/robots.txt",
+        "dest": "/Frontend/robots.txt"
+      },
+      {
         "src": "/(.*)",
-        "dest": "Frontend/$1"
+        "dest": "/Frontend/$1"
       }
     ],
     "env": {
-      "MONGODB_URI": "mongodb+srv://rashdi8740:Up6MrE69mLM7gwsB@cluster0.chaq15e.mongodb.net/test",
-      "NEXT_PUBLIC_API_URL": "https://my-ride-backend-git-main-rashid8740s-projects.vercel.app"
+      "MONGODB_URI": "mongodb+srv://rashdi8740:Up6MrE69mLM7gwsB@cluster0.chaq15e.mongodb.net/my-ride",
+      "NEXT_PUBLIC_API_URL": "https://my-ride-backend-tau.vercel.app"
     }
   }
