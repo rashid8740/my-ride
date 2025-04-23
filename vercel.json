@@ -35,9 +35,6 @@
         "dest": "/Frontend/robots.txt"
       },
       {
-        "handle": "filesystem"
-      },
-      {
         "src": "/(.*)",
         "dest": "/Frontend/$1"
       }

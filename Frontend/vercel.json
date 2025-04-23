@@ -1,7 +1,11 @@
 {
   "version": 2,
-  "buildCommand": "next build",
-  "framework": "nextjs",
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/next"
+    }
+  ],
   "routes": [
     {
       "src": "/api/(.*)",
@@ -34,12 +38,8 @@
       "dest": "/robots.txt"
     },
     {
-      "handle": "filesystem"
-    },
-    {
       "src": "/(.*)",
-      "status": 404,
-      "dest": "/404"
+      "dest": "/$1"
     }
   ],
   "env": {
