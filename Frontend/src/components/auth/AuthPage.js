@@ -50,9 +50,18 @@ const LoginForm = ({ onToggle }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [connectionStatus, setConnectionStatus] = useState(null);
+  const [inputErrors, setInputErrors] = useState({
+    email: '',
+    password: ''
+  });
   
   const { login } = useAuth();
   const router = useRouter();
+
+  // Check connection on component mount
+  useEffect(() => {
+    checkBackendStatus();
+  }, []);
 
   // Function to check backend connectivity
   const checkBackendStatus = async () => {
@@ -66,8 +75,8 @@ const LoginForm = ({ onToggle }) => {
       // List of potential backend URLs to try in order
       const backendUrls = [
         backendUrl,
-        'https://my-ride-backend.onrender.com',
-        'https://my-ride-backend.vercel.app'
+        'https://my-ride-backend.vercel.app',
+        'https://my-ride-backend.onrender.com'
       ];
       
       // Try each backend URL
@@ -88,7 +97,7 @@ const LoginForm = ({ onToggle }) => {
             // Found a working backend!
             try {
               const healthData = await healthResponse.json();
-              setConnectionStatus(`✅ Backend server is accessible at ${url} (${healthData.status || 'ok'})`);
+              setConnectionStatus(`✅ Backend server is accessible at ${url} (${healthData.status || 'ok'}). Database: ${healthData.database || 'unknown'}`);
               // If this isn't the primary URL, suggest updating the environment variable
               if (url !== backendUrl) {
                 console.log(`Found working backend at ${url}. Consider updating your NEXT_PUBLIC_API_URL.`);
@@ -142,8 +151,18 @@ const LoginForm = ({ onToggle }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!email || !password) {
-      setError("Please enter both email and password");
+    const newErrors = {
+      email: '',
+      password: ''
+    };
+    
+    if (!email) newErrors.email = "Email is required";
+    if (!password) newErrors.password = "Password is required";
+    
+    setInputErrors(newErrors);
+    
+    if (newErrors.email || newErrors.password) {
+      setError("Please fill in all required fields");
       return;
     }
     
@@ -229,6 +248,7 @@ const LoginForm = ({ onToggle }) => {
           onChange={(e) => setEmail(e.target.value)}
           required
           icon={<Mail size={18} />}
+          error={inputErrors.email}
         />
 
         <InputField
@@ -240,6 +260,7 @@ const LoginForm = ({ onToggle }) => {
           onChange={(e) => setPassword(e.target.value)}
           required
           icon={<Lock size={18} />}
+          error={inputErrors.password}
         />
 
         <div className="flex items-center justify-between mb-6">
@@ -298,13 +319,62 @@ const RegisterForm = ({ onToggle }) => {
   const [agreeTerms, setAgreeTerms] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const [errors, setErrors] = useState({});
+  const [errors, setErrors] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    password: '',
+    confirmPassword: '',
+    agreeTerms: ''
+  });
+  const [connectionStatus, setConnectionStatus] = useState(null);
   
   const { register } = useAuth();
   const router = useRouter();
 
+  // Check connection status upon mounting
+  useEffect(() => {
+    checkBackendStatus();
+  }, []);
+
+  // Function to check backend connectivity
+  const checkBackendStatus = async () => {
+    try {
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const healthUrl = `${backendUrl}/api/health`;
+      
+      const response = await fetch(healthUrl, { 
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' },
+        signal: AbortSignal.timeout(5000)
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setConnectionStatus(`✅ Connected to backend (${data.status || 'ok'}). Database: ${data.database || 'unknown'}`);
+        return true;
+      } else {
+        setConnectionStatus("❌ Backend server returned an error");
+        return false;
+      }
+    } catch (err) {
+      console.error("Backend check error:", err);
+      setConnectionStatus("❌ Cannot connect to backend server");
+      return false;
+    }
+  };
+
   const validateForm = () => {
-    const newErrors = {};
+    const newErrors = {
+      firstName: '',
+      lastName: '',
+      email: '',
+      phone: '',
+      password: '',
+      confirmPassword: '',
+      agreeTerms: ''
+    };
     
     if (!firstName) newErrors.firstName = "First name is required";
     if (!lastName) newErrors.lastName = "Last name is required";
@@ -316,7 +386,7 @@ const RegisterForm = ({ onToggle }) => {
     if (!agreeTerms) newErrors.agreeTerms = "You must agree to the terms";
     
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    return Object.values(newErrors).every(error => !error);
   };
 
   const handleSubmit = async (e) => {
@@ -327,6 +397,12 @@ const RegisterForm = ({ onToggle }) => {
     try {
       setIsSubmitting(true);
       setError("");
+      
+      // Check backend connectivity before proceeding with registration
+      const isConnected = await checkBackendStatus();
+      if (!isConnected) {
+        console.warn("Registration proceeding despite connectivity warning");
+      }
       
       await register({
         firstName,
@@ -339,7 +415,14 @@ const RegisterForm = ({ onToggle }) => {
       // Redirect to home page or show success message
       router.push("/");
     } catch (err) {
-      setError(err.message || "Registration failed. Please try again.");
+      console.error("Registration error:", err);
+      
+      if (err.message?.includes("Network error") || err.message?.includes("Failed to fetch")) {
+        setError("Can't reach the server. Please check your internet connection and try again.");
+        await checkBackendStatus();
+      } else {
+        setError(err.message || "Registration failed. Please try again.");
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -355,6 +438,12 @@ const RegisterForm = ({ onToggle }) => {
       {error && (
         <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-md text-sm">
           {error}
+        </div>
+      )}
+      
+      {connectionStatus && (
+        <div className={`mb-4 p-3 ${connectionStatus.includes("✅") ? "bg-green-50 border-green-200 text-green-700" : "bg-yellow-50 border-yellow-200 text-yellow-700"} rounded-md text-sm`}>
+          {connectionStatus}
         </div>
       )}
 
@@ -403,6 +492,7 @@ const RegisterForm = ({ onToggle }) => {
           value={phone}
           onChange={(e) => setPhone(e.target.value)}
           icon={<Phone size={18} />}
+          error={errors.phone}
         />
 
         <InputField
