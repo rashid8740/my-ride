@@ -3,25 +3,19 @@
 # Vercel build script to ensure clean builds
 echo "Running Vercel build script..."
 
-# Remove previous build cache if it exists
-if [ -d ".next" ]; then
-  echo "Removing previous Next.js build cache..."
-  rm -rf .next
-fi
+# Show node and npm versions
+echo "Node.js version:"
+node -v
+echo "NPM version:"
+npm -v
 
-# Completely clean node_modules for fresh install
-echo "Cleaning node_modules..."
-rm -rf node_modules
-rm -rf package-lock.json
-
-# Reinstall dependencies to ensure everything is fresh
+# Clean install with the updated package.json where tailwindcss is a direct dependency
 echo "Installing dependencies..."
-npm install --force
+npm ci || npm install
 
-# Install required dependencies explicitly
-echo "Installing required dependencies explicitly..."
-npm install @emotion/react @emotion/styled
-npm install -D tailwindcss postcss autoprefixer @tailwindcss/forms @tailwindcss/typography @tailwindcss/aspect-ratio
+# Ensure that tailwindcss is available
+echo "Manually installing critical dependencies..."
+npm install tailwindcss postcss autoprefixer
 
 # Create a minimal next.config.js if needed
 echo "Setting up next.config.js..."
@@ -100,13 +94,9 @@ module.exports = {
 }
 EOL
 
-# Check if we're in Vercel environment
-if [ -n "$VERCEL" ]; then
-  echo "Running in Vercel environment. Ensuring environment variables..."
-  # Create .env.production file with the right variables if it doesn't exist
-  if [ ! -f ".env.production" ]; then
-    echo "Creating simplified .env.production file..."
-    cat > .env.production << 'EOL'
+# Create simple .env.production file
+echo "Creating simplified .env.production file..."
+cat > .env.production << 'EOL'
 # Production environment variables
 NEXT_PUBLIC_API_URL=https://my-ride-backend.vercel.app
 NEXT_PUBLIC_SITE_URL=https://my-ride-git-main-rashid8740s-projects.vercel.app
@@ -115,8 +105,6 @@ NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=dghr3juaj
 NEXT_PUBLIC_CLOUDINARY_API_KEY=284321333125128
 CLOUDINARY_API_SECRET=3Qf7H4XpOKxwRtD2pmGw7dCKzoc
 EOL
-  fi
-fi
 
 # Run the build
 echo "Running build with environment variables:"
