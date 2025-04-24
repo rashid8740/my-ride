@@ -18,9 +18,10 @@ rm -rf package-lock.json
 echo "Installing dependencies..."
 npm install --force
 
-# Install required emotion dependencies
-echo "Installing @emotion/react and @emotion/styled..."
+# Install required dependencies explicitly
+echo "Installing required dependencies explicitly..."
 npm install @emotion/react @emotion/styled
+npm install -D tailwindcss postcss autoprefixer @tailwindcss/forms @tailwindcss/typography @tailwindcss/aspect-ratio
 
 # Create a minimal next.config.js if needed
 echo "Setting up next.config.js..."
@@ -48,16 +49,71 @@ const nextConfig = {
 module.exports = nextConfig
 EOL
 
+# Create or ensure proper tailwind.config.js
+echo "Setting up tailwind.config.js..."
+cat > tailwind.config.js << 'EOL'
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: [
+    "./src/pages/**/*.{js,ts,jsx,tsx}",
+    "./src/components/**/*.{js,ts,jsx,tsx}",
+    "./src/app/**/*.{js,ts,jsx,tsx}",
+  ],
+  theme: {
+    extend: {
+      fontFamily: {
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+      },
+      colors: {
+        primary: {
+          50: '#f8fafc',
+          100: '#f1f5f9',
+          200: '#e2e8f0',
+          300: '#cbd5e1',
+          400: '#94a3b8',
+          500: '#64748b',
+          600: '#475569',
+          700: '#334155',
+          800: '#1e293b',
+          900: '#0f172a',
+          950: '#020617',
+        },
+      },
+    },
+  },
+  plugins: [
+    require('@tailwindcss/forms'),
+    require('@tailwindcss/typography'),
+    require('@tailwindcss/aspect-ratio'),
+  ],
+}
+EOL
+
+# Create or ensure proper postcss.config.js
+echo "Setting up postcss.config.js..."
+cat > postcss.config.js << 'EOL'
+module.exports = {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+}
+EOL
+
 # Check if we're in Vercel environment
 if [ -n "$VERCEL" ]; then
   echo "Running in Vercel environment. Ensuring environment variables..."
   # Create .env.production file with the right variables if it doesn't exist
   if [ ! -f ".env.production" ]; then
-    echo "Creating .env.production file..."
+    echo "Creating simplified .env.production file..."
     cat > .env.production << 'EOL'
 # Production environment variables
-NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-https://my-ride-backend.vercel.app}
-NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL:-https://my-ride-frontend.vercel.app}
+NEXT_PUBLIC_API_URL=https://my-ride-backend.vercel.app
+NEXT_PUBLIC_SITE_URL=https://my-ride-git-main-rashid8740s-projects.vercel.app
+NEXT_PUBLIC_ENABLE_CLIENT_ROUTING=true
+NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME=dghr3juaj
+NEXT_PUBLIC_CLOUDINARY_API_KEY=284321333125128
+CLOUDINARY_API_SECRET=3Qf7H4XpOKxwRtD2pmGw7dCKzoc
 EOL
   fi
 fi
