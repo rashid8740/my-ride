@@ -105,8 +105,31 @@ export const AuthProvider = ({ children }) => {
     
     try {
       console.log("Attempting login with credentials:", {...credentials, password: '****'});
+      
+      if (!credentials.email || !credentials.password) {
+        throw new Error('Email and password are required');
+      }
+      
       const response = await apiService.auth.login(credentials);
       console.log("Login response:", response);
+      
+      // Handle specific server error responses
+      if (response.status === 'error' || response.error) {
+        const errorMessage = response.message || response.error || 'Authentication failed';
+        
+        // Check for specific error conditions
+        if (errorMessage.toLowerCase().includes('user not found') || 
+            errorMessage.toLowerCase().includes('email not found')) {
+          throw new Error('Account not found. Please check your email or register for a new account');
+        }
+        
+        if (errorMessage.toLowerCase().includes('password') || 
+            errorMessage.toLowerCase().includes('invalid credentials')) {
+          throw new Error('Invalid password. Please try again');
+        }
+        
+        throw new Error(errorMessage);
+      }
       
       // Check if we have a token in the response
       if (response.token || (response.data && response.data.token)) {
@@ -131,12 +154,24 @@ export const AuthProvider = ({ children }) => {
         return { success: true };
       } else {
         console.error("No token in response:", response);
-        throw new Error(response.message || 'Login failed - no token received');
+        throw new Error('Login failed - authentication token not received from server');
       }
     } catch (error) {
       console.error('Login error:', error);
-      setError(error.message || 'Invalid credentials');
-      return { success: false, message: error.message || 'Login failed' };
+      
+      // Enhance error message based on error type
+      let errorMessage = error.message || 'Login failed';
+      
+      if (error.name === 'TypeError') {
+        errorMessage = 'Network error. Please check your connection and try again.';
+      } else if (error.message.includes('401') || error.message.includes('403')) {
+        errorMessage = 'Invalid email or password. Please try again.';
+      } else if (error.message.includes('500')) {
+        errorMessage = 'Server error. Please try again later.';
+      }
+      
+      setError(errorMessage);
+      return { success: false, message: errorMessage };
     } finally {
       setIsLoading(false);
     }

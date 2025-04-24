@@ -170,10 +170,11 @@ const LoginForm = ({ onToggle }) => {
       setIsSubmitting(true);
       setError("");
       
-      // Always check connection status for transparency
+      // Check connection status first
       const isConnected = await checkBackendStatus();
       if (!isConnected) {
-        console.warn("Login proceeding despite connectivity warning");
+        setError("Cannot connect to the server. Please check your internet connection and try again.");
+        return;
       }
       
       console.log("Attempting login with:", email);
@@ -197,13 +198,17 @@ const LoginForm = ({ onToggle }) => {
     } catch (err) {
       console.error("Login error in form:", err);
       
-      if (err.message?.includes("Invalid response from server")) {
-        setError("We're having trouble connecting to the server. Please try again later.");
-      } else if (err.message?.includes("Network error") || err.message?.includes("timed out")) {
-        setError("Can't reach the server. Please check your internet connection and try again.");
-        await checkBackendStatus();
-      } else {
-        setError(err.message || "Login failed. Please check your credentials.");
+      // Check if this is actually a network error
+      if (err.name === 'TypeError' && (err.message?.includes("NetworkError") || err.message?.includes("Failed to fetch") || err.message?.includes("Network request failed"))) {
+        setError("Network error: Can't reach the authentication server. Please try again later.");
+      } 
+      // Check if it's a server response error
+      else if (err.message?.includes("Invalid response") || err.message?.includes("Internal Server Error")) {
+        setError("Server error: The authentication service is experiencing issues. Please try again later.");
+      }
+      // Most likely an authentication error (invalid credentials)
+      else {
+        setError(err.message || "Invalid email or password. Please check your credentials and try again.");
       }
     } finally {
       setIsSubmitting(false);
