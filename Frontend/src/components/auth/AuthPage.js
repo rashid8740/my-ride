@@ -50,13 +50,11 @@ const LoginForm = ({ onToggle }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [connectionStatus, setConnectionStatus] = useState(null);
-  const [retryCount, setRetryCount] = useState(0);
-  const maxRetries = 3;
   
   const { login } = useAuth();
   const router = useRouter();
 
-  // Function to check backend status using multiple URLs
+  // Function to check backend connectivity
   const checkBackendStatus = async () => {
     try {
       setConnectionStatus("Checking connection to backend server...");
@@ -74,128 +72,108 @@ const LoginForm = ({ onToggle }) => {
       
       // Try each backend URL
       let foundWorkingBackend = false;
-      let accessibleBackend = '';
-      let dbConnected = false;
-
+      
       for (const url of backendUrls) {
         try {
-          console.log(`Checking backend at: ${url}`);
-          const response = await fetch(`${url}/api/health`, {
+          // Try health endpoint first
+          const healthUrl = `${url}/api/health`;
+          console.log("Trying health endpoint at:", healthUrl);
+          
+          const healthResponse = await fetch(healthUrl, { 
             method: 'GET',
             headers: { 'Content-Type': 'application/json' },
-            // Set a timeout to avoid hanging
+            // Abort after 5 seconds to try next quickly
             signal: AbortSignal.timeout(5000)
           });
           
-          if (response.ok) {
-            const data = await response.json();
+          if (healthResponse.ok) {
+            // Found a working backend!
             foundWorkingBackend = true;
-            accessibleBackend = url;
-            dbConnected = data.database === 'connected';
-            
-            console.log(`Backend check successful at ${url}:`, data);
-            
-            // Set this as the preferred API URL in session storage for this session
-            sessionStorage.setItem('preferred_api_url', url);
-            console.log('Set preferred API URL for this session:', url);
-            
-            break;
+            try {
+              const healthData = await healthResponse.json();
+              const dbStatus = healthData.database === 'connected' ? '(Database connected)' : '(Database disconnected)';
+              setConnectionStatus(`✅ Backend server is accessible at ${url} ${dbStatus}`);
+            } catch (parseError) {
+              setConnectionStatus(`✅ Backend server is accessible at ${url}`);
+            }
+            return true;
           }
-        } catch (err) {
-          console.log(`Backend check failed at ${url}:`, err.message);
+        } catch (healthErr) {
+          console.log(`Health check failed for ${url}:`, healthErr);
+        }
+        
+        // If health check failed, try root endpoint
+        if (!foundWorkingBackend) {
+          try {
+            console.log("Trying root endpoint at:", url);
+            const rootResponse = await fetch(url, { 
+              method: 'GET',
+              // Abort after 5 seconds
+              signal: AbortSignal.timeout(5000)
+            });
+            
+            if (rootResponse.ok) {
+              setConnectionStatus(`✅ Backend server is accessible at ${url}`);
+              return true;
+            }
+          } catch (rootErr) {
+            console.log(`Root endpoint check failed for ${url}:`, rootErr);
+          }
         }
       }
       
-      // Update UI based on backend check
-      if (foundWorkingBackend) {
-        setConnectionStatus(
-          `✅ Backend server is accessible at ${accessibleBackend} ` +
-          `(Database ${dbConnected ? 'connected' : 'disconnected'})`
-        );
-        return { success: true, url: accessibleBackend, dbConnected };
+      // If we got here, no backends worked
+      setConnectionStatus(`❌ Cannot connect to any backend servers. Please check if the backend is deployed.`);
+      return false;
+    } catch (err) {
+      console.error("Backend check error:", err);
+      if (err.name === 'TimeoutError' || err.name === 'AbortError') {
+        setConnectionStatus("❌ Connection to backend timed out");
       } else {
-        setConnectionStatus(
-          "❌ Backend server is not accessible. Please check your internet connection."
-        );
-        return { success: false };
+        setConnectionStatus("❌ Cannot connect to backend server. Is it running?");
       }
-    } catch (error) {
-      console.error("Backend connection check error:", error);
-      setConnectionStatus("❌ Error checking backend connection: " + error.message);
-      return { success: false, error };
-    }
-  };
-
-  // Auto-retry login on connection error
-  const attemptLoginWithRetry = async (credentials) => {
-    try {
-      setIsSubmitting(true);
-      
-      // Try login
-      const result = await login(credentials);
-      
-      // If successful, reset retry count and return result
-      setRetryCount(0);
-      return result;
-    } catch (error) {
-      console.error("Login attempt failed:", error);
-      
-      // If network error and we haven't exceeded max retries
-      if (retryCount < maxRetries && 
-          (error.message?.includes("Network error") || 
-           error.message?.includes("timed out"))) {
-        
-        setRetryCount(prev => prev + 1);
-        setConnectionStatus(`Retry attempt ${retryCount + 1}/${maxRetries}...`);
-        
-        // Check backend status
-        const backendStatus = await checkBackendStatus();
-        
-        if (backendStatus.success) {
-          // Backend is reachable, wait a moment and retry
-          setConnectionStatus(`Backend accessible, retrying login in 2 seconds...`);
-          await new Promise(resolve => setTimeout(resolve, 2000));
-          
-          // Recursive retry
-          return attemptLoginWithRetry(credentials);
-        } else {
-          // Backend not reachable
-          throw new Error("Backend servers are not responding. Please try again later.");
-        }
-      }
-      
-      // If we've exceeded retries or it's not a network error
-      throw error;
-    } finally {
-      if (retryCount >= maxRetries) {
-        setRetryCount(0); // Reset for next attempt
-      }
+      return false;
     }
   };
 
   // Handle login form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsSubmitting(true);
-    setError("");
-
-    // Remember email if "remember me" is checked
-    if (rememberMe) {
-      localStorage.setItem("rememberedEmail", email);
-    } else {
-      localStorage.removeItem("rememberedEmail");
+    
+    if (!email || !password) {
+      setError("Please enter both email and password");
+      return;
     }
-
+    
     try {
-      // Try login with retry mechanism
-      const result = await attemptLoginWithRetry({ email, password });
-      
-      if (result.success) {
-        setConnectionStatus("Login successful, redirecting...");
-        router.push("/dashboard");
-      } else {
-        setError(result.message || "Login failed. Please check your credentials.");
+      setIsSubmitting(true);
+      setError("");
+
+      // Check backend connectivity
+      const isConnected = await checkBackendStatus();
+      if (!isConnected) {
+        console.warn("Login proceeding despite connectivity warning");
       }
+      
+      // Attempt login
+      console.log("Attempting login with:", email);
+      const result = await login({ email, password });
+      console.log("Login result:", result);
+      
+      if (!result.success) {
+        throw new Error(result.message || "Login failed.");
+      }
+      
+      // Save to local storage if remember me is checked
+      if (rememberMe) {
+        localStorage.setItem("rememberedEmail", email);
+      } else {
+        localStorage.removeItem("rememberedEmail");
+      }
+
+      console.log("Login successful, redirecting to home page");
+      // Redirect to home page
+      router.push("/dashboard");
     } catch (err) {
       console.error("Login error in form:", err);
       
@@ -203,15 +181,7 @@ const LoginForm = ({ onToggle }) => {
         setError("We're having trouble connecting to the server. Please try again later.");
       } else if (err.message?.includes("Network error") || err.message?.includes("timed out")) {
         setError("Can't reach the server. Please check your internet connection and try again.");
-        // Auto-check backend status
-        const backendStatus = await checkBackendStatus();
-        if (!backendStatus.success) {
-          setError("Backend server is unreachable. Please try again later or contact support.");
-        }
-      } else if (err.message?.includes("Invalid credentials")) {
-        setError("Invalid email or password. Please check your credentials.");
-      } else if (err.message?.includes("verify your email")) {
-        setError("Please verify your email before logging in. Check your inbox for a verification link.");
+        await checkBackendStatus();
       } else {
         setError(err.message || "Login failed. Please check your credentials.");
       }
@@ -220,16 +190,13 @@ const LoginForm = ({ onToggle }) => {
     }
   };
   
-  // Load remembered email if exists and check backend status on mount
+  // Load remembered email if exists
   useEffect(() => {
     const rememberedEmail = localStorage.getItem("rememberedEmail");
     if (rememberedEmail) {
       setEmail(rememberedEmail);
       setRememberMe(true);
     }
-    
-    // Check backend status on mount
-    checkBackendStatus();
   }, []);
 
   return (
