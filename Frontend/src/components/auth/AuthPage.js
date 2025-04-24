@@ -16,7 +16,7 @@ const InputField = ({
   onChange, 
   required = false,
   icon,
-  error
+  error = null
 }) => {
   return (
     <div className="mb-4">
@@ -50,18 +50,9 @@ const LoginForm = ({ onToggle }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [connectionStatus, setConnectionStatus] = useState(null);
-  const [inputErrors, setInputErrors] = useState({
-    email: '',
-    password: ''
-  });
   
   const { login } = useAuth();
   const router = useRouter();
-
-  // Check connection on component mount
-  useEffect(() => {
-    checkBackendStatus();
-  }, []);
 
   // Function to check backend connectivity
   const checkBackendStatus = async () => {
@@ -75,11 +66,12 @@ const LoginForm = ({ onToggle }) => {
       // List of potential backend URLs to try in order
       const backendUrls = [
         backendUrl,
-        'https://my-ride-backend.vercel.app',
-        'https://my-ride-backend.onrender.com'
+        'https://my-ride-backend.onrender.com',
+        'https://my-ride-backend.vercel.app'
       ];
       
       // Try each backend URL
+      let foundWorkingBackend = false;
       for (const url of backendUrls) {
         try {
           // Try health endpoint first
@@ -95,42 +87,37 @@ const LoginForm = ({ onToggle }) => {
           
           if (healthResponse.ok) {
             // Found a working backend!
+            foundWorkingBackend = true;
             try {
               const healthData = await healthResponse.json();
-              setConnectionStatus(`✅ Backend server is accessible at ${url} (${healthData.status || 'ok'}). Database: ${healthData.database || 'unknown'}`);
-              // If this isn't the primary URL, suggest updating the environment variable
-              if (url !== backendUrl) {
-                console.log(`Found working backend at ${url}. Consider updating your NEXT_PUBLIC_API_URL.`);
-              }
-              return true;
+              const dbStatus = healthData.database === 'connected' ? '(Database connected)' : '(Database disconnected)';
+              setConnectionStatus(`✅ Backend server is accessible at ${url} ${dbStatus}`);
             } catch (parseError) {
-              console.log("Health endpoint returned non-JSON response:", parseError);
               setConnectionStatus(`✅ Backend server is accessible at ${url}`);
-              return true;
             }
+            return true;
           }
         } catch (healthErr) {
           console.log(`Health check failed for ${url}:`, healthErr);
         }
         
         // If health check failed, try root endpoint
-        try {
-          console.log("Trying root endpoint at:", url);
-          const rootResponse = await fetch(url, { 
-            method: 'GET',
-            // Abort after 5 seconds
-            signal: AbortSignal.timeout(5000)
-          });
-          
-          if (rootResponse.ok) {
-            setConnectionStatus(`✅ Backend server is accessible at ${url}`);
-            if (url !== backendUrl) {
-              console.log(`Found working backend at ${url}. Consider updating your NEXT_PUBLIC_API_URL.`);
+        if (!foundWorkingBackend) {
+          try {
+            console.log("Trying root endpoint at:", url);
+            const rootResponse = await fetch(url, { 
+              method: 'GET',
+              // Abort after 5 seconds
+              signal: AbortSignal.timeout(5000)
+            });
+            
+            if (rootResponse.ok) {
+              setConnectionStatus(`✅ Backend server is accessible at ${url}`);
+              return true;
             }
-            return true;
+          } catch (rootErr) {
+            console.log(`Root endpoint check failed for ${url}:`, rootErr);
           }
-        } catch (rootErr) {
-          console.log(`Root endpoint check failed for ${url}:`, rootErr);
         }
       }
       
@@ -151,18 +138,8 @@ const LoginForm = ({ onToggle }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    const newErrors = {
-      email: '',
-      password: ''
-    };
-    
-    if (!email) newErrors.email = "Email is required";
-    if (!password) newErrors.password = "Password is required";
-    
-    setInputErrors(newErrors);
-    
-    if (newErrors.email || newErrors.password) {
-      setError("Please fill in all required fields");
+    if (!email || !password) {
+      setError("Please enter both email and password");
       return;
     }
     
@@ -170,13 +147,13 @@ const LoginForm = ({ onToggle }) => {
       setIsSubmitting(true);
       setError("");
       
-      // Check connection status first
+      // Check backend connectivity
       const isConnected = await checkBackendStatus();
       if (!isConnected) {
-        setError("Cannot connect to the server. Please check your internet connection and try again.");
-        return;
+        console.warn("Login proceeding despite connectivity warning");
       }
       
+      // Attempt login
       console.log("Attempting login with:", email);
       const result = await login({ email, password });
       console.log("Login result:", result);
@@ -198,17 +175,13 @@ const LoginForm = ({ onToggle }) => {
     } catch (err) {
       console.error("Login error in form:", err);
       
-      // Check if this is actually a network error
-      if (err.name === 'TypeError' && (err.message?.includes("NetworkError") || err.message?.includes("Failed to fetch") || err.message?.includes("Network request failed"))) {
-        setError("Network error: Can't reach the authentication server. Please try again later.");
-      } 
-      // Check if it's a server response error
-      else if (err.message?.includes("Invalid response") || err.message?.includes("Internal Server Error")) {
-        setError("Server error: The authentication service is experiencing issues. Please try again later.");
-      }
-      // Most likely an authentication error (invalid credentials)
-      else {
-        setError(err.message || "Invalid email or password. Please check your credentials and try again.");
+      if (err.message?.includes("Invalid response from server")) {
+        setError("We're having trouble connecting to the server. Please try again later.");
+      } else if (err.message?.includes("Network error") || err.message?.includes("timed out")) {
+        setError("Can't reach the server. Please check your internet connection and try again.");
+        await checkBackendStatus();
+      } else {
+        setError(err.message || "Login failed. Please check your credentials.");
       }
     } finally {
       setIsSubmitting(false);
@@ -253,7 +226,6 @@ const LoginForm = ({ onToggle }) => {
           onChange={(e) => setEmail(e.target.value)}
           required
           icon={<Mail size={18} />}
-          error={inputErrors.email}
         />
 
         <InputField
@@ -265,7 +237,6 @@ const LoginForm = ({ onToggle }) => {
           onChange={(e) => setPassword(e.target.value)}
           required
           icon={<Lock size={18} />}
-          error={inputErrors.password}
         />
 
         <div className="flex items-center justify-between mb-6">
@@ -315,83 +286,52 @@ const LoginForm = ({ onToggle }) => {
 
 // Register Form Component
 const RegisterForm = ({ onToggle }) => {
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [agreeTerms, setAgreeTerms] = useState(false);
+  const [formData, setFormData] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    password: "",
+    confirmPassword: "",
+    agreeTerms: false
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+  // Define errors with the same structure as formData for TypeScript
   const [errors, setErrors] = useState({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phone: '',
-    password: '',
-    confirmPassword: '',
-    agreeTerms: ''
+    firstName: null,
+    lastName: null,
+    email: null,
+    password: null,
+    confirmPassword: null,
+    agreeTerms: null
   });
-  const [connectionStatus, setConnectionStatus] = useState(null);
   
   const { register } = useAuth();
   const router = useRouter();
 
-  // Check connection status upon mounting
-  useEffect(() => {
-    checkBackendStatus();
-  }, []);
-
-  // Function to check backend connectivity
-  const checkBackendStatus = async () => {
-    try {
-      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-      const healthUrl = `${backendUrl}/api/health`;
-      
-      const response = await fetch(healthUrl, { 
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-        signal: AbortSignal.timeout(5000)
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setConnectionStatus(`✅ Connected to backend (${data.status || 'ok'}). Database: ${data.database || 'unknown'}`);
-        return true;
-      } else {
-        setConnectionStatus("❌ Backend server returned an error");
-        return false;
-      }
-    } catch (err) {
-      console.error("Backend check error:", err);
-      setConnectionStatus("❌ Cannot connect to backend server");
-      return false;
-    }
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
   };
 
   const validateForm = () => {
-    const newErrors = {
-      firstName: '',
-      lastName: '',
-      email: '',
-      phone: '',
-      password: '',
-      confirmPassword: '',
-      agreeTerms: ''
-    };
+    const newErrors = {};
     
-    if (!firstName) newErrors.firstName = "First name is required";
-    if (!lastName) newErrors.lastName = "Last name is required";
-    if (!email) newErrors.email = "Email is required";
-    if (email && !/^\S+@\S+\.\S+$/.test(email)) newErrors.email = "Invalid email format";
-    if (!password) newErrors.password = "Password is required";
-    if (password && password.length < 8) newErrors.password = "Password must be at least 8 characters";
-    if (password !== confirmPassword) newErrors.confirmPassword = "Passwords do not match";
-    if (!agreeTerms) newErrors.agreeTerms = "You must agree to the terms";
+    if (!formData.firstName) newErrors.firstName = "First name is required";
+    if (!formData.lastName) newErrors.lastName = "Last name is required";
+    if (!formData.email) newErrors.email = "Email is required";
+    if (formData.email && !/^\S+@\S+\.\S+$/.test(formData.email)) newErrors.email = "Invalid email format";
+    if (!formData.password) newErrors.password = "Password is required";
+    if (formData.password && formData.password.length < 8) newErrors.password = "Password must be at least 8 characters";
+    if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = "Passwords do not match";
+    if (!formData.agreeTerms) newErrors.agreeTerms = "You must agree to the terms";
     
     setErrors(newErrors);
-    return Object.values(newErrors).every(error => !error);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
@@ -403,31 +343,18 @@ const RegisterForm = ({ onToggle }) => {
       setIsSubmitting(true);
       setError("");
       
-      // Check backend connectivity before proceeding with registration
-      const isConnected = await checkBackendStatus();
-      if (!isConnected) {
-        console.warn("Registration proceeding despite connectivity warning");
-      }
-      
       await register({
-        firstName,
-        lastName,
-        email,
-        password,
-        phone
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        password: formData.password,
+        phone: formData.phone
       });
       
       // Redirect to home page or show success message
       router.push("/");
     } catch (err) {
-      console.error("Registration error:", err);
-      
-      if (err.message?.includes("Network error") || err.message?.includes("Failed to fetch")) {
-        setError("Can't reach the server. Please check your internet connection and try again.");
-        await checkBackendStatus();
-      } else {
-        setError(err.message || "Registration failed. Please try again.");
-      }
+      setError(err.message || "Registration failed. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -445,12 +372,6 @@ const RegisterForm = ({ onToggle }) => {
           {error}
         </div>
       )}
-      
-      {connectionStatus && (
-        <div className={`mb-4 p-3 ${connectionStatus.includes("✅") ? "bg-green-50 border-green-200 text-green-700" : "bg-yellow-50 border-yellow-200 text-yellow-700"} rounded-md text-sm`}>
-          {connectionStatus}
-        </div>
-      )}
 
       <form onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
@@ -458,8 +379,10 @@ const RegisterForm = ({ onToggle }) => {
             id="firstName"
             label="First Name"
             placeholder="John"
-            value={firstName}
-            onChange={(e) => setFirstName(e.target.value)}
+            value={formData.firstName}
+            onChange={(e) => handleChange({
+              target: { name: 'firstName', value: e.target.value }
+            })}
             required
             icon={<User size={18} />}
             error={errors.firstName}
@@ -469,8 +392,10 @@ const RegisterForm = ({ onToggle }) => {
             id="lastName"
             label="Last Name"
             placeholder="Doe"
-            value={lastName}
-            onChange={(e) => setLastName(e.target.value)}
+            value={formData.lastName}
+            onChange={(e) => handleChange({
+              target: { name: 'lastName', value: e.target.value }
+            })}
             required
             icon={<User size={18} />}
             error={errors.lastName}
@@ -482,8 +407,10 @@ const RegisterForm = ({ onToggle }) => {
           label="Email"
           type="email"
           placeholder="your@email.com"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          value={formData.email}
+          onChange={(e) => handleChange({
+            target: { name: 'email', value: e.target.value }
+          })}
           required
           icon={<Mail size={18} />}
           error={errors.email}
@@ -494,10 +421,11 @@ const RegisterForm = ({ onToggle }) => {
           label="Phone Number"
           type="tel"
           placeholder="(123) 456-7890"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
+          value={formData.phone}
+          onChange={(e) => handleChange({
+            target: { name: 'phone', value: e.target.value }
+          })}
           icon={<Phone size={18} />}
-          error={errors.phone}
         />
 
         <InputField
@@ -505,8 +433,10 @@ const RegisterForm = ({ onToggle }) => {
           label="Password"
           type="password"
           placeholder="Create a password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
+          value={formData.password}
+          onChange={(e) => handleChange({
+            target: { name: 'password', value: e.target.value }
+          })}
           required
           icon={<Lock size={18} />}
           error={errors.password}
@@ -517,8 +447,10 @@ const RegisterForm = ({ onToggle }) => {
           label="Confirm Password"
           type="password"
           placeholder="Confirm your password"
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
+          value={formData.confirmPassword}
+          onChange={(e) => handleChange({
+            target: { name: 'confirmPassword', value: e.target.value }
+          })}
           required
           icon={<Lock size={18} />}
           error={errors.confirmPassword}
@@ -528,8 +460,11 @@ const RegisterForm = ({ onToggle }) => {
           <label className="flex items-start">
             <input
               type="checkbox"
-              checked={agreeTerms}
-              onChange={() => setAgreeTerms(!agreeTerms)}
+              name="agreeTerms"
+              checked={formData.agreeTerms}
+              onChange={(e) => handleChange({
+                target: { name: 'agreeTerms', type: 'checkbox', checked: e.target.checked }
+              })}
               className={`w-4 h-4 mt-0.5 text-orange-500 border-gray-300 rounded focus:ring-orange-500 ${
                 errors.agreeTerms ? "border-red-500" : ""
               }`}
@@ -580,46 +515,129 @@ const RegisterForm = ({ onToggle }) => {
 
 // Main Auth Page Component
 export default function AuthPage({ initialMode = "login" }) {
-  const [isLogin, setIsLogin] = useState(initialMode === "login");
-  const [scrolled, setScrolled] = useState(false);
-  const { isAuthenticated, user } = useAuth();
-  const router = useRouter();
-
-  // Redirect if already logged in
-  useEffect(() => {
-    if (isAuthenticated && user) {
-      router.push("/");
-    }
-  }, [isAuthenticated, user, router]);
-
-  // Handle scroll event for page appearance
+  const [mode, setMode] = useState(initialMode);
+  
+  // Toggle between login and register modes
+  const toggleMode = () => {
+    setMode(mode === "login" ? "register" : "login");
+  };
+  
+  // Get scroll position for animated elements
+  const [scrollY, setScrollY] = useState(0);
+  
+  // Update scroll position
   useEffect(() => {
     const handleScroll = () => {
-      setScrolled(window.scrollY > 10);
+      setScrollY(window.scrollY);
     };
-
+    
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-100 pt-32">
-      <div className="w-full max-w-md mx-auto px-4">
-        <div className="mb-8">
-          <Link
-            href="/"
-            className="inline-flex items-center text-gray-700 hover:text-orange-500 transition-colors"
-          >
-            <ArrowLeft size={18} className="mr-2" />
-            <span className="font-medium">Back to Home</span>
-          </Link>
+    <div className="py-12 md:py-20 px-4">
+      <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-12 items-center">
+        {/* Left: Auth Form */}
+        <div className="md:order-1 order-2">
+          <div className="max-w-md mx-auto">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2 text-center">
+              {mode === "login" ? "Sign In" : "Create Account"}
+            </h1>
+            <p className="text-gray-600 text-center mb-8">
+              {mode === "login"
+                ? "Sign in to access your My Ride account"
+                : "Register to start browsing premium vehicles"}
+            </p>
+
+            {mode === "login" ? (
+              <LoginForm onToggle={toggleMode} />
+            ) : (
+              <RegisterForm onToggle={toggleMode} />
+            )}
+          </div>
         </div>
 
-        {isLogin ? (
-          <LoginForm onToggle={() => setIsLogin(false)} />
-        ) : (
-          <RegisterForm onToggle={() => setIsLogin(true)} />
-        )}
+        {/* Right: Image and Text */}
+        <div className="md:order-2 order-1 relative overflow-hidden rounded-xl shadow-xl">
+          <div className="absolute inset-0 bg-gradient-to-br from-orange-500/90 to-orange-700/90 z-10"></div>
+          <img
+            src="/images/auth-bg.jpg"
+            alt="Luxury car interior"
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+          <div
+            className="relative z-20 p-8 md:p-12 text-white"
+            style={{
+              transform: `translateY(${scrollY * 0.1}px)`,
+              transition: "transform 0.1s ease-out",
+            }}
+          >
+            <h2 className="text-3xl md:text-4xl font-bold mb-6">
+              {mode === "login"
+                ? "Welcome Back to My Ride"
+                : "Join the My Ride Community"}
+            </h2>
+            <p className="text-lg mb-6 text-white/90">
+              {mode === "login"
+                ? "Sign in to access your profile, saved vehicles, and custom preferences."
+                : "Create an account to save your favorite cars, get updates on new listings, and more."}
+            </p>
+            <div className="space-y-4">
+              <div className="flex items-center">
+                <div className="h-8 w-8 rounded-full bg-white/20 flex items-center justify-center mr-4">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </div>
+                <span>Premium vehicle selection</span>
+              </div>
+              <div className="flex items-center">
+                <div className="h-8 w-8 rounded-full bg-white/20 flex items-center justify-center mr-4">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </div>
+                <span>Personalized recommendations</span>
+              </div>
+              <div className="flex items-center">
+                <div className="h-8 w-8 rounded-full bg-white/20 flex items-center justify-center mr-4">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-5 w-5"
+                    viewBox="0 0 20 20"
+                    fill="currentColor"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                </div>
+                <span>Save favorite vehicles</span>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );

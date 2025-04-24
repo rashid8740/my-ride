@@ -15,7 +15,7 @@ const InputField = ({
   onChange, 
   required = false,
   icon,
-  error
+  error = null
 }) => {
   return (
     <div className="mb-4">
@@ -46,8 +46,59 @@ export default function ForgotPassword() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [connectionStatus, setConnectionStatus] = useState(null);
   
   const { forgotPassword } = useAuth();
+
+  // Function to check backend connectivity
+  const checkBackendStatus = async () => {
+    try {
+      setConnectionStatus("Checking connection to backend server...");
+      
+      // Try the configured API URL first
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      console.log("Checking primary backend at:", backendUrl);
+      
+      // List of potential backend URLs to try in order
+      const backendUrls = [
+        backendUrl,
+        'https://my-ride-backend.onrender.com',
+        'https://my-ride-backend.vercel.app'
+      ];
+      
+      // Try each backend URL
+      for (const url of backendUrls) {
+        try {
+          // Try health endpoint first
+          const healthUrl = `${url}/api/health`;
+          console.log("Trying health endpoint at:", healthUrl);
+          
+          const healthResponse = await fetch(healthUrl, { 
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' },
+            // Abort after 5 seconds to try next quickly
+            signal: AbortSignal.timeout(5000)
+          });
+          
+          if (healthResponse.ok) {
+            // Found a working backend!
+            setConnectionStatus(`✅ Backend server is accessible at ${url}`);
+            return true;
+          }
+        } catch (healthErr) {
+          console.log(`Health check failed for ${url}:`, healthErr);
+        }
+      }
+      
+      // If we got here, no backends worked
+      setConnectionStatus(`❌ Cannot connect to any backend servers. Please check if the backend is deployed.`);
+      return false;
+    } catch (err) {
+      console.error("Backend check error:", err);
+      setConnectionStatus("❌ Cannot connect to backend server. Is it running?");
+      return false;
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -62,12 +113,22 @@ export default function ForgotPassword() {
       setError("");
       setSuccessMessage("");
       
-      await forgotPassword(email);
+      // Check backend connectivity first
+      await checkBackendStatus();
       
-      // Show success message
-      setSuccessMessage("Password reset instructions have been sent to your email");
-      setEmail("");
+      // Call forgotPassword from AuthContext
+      const result = await forgotPassword(email);
+      
+      if (result.success) {
+        // Show success message
+        setSuccessMessage(result.message || "Password reset instructions have been sent to your email");
+        setEmail("");
+      } else {
+        // Show error message
+        setError(result.message || "Failed to send reset email. Please try again.");
+      }
     } catch (err) {
+      console.error("Error in forgot password:", err);
       setError(err.message || "Failed to send reset email. Please try again.");
     } finally {
       setIsSubmitting(false);
@@ -104,18 +165,24 @@ export default function ForgotPassword() {
               {successMessage}
             </div>
           )}
+          
+          {connectionStatus && (
+            <div className={`mb-4 p-3 ${connectionStatus.includes("✅") ? "bg-green-50 border-green-200 text-green-700" : "bg-yellow-50 border-yellow-200 text-yellow-700"} rounded-md text-sm`}>
+              {connectionStatus}
+            </div>
+          )}
 
           <form onSubmit={handleSubmit}>
             <InputField
               id="email"
               label="Email"
-                  type="email"
-                  placeholder="your@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
+              type="email"
+              placeholder="your@email.com"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
               icon={<Mail size={18} />}
-                />
+            />
 
             <button
               type="submit"
