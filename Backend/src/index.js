@@ -1,10 +1,10 @@
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
 
 // Load environment variables
-dotenv.config();
 
 // Import routes
 const authRoutes = require('./routes/authRoutes');
@@ -26,15 +26,14 @@ const allowedOrigins = [
   'https://my-ride.vercel.app',
   'https://my-ride-frontend.vercel.app',
   'https://my-ride-git-main-rashid8740s-projects.vercel.app',
-  'https://my-ride-evn1kfka8-rashid8740s-projects.vercel.app',
-  'https://my-ride-axp0zkmm0-rashid8740s-projects.vercel.app',
+  'https://my-ride-seven.vercel.app',
   
-  // Dynamic Vercel preview deployments (wildcard would be better but we'll list patterns)
+  // Dynamic Vercel preview deployments
   'https://my-ride-git-*.vercel.app',
   'https://my-ride-*-rashid8740s-projects.vercel.app',
   
   // Add any other domains your frontend might be deployed on
-  process.env.FRONTEND_URL // Also use the environment variable if set
+  process.env.FRONTEND_URL
 ].filter(Boolean); // Filter out undefined/empty values
 
 const corsOptions = {
@@ -49,17 +48,19 @@ const corsOptions = {
     
     // Check for wildcard patterns (for Vercel preview deployments)
     for (const pattern of allowedOrigins) {
-      if (pattern.includes('*') && new RegExp('^' + pattern.replace('*', '.*') + '$').test(origin)) {
+      if (pattern && pattern.includes('*') && new RegExp('^' + pattern.replace('*', '.*') + '$').test(origin)) {
         return callback(null, true);
       }
     }
     
-    // In production, we'll log but allow all origins to prevent blocking
+    // In production, allow all origins for compatibility
     console.log('CORS request from:', origin);
     return callback(null, true);
   },
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Origin', 
+                   'X-Requested-With', 'Accept', 'x-client-key', 'x-client-token', 
+                   'x-client-secret'],
   credentials: true,
   maxAge: 86400 // Cache CORS preflight response for 24 hours
 };
@@ -68,6 +69,16 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.enable("trust proxy");
+app.set('trust proxy', 1);
+
+// Add security headers for all responses
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  next();
+});
 
 // Define routes
 app.use('/api/auth', authRoutes);
@@ -108,48 +119,65 @@ app.get('/', (req, res) => {
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/my-ride';
 console.log(`Connecting to MongoDB: ${MONGODB_URI.split('@')[0].replace(/:.+@/, ':****@')}...`);
 
-// Ensure we have the right database name
-let mongoURI = MONGODB_URI;
-if (!mongoURI.includes('/my-ride') && !mongoURI.endsWith('/')) {
-  // Add database name if not present
-  mongoURI = `${mongoURI}/my-ride`;
-  console.log('Added database name to connection string');
-}
+// Use the connection string as is - do not modify it
+const mongoURI = MONGODB_URI;
 
-// Added connection options for better stability
+// Improved connection options for Vercel serverless environment
 const mongooseOptions = {
   useNewUrlParser: true,
   useUnifiedTopology: true,
-  serverSelectionTimeoutMS: 10000, // Increased timeout for Vercel
-  socketTimeoutMS: 45000, // Longer socket timeout
+  serverSelectionTimeoutMS: 30000, // Increased for Vercel serverless functions
+  socketTimeoutMS: 45000, 
   family: 4, // Use IPv4, skip IPv6
-  maxPoolSize: 10, // Maximum connection pool size
-  connectTimeoutMS: 10000, // Connection timeout
-  retryWrites: true, // Retry write operations
+  maxPoolSize: 10, 
+  connectTimeoutMS: 30000, // Increased for Vercel serverless functions
+  retryWrites: true,
+  bufferCommands: false // Disable mongoose buffering for serverless
 };
 
-// Function to handle connection with retries
-const connectWithRetry = (retryCount = 5) => {
-  return mongoose.connect(mongoURI, mongooseOptions)
-    .then(() => {
-      console.log('Connected to MongoDB successfully');
-      isMongoConnected = true;
-    })
-    .catch((error) => {
-      console.error(`MongoDB connection error (attempt ${6 - retryCount}/5):`, error.message);
-      isMongoConnected = false;
-      
-      if (retryCount > 0) {
-        console.log(`Retrying connection in 3 seconds... (${retryCount} attempts left)`);
-        setTimeout(() => connectWithRetry(retryCount - 1), 3000);
-      } else {
-        console.error('Failed to connect to MongoDB after multiple attempts.');
-      }
-    });
-};
+// Better connection approach for serverless - only connect when no existing connection
+let isConnecting = false;
+async function connectToDatabase() {
+  if (mongoose.connection.readyState === 1) {
+    console.log('Using existing MongoDB connection');
+    isMongoConnected = true;
+    return;
+  }
+  
+  if (isConnecting) {
+    console.log('Connection already in progress, waiting...');
+    return;
+  }
+  
+  isConnecting = true;
+  try {
+    console.log('Creating new MongoDB connection...');
+    await mongoose.connect(mongoURI, mongooseOptions);
+    console.log('Connected to MongoDB successfully');
+    isMongoConnected = true;
+  } catch (error) {
+    console.error('MongoDB connection error:', error.message);
+    isMongoConnected = false;
+  } finally {
+    isConnecting = false;
+  }
+}
 
-// Start the initial connection
-connectWithRetry();
+// Connect at startup if not in a serverless environment
+if (require.main === module) {
+  connectToDatabase();
+}
+
+// Middleware to ensure database connection for each request
+app.use(async (req, res, next) => {
+  try {
+    await connectToDatabase();
+    next();
+  } catch (error) {
+    console.error('Database connection middleware error:', error);
+    next();
+  }
+});
 
 // Listen for MongoDB connection events
 mongoose.connection.on('connected', () => {
@@ -175,8 +203,13 @@ process.on('SIGINT', () => {
   });
 });
 
-// Start server
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-}); 
+// Start server only if this file is run directly, not if it's imported
+if (require.main === module) {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+  });
+}
+
+// Export the app for Vercel serverless functions
+module.exports = app; 

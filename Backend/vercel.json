@@ -2,25 +2,31 @@
   "version": 2,
   "builds": [
     {
-      "src": "./src/index.js",
+      "src": "api/index.js",
       "use": "@vercel/node"
     }
   ],
-  "routes": [
+  "rewrites": [
     {
-      "src": "/(.*)",
-      "dest": "/"
+      "source": "/(.*)",
+      "destination": "/api/index.js"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "Access-Control-Allow-Origin", "value": "*" },
+        { "key": "Access-Control-Allow-Methods", "value": "GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS" },
+        { "key": "Access-Control-Allow-Headers", "value": "Content-Type, Authorization, X-Requested-With, Origin, Accept" },
+        { "key": "Access-Control-Allow-Credentials", "value": "true" }
+      ]
     }
   ],
   "env": {
     "MONGODB_URI": "mongodb+srv://rashdi8740:Up6MrE69mLM7gwsB@cluster0.chaq15e.mongodb.net/my-ride",
     "JWT_SECRET": "your_jwt_secret_key_here",
-    "JWT_EXPIRES_IN": "30d",
     "NODE_ENV": "production",
-    "FRONTEND_URL": "https://my-ride-git-main-rashid8740s-projects.vercel.app",
-    "ALLOW_SAMPLE_DATA": "true",                              
-    "CLOUDINARY_CLOUD_NAME": "dghr3juaj",
-    "CLOUDINARY_API_KEY": "284321333125128",
-    "CLOUDINARY_API_SECRET": "3Qf7H4XpOKxwRtD2pmGw7dCKzoc"
+    "FRONTEND_URL": "https://my-ride-git-main-rashid8740s-projects.vercel.app"
   }
-} 
+}
