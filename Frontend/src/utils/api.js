@@ -6,6 +6,13 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
  * @returns {string} The API URL
  */
 export function getApiUrl() {
+  // Check session storage for preferred API URL first (set by connectivity checks)
+  if (typeof window !== 'undefined' && sessionStorage.getItem('preferred_api_url')) {
+    const preferredUrl = sessionStorage.getItem('preferred_api_url');
+    console.log('Using preferred API URL from session:', preferredUrl);
+    return preferredUrl;
+  }
+
   // Prioritize environment variable, then fallback to production URL if in production, and local if not
   if (process.env.NEXT_PUBLIC_API_URL) {
     return process.env.NEXT_PUBLIC_API_URL;
@@ -19,6 +26,80 @@ export function getApiUrl() {
   
   // Default for local development
   return 'http://localhost:5000';
+}
+
+/**
+ * Diagnose API connection issues
+ * @param {string} apiUrl - The URL to diagnose
+ * @returns {Promise<Object>} Diagnostic results
+ */
+export async function diagnoseApiConnection(apiUrl) {
+  console.log(`🔍 Diagnosing API connection to ${apiUrl}...`);
+  const results = {
+    url: apiUrl,
+    dns: false,
+    connection: false,
+    cors: null,
+    response: null,
+    error: null,
+    timestamp: new Date().toISOString()
+  };
+  
+  try {
+    // Try HEAD request first (lightweight)
+    console.log(`Attempting HEAD request to ${apiUrl}...`);
+    const headResponse = await fetch(apiUrl, {
+      method: 'HEAD',
+      mode: 'cors',
+      // 5 second timeout
+      signal: AbortSignal.timeout(5000)
+    });
+    
+    results.connection = true;
+    results.cors = true;
+    results.response = {
+      status: headResponse.status,
+      ok: headResponse.ok,
+      headers: Object.fromEntries([...headResponse.headers]),
+    };
+    
+    console.log(`✅ HEAD request successful: ${headResponse.status}`);
+    return results;
+  } catch (headError) {
+    results.error = {
+      name: headError.name,
+      message: headError.message
+    };
+    
+    // If we got a TypeError, DNS or connection failed
+    if (headError.name === 'TypeError') {
+      console.log(`❌ Connection error: ${headError.message}`);
+      
+      // Check if it's a CORS issue by trying no-cors mode
+      try {
+        console.log('Attempting no-cors request to check if server is reachable...');
+        await fetch(apiUrl, {
+          method: 'HEAD',
+          mode: 'no-cors',
+          signal: AbortSignal.timeout(5000)
+        });
+        
+        // If we get here, the server is reachable but might have CORS issues
+        results.connection = true;
+        results.cors = false;
+        console.log('✅ Server is reachable, but CORS might be an issue');
+      } catch (noCorsError) {
+        console.log(`❌ No-cors request also failed: ${noCorsError.message}`);
+        // Even no-cors failed, might be a real connectivity issue
+        results.connection = false;
+      }
+    } else if (headError.name === 'AbortError') {
+      console.log('❌ Request timed out');
+      results.connection = false;
+    }
+    
+    return results;
+  }
 }
 
 /**
@@ -125,39 +206,28 @@ const apiService = {
     };
     
     try {
-      // Send the request
+      if (isImportantRequest) {
+        console.log(`Initiating fetch to ${url} with config:`, {
+          method: config.method,
+          headers: { ...config.headers, Authorization: token ? 'Bearer [REDACTED]' : undefined }
+        });
+      }
+      
+      // Perform the fetch operation
       const response = await fetch(url, config);
       
-      // Clear timeout
+      // Clear timeout since request completed
       clearTimeout(timeoutId);
       
-      // For debugging - log important responses
       if (isImportantRequest) {
-        console.log(`Response status: ${response.status} - ${response.statusText}`);
+        console.log(`Response from ${url}: ${response.status} ${response.statusText}`);
       }
       
-      // Clone response for raw access if parsing fails
-      const clonedResponse = response.clone();
-      
-      // Parse JSON response
-      let data;
-      try {
-        data = await response.json();
-        
-        // For debugging - log important response data
-        if (isImportantRequest) {
-          console.log('Response data:', {
-            status: data.status,
-            message: data.message
-          });
-        }
-      } catch (jsonError) {
-        console.error('Failed to parse JSON response:', jsonError);
-        // Try to get raw text for better debugging
-        const rawText = await clonedResponse.text();
-        console.error('Raw response text:', rawText.substring(0, 500));
-        throw new Error('Invalid response from server. Please try again later.');
-      }
+      // Parse the response data
+      const data = await response.json().catch(err => {
+        console.warn(`Error parsing JSON from ${url}:`, err);
+        return { message: 'Invalid response from server' };
+      });
       
       // Handle API errors
       if (!response.ok) {
@@ -202,6 +272,12 @@ const apiService = {
           // Special case for login, try with direct API call as a fallback
           if (endpoint === '/auth/login' && options.method === 'POST') {
             try {
+              // Run diagnostics on the API URL
+              const apiUrl = getApiUrl();
+              console.log('Running API connection diagnostics...');
+              const diagnosticResults = await diagnoseApiConnection(apiUrl);
+              console.log('Diagnostic results:', diagnosticResults);
+              
               // Try multiple backend URLs in sequence
               const fallbackUrls = [
                 getApiUrl(),
@@ -241,7 +317,7 @@ const apiService = {
             }
           }
           
-          throw new Error('Network error. Please check if the backend server is running and accessible.');
+          throw new Error('Network error. Please try one of the following: 1) Check if the backend server is running and accessible. 2) Try a different network connection. 3) Check browser console for detailed error information.');
         }
       }
       
