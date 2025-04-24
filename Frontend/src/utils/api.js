@@ -14,7 +14,7 @@ export function getApiUrl() {
   // Check if we're in a browser and in production
   if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
     // Return the correct backend URL
-    return 'https://my-ride-hhne.vercel.app';
+    return 'https://my-ride-backend.vercel.app';
   }
   
   // Default for local development
@@ -202,26 +202,42 @@ const apiService = {
           // Special case for login, try with direct API call as a fallback
           if (endpoint === '/auth/login' && options.method === 'POST') {
             try {
-              // Try a direct login with the backend URL
-              console.log('Attempting direct login with backend as fallback...');
-              const directResponse = await fetch(`${getApiUrl()}/api/auth/login`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json'
-                },
-                body: options.body,
-                // Don't use controller signal for fallback to avoid abort
-              });
+              // Try multiple backend URLs in sequence
+              const fallbackUrls = [
+                getApiUrl(),
+                'https://my-ride-backend.vercel.app',
+                'https://my-ride-backend.onrender.com'
+              ];
               
-              if (directResponse.ok) {
-                const directData = await directResponse.json();
-                console.log('Direct login succeeded');
-                return directData;
-              } else {
-                console.log('Direct login failed:', directResponse.status);
+              console.log('Attempting direct login with multiple backends as fallback...');
+              
+              // Try each URL in sequence
+              for (const baseUrl of fallbackUrls) {
+                try {
+                  console.log(`Trying login with: ${baseUrl}/api/auth/login`);
+                  const directResponse = await fetch(`${baseUrl}/api/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json'
+                    },
+                    body: options.body,
+                    // 10 second timeout for fallback attempts
+                    signal: AbortSignal.timeout(10000)
+                  });
+                  
+                  if (directResponse.ok) {
+                    const directData = await directResponse.json();
+                    console.log(`Direct login succeeded with ${baseUrl}`);
+                    return directData;
+                  } else {
+                    console.log(`Direct login failed with ${baseUrl}:`, directResponse.status);
+                  }
+                } catch (urlError) {
+                  console.error(`Failed with ${baseUrl}:`, urlError.message);
+                }
               }
             } catch (directError) {
-              console.error('Direct login attempt failed:', directError);
+              console.error('All direct login attempts failed:', directError);
             }
           }
           
@@ -253,17 +269,29 @@ const apiService = {
       return apiService.request('/auth/me');
     },
     
-    async forgotPassword(email) {
+    async forgotPassword(emailData) {
+      // Support both object format and string format for backward compatibility
+      const email = typeof emailData === 'string' ? emailData : emailData.email;
+      const payload = typeof emailData === 'string' ? { email } : emailData;
+      
+      console.log('Sending forgot password request with:', { ...payload });
+      
       return apiService.request('/auth/forgot-password', {
         method: 'POST',
-        body: JSON.stringify({ email }),
+        body: JSON.stringify(payload),
       });
     },
     
-    async resetPassword(token, password) {
+    async resetPassword(token, passwordData) {
+      // Support both object format and string format for backward compatibility
+      const password = typeof passwordData === 'string' ? passwordData : passwordData.password;
+      const payload = typeof passwordData === 'string' ? { password } : passwordData;
+      
+      console.log('Sending reset password request with token');
+      
       return apiService.request(`/auth/reset-password/${token}`, {
         method: 'POST',
-        body: JSON.stringify({ password }),
+        body: JSON.stringify(payload),
       });
     },
     
