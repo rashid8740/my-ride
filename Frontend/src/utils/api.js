@@ -6,13 +6,6 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
  * @returns {string} The API URL
  */
 export function getApiUrl() {
-  // Check session storage for preferred API URL first (set by connectivity checks)
-  if (typeof window !== 'undefined' && sessionStorage.getItem('preferred_api_url')) {
-    const preferredUrl = sessionStorage.getItem('preferred_api_url');
-    console.log('Using preferred API URL from session:', preferredUrl);
-    return preferredUrl;
-  }
-
   // Prioritize environment variable, then fallback to production URL if in production, and local if not
   if (process.env.NEXT_PUBLIC_API_URL) {
     return process.env.NEXT_PUBLIC_API_URL;
@@ -21,85 +14,11 @@ export function getApiUrl() {
   // Check if we're in a browser and in production
   if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
     // Return the correct backend URL
-    return 'https://my-ride-backend.vercel.app';
+    return 'https://my-ride-hhne.vercel.app';
   }
   
   // Default for local development
   return 'http://localhost:5000';
-}
-
-/**
- * Diagnose API connection issues
- * @param {string} apiUrl - The URL to diagnose
- * @returns {Promise<Object>} Diagnostic results
- */
-export async function diagnoseApiConnection(apiUrl) {
-  console.log(`🔍 Diagnosing API connection to ${apiUrl}...`);
-  const results = {
-    url: apiUrl,
-    dns: false,
-    connection: false,
-    cors: null,
-    response: null,
-    error: null,
-    timestamp: new Date().toISOString()
-  };
-  
-  try {
-    // Try HEAD request first (lightweight)
-    console.log(`Attempting HEAD request to ${apiUrl}...`);
-    const headResponse = await fetch(apiUrl, {
-      method: 'HEAD',
-      mode: 'cors',
-      // 5 second timeout
-      signal: AbortSignal.timeout(5000)
-    });
-    
-    results.connection = true;
-    results.cors = true;
-    results.response = {
-      status: headResponse.status,
-      ok: headResponse.ok,
-      headers: Object.fromEntries([...headResponse.headers]),
-    };
-    
-    console.log(`✅ HEAD request successful: ${headResponse.status}`);
-    return results;
-  } catch (headError) {
-    results.error = {
-      name: headError.name,
-      message: headError.message
-    };
-    
-    // If we got a TypeError, DNS or connection failed
-    if (headError.name === 'TypeError') {
-      console.log(`❌ Connection error: ${headError.message}`);
-      
-      // Check if it's a CORS issue by trying no-cors mode
-      try {
-        console.log('Attempting no-cors request to check if server is reachable...');
-        await fetch(apiUrl, {
-          method: 'HEAD',
-          mode: 'no-cors',
-          signal: AbortSignal.timeout(5000)
-        });
-        
-        // If we get here, the server is reachable but might have CORS issues
-        results.connection = true;
-        results.cors = false;
-        console.log('✅ Server is reachable, but CORS might be an issue');
-      } catch (noCorsError) {
-        console.log(`❌ No-cors request also failed: ${noCorsError.message}`);
-        // Even no-cors failed, might be a real connectivity issue
-        results.connection = false;
-      }
-    } else if (headError.name === 'AbortError') {
-      console.log('❌ Request timed out');
-      results.connection = false;
-    }
-    
-    return results;
-  }
 }
 
 /**
@@ -165,7 +84,7 @@ const apiService = {
     // Use getApiUrl to ensure correct URL in all environments
     const url = `${getApiUrl()}/api${endpoint}`;
     
-    const isImportantRequest = endpoint.includes('/auth/login') || endpoint.includes('/users') || endpoint.includes('/auth/me');
+    const isImportantRequest = endpoint.includes('/auth/login') || endpoint.includes('/users');
     
     if (isImportantRequest) {
       console.log(`API Request to: ${url} [${options.method || 'GET'}]`);
@@ -184,10 +103,6 @@ const apiService = {
       if (isImportantRequest) {
         console.log('Using token for request:', token.substring(0, 15) + '...');
       }
-    } else if (isImportantRequest && (endpoint.includes('/auth/me') || endpoint === '/user')) {
-      // Skip requests that require auth if no token available
-      console.warn('Auth token required but not available for:', endpoint);
-      throw new Error('Authentication required. Please log in first.');
     }
     
     // Create fetch config with proper signal handling
@@ -210,31 +125,38 @@ const apiService = {
     };
     
     try {
-      if (isImportantRequest) {
-        console.log(`Initiating fetch to ${url} with config:`, {
-          method: config.method,
-          headers: { ...config.headers, Authorization: token ? 'Bearer [REDACTED]' : undefined }
-        });
-      }
-      
-      // Perform the fetch operation
+      // Send the request
       const response = await fetch(url, config);
       
-      // Clear timeout since request completed
+      // Clear timeout
       clearTimeout(timeoutId);
       
+      // For debugging - log important responses
       if (isImportantRequest) {
-        console.log(`Response from ${url}: ${response.status} ${response.statusText}`);
+        console.log(`Response status: ${response.status} - ${response.statusText}`);
       }
       
-      // Parse the response data
-      const data = await response.json().catch(err => {
-        console.warn(`Error parsing JSON from ${url}:`, err);
-        return { message: 'Invalid response from server' };
-      });
+      // Clone response for raw access if parsing fails
+      const clonedResponse = response.clone();
       
-      if (isImportantRequest) {
-        console.log(`Response data from ${url}:`, data);
+      // Parse JSON response
+      let data;
+      try {
+        data = await response.json();
+        
+        // For debugging - log important response data
+        if (isImportantRequest) {
+          console.log('Response data:', {
+            status: data.status,
+            message: data.message
+          });
+        }
+      } catch (jsonError) {
+        console.error('Failed to parse JSON response:', jsonError);
+        // Try to get raw text for better debugging
+        const rawText = await clonedResponse.text();
+        console.error('Raw response text:', rawText.substring(0, 500));
+        throw new Error('Invalid response from server. Please try again later.');
       }
       
       // Handle API errors
@@ -243,24 +165,10 @@ const apiService = {
           console.error('Authentication error on endpoint:', endpoint);
           
           // Clear invalid token if authorization fails
-          if (token && (data.message?.includes('Not authorized') || 
-                        data.message?.includes('invalid token') || 
-                        data.message?.includes('jwt expired') ||
-                        data.message?.includes('Authentication required'))) {
-            console.warn('Clearing invalid token due to auth error');
+          if (token && (data.message?.includes('Not authorized') || data.message?.includes('invalid token'))) {
+            console.warn('Clearing invalid token');
             localStorage.removeItem('token');
             sessionStorage.removeItem('my-ride-auth-session');
-            
-            // Reload the page to reset the app state if on a protected route
-            if (typeof window !== 'undefined' && 
-                window.location.pathname !== '/' && 
-                window.location.pathname !== '/login' &&
-                window.location.pathname !== '/register' &&
-                !window.location.pathname.includes('/reset-password')) {
-              console.log('Redirecting to login page due to auth error');
-              window.location.href = '/login';
-              return null; // Stop execution
-            }
           }
           
           throw new Error('Authentication required. Please log in first.');
@@ -294,52 +202,30 @@ const apiService = {
           // Special case for login, try with direct API call as a fallback
           if (endpoint === '/auth/login' && options.method === 'POST') {
             try {
-              // Run diagnostics on the API URL
-              const apiUrl = getApiUrl();
-              console.log('Running API connection diagnostics...');
-              const diagnosticResults = await diagnoseApiConnection(apiUrl);
-              console.log('Diagnostic results:', diagnosticResults);
+              // Try a direct login with the backend URL
+              console.log('Attempting direct login with backend as fallback...');
+              const directResponse = await fetch(`${getApiUrl()}/api/auth/login`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: options.body,
+                // Don't use controller signal for fallback to avoid abort
+              });
               
-              // Try multiple backend URLs in sequence
-              const fallbackUrls = [
-                getApiUrl(),
-                'https://my-ride-backend.vercel.app',
-                'https://my-ride-backend.onrender.com'
-              ];
-              
-              console.log('Attempting direct login with multiple backends as fallback...');
-              
-              // Try each URL in sequence
-              for (const baseUrl of fallbackUrls) {
-                try {
-                  console.log(`Trying login with: ${baseUrl}/api/auth/login`);
-                  const directResponse = await fetch(`${baseUrl}/api/auth/login`, {
-                    method: 'POST',
-                    headers: {
-                      'Content-Type': 'application/json'
-                    },
-                    body: options.body,
-                    // 10 second timeout for fallback attempts
-                    signal: AbortSignal.timeout(10000)
-                  });
-                  
-                  if (directResponse.ok) {
-                    const directData = await directResponse.json();
-                    console.log(`Direct login succeeded with ${baseUrl}`);
-                    return directData;
-                  } else {
-                    console.log(`Direct login failed with ${baseUrl}:`, directResponse.status);
-                  }
-                } catch (urlError) {
-                  console.error(`Failed with ${baseUrl}:`, urlError.message);
-                }
+              if (directResponse.ok) {
+                const directData = await directResponse.json();
+                console.log('Direct login succeeded');
+                return directData;
+              } else {
+                console.log('Direct login failed:', directResponse.status);
               }
             } catch (directError) {
-              console.error('All direct login attempts failed:', directError);
+              console.error('Direct login attempt failed:', directError);
             }
           }
           
-          throw new Error('Network error. Please try one of the following: 1) Check if the backend server is running and accessible. 2) Try a different network connection. 3) Check browser console for detailed error information.');
+          throw new Error('Network error. Please check if the backend server is running and accessible.');
         }
       }
       
@@ -357,59 +243,51 @@ const apiService = {
     },
     
     async login(credentials) {
-      return apiService.request('/auth/login', {
-        method: 'POST',
-        body: JSON.stringify(credentials),
-      });
-    },
-    
-    async getProfile() {
       try {
-        // Check for token first
-        const token = localStorage.getItem('token');
-        if (!token) {
-          console.error('Token missing for getProfile request');
-          throw new Error('Authentication required. Please log in first.');
-        }
-        
-        // Make the request with explicit auth header
-        const response = await apiService.request('/auth/me', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+        console.log('Attempting login with credentials:', { ...credentials, password: '****' });
+        const loginResponse = await apiService.request('/auth/login', {
+          method: 'POST',
+          body: JSON.stringify(credentials),
         });
         
-        console.log('Get profile response:', response);
-        return response;
+        console.log('Login response received:', loginResponse);
+        
+        // Validate the response has required data
+        if (!loginResponse) {
+          throw new Error('Empty response received from server');
+        }
+        
+        // Check if token exists in expected locations
+        if (
+          (loginResponse.data && loginResponse.data.token) || 
+          loginResponse.token
+        ) {
+          return loginResponse;
+        } else {
+          console.error('Invalid login response format:', loginResponse);
+          throw new Error('Invalid response format from server');
+        }
       } catch (error) {
-        console.error('Error getting profile:', error);
+        console.error('Login request failed:', error);
         throw error;
       }
     },
     
-    async forgotPassword(emailData) {
-      // Support both object format and string format for backward compatibility
-      const email = typeof emailData === 'string' ? emailData : emailData.email;
-      const payload = typeof emailData === 'string' ? { email } : emailData;
-      
-      console.log('Sending forgot password request with:', { ...payload });
-      
+    async getProfile() {
+      return apiService.request('/auth/me');
+    },
+    
+    async forgotPassword(email) {
       return apiService.request('/auth/forgot-password', {
         method: 'POST',
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ email }),
       });
     },
     
-    async resetPassword(token, passwordData) {
-      // Support both object format and string format for backward compatibility
-      const password = typeof passwordData === 'string' ? passwordData : passwordData.password;
-      const payload = typeof passwordData === 'string' ? { password } : passwordData;
-      
-      console.log('Sending reset password request with token');
-      
+    async resetPassword(token, password) {
       return apiService.request(`/auth/reset-password/${token}`, {
         method: 'POST',
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ password }),
       });
     },
     

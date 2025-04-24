@@ -16,7 +16,7 @@ const InputField = ({
   onChange, 
   required = false,
   icon,
-  error = null
+  error
 }) => {
   return (
     <div className="mb-4">
@@ -66,13 +66,11 @@ const LoginForm = ({ onToggle }) => {
       // List of potential backend URLs to try in order
       const backendUrls = [
         backendUrl,
-        'https://my-ride-backend.vercel.app',
-        'https://my-ride-backend.onrender.com'
+        'https://my-ride-backend.onrender.com',
+        'https://my-ride-backend.vercel.app'
       ];
       
       // Try each backend URL
-      let foundWorkingBackend = false;
-      
       for (const url of backendUrls) {
         try {
           // Try health endpoint first
@@ -88,37 +86,42 @@ const LoginForm = ({ onToggle }) => {
           
           if (healthResponse.ok) {
             // Found a working backend!
-            foundWorkingBackend = true;
             try {
               const healthData = await healthResponse.json();
-              const dbStatus = healthData.database === 'connected' ? '(Database connected)' : '(Database disconnected)';
-              setConnectionStatus(`✅ Backend server is accessible at ${url} ${dbStatus}`);
+              setConnectionStatus(`✅ Backend server is accessible at ${url} (${healthData.status || 'ok'})`);
+              // If this isn't the primary URL, suggest updating the environment variable
+              if (url !== backendUrl) {
+                console.log(`Found working backend at ${url}. Consider updating your NEXT_PUBLIC_API_URL.`);
+              }
+              return true;
             } catch (parseError) {
+              console.log("Health endpoint returned non-JSON response:", parseError);
               setConnectionStatus(`✅ Backend server is accessible at ${url}`);
+              return true;
             }
-            return true;
           }
         } catch (healthErr) {
           console.log(`Health check failed for ${url}:`, healthErr);
         }
         
         // If health check failed, try root endpoint
-        if (!foundWorkingBackend) {
-          try {
-            console.log("Trying root endpoint at:", url);
-            const rootResponse = await fetch(url, { 
-              method: 'GET',
-              // Abort after 5 seconds
-              signal: AbortSignal.timeout(5000)
-            });
-            
-            if (rootResponse.ok) {
-              setConnectionStatus(`✅ Backend server is accessible at ${url}`);
-              return true;
+        try {
+          console.log("Trying root endpoint at:", url);
+          const rootResponse = await fetch(url, { 
+            method: 'GET',
+            // Abort after 5 seconds
+            signal: AbortSignal.timeout(5000)
+          });
+          
+          if (rootResponse.ok) {
+            setConnectionStatus(`✅ Backend server is accessible at ${url}`);
+            if (url !== backendUrl) {
+              console.log(`Found working backend at ${url}. Consider updating your NEXT_PUBLIC_API_URL.`);
             }
-          } catch (rootErr) {
-            console.log(`Root endpoint check failed for ${url}:`, rootErr);
+            return true;
           }
+        } catch (rootErr) {
+          console.log(`Root endpoint check failed for ${url}:`, rootErr);
         }
       }
       
@@ -136,7 +139,6 @@ const LoginForm = ({ onToggle }) => {
     }
   };
 
-  // Handle login form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
     
@@ -148,20 +150,16 @@ const LoginForm = ({ onToggle }) => {
     try {
       setIsSubmitting(true);
       setError("");
-
-      // Check backend connectivity
-      const isConnected = await checkBackendStatus();
-      if (!isConnected) {
-        console.warn("Login proceeding despite connectivity warning");
-      }
       
-      // Attempt login
+      // Check backend connectivity
+      await checkBackendStatus();
+      
       console.log("Attempting login with:", email);
       const result = await login({ email, password });
       console.log("Login result:", result);
       
       if (!result.success) {
-        throw new Error(result.message || "Login failed.");
+        throw new Error(result.message || "Login failed. Please try again.");
       }
       
       // Save to local storage if remember me is checked
@@ -170,20 +168,22 @@ const LoginForm = ({ onToggle }) => {
       } else {
         localStorage.removeItem("rememberedEmail");
       }
-
+      
       console.log("Login successful, redirecting to home page");
       // Redirect to home page
-      router.push("/dashboard");
+      router.push("/");
     } catch (err) {
       console.error("Login error in form:", err);
       
-      if (err.message?.includes("Invalid response from server")) {
-        setError("We're having trouble connecting to the server. Please try again later.");
-      } else if (err.message?.includes("Network error") || err.message?.includes("timed out")) {
-        setError("Can't reach the server. Please check your internet connection and try again.");
-        await checkBackendStatus();
+      // Customize error message based on type of error
+      if (err.message?.includes("Network error") || err.message?.includes("Failed to fetch")) {
+        setError("Cannot connect to the server. Please check your internet connection.");
+      } else if (err.message?.includes("Invalid credentials")) {
+        setError("Invalid email or password. Please try again.");
+      } else if (err.message?.includes("verify your email")) {
+        setError("Please verify your email before logging in.");
       } else {
-        setError(err.message || "Login failed. Please check your credentials.");
+        setError(err.message || "Login failed. Please try again.");
       }
     } finally {
       setIsSubmitting(false);
@@ -228,6 +228,7 @@ const LoginForm = ({ onToggle }) => {
           onChange={(e) => setEmail(e.target.value)}
           required
           icon={<Mail size={18} />}
+          error={null}
         />
 
         <InputField
@@ -239,6 +240,7 @@ const LoginForm = ({ onToggle }) => {
           onChange={(e) => setPassword(e.target.value)}
           required
           icon={<Lock size={18} />}
+          error={null}
         />
 
         <div className="flex items-center justify-between mb-6">
@@ -288,49 +290,31 @@ const LoginForm = ({ onToggle }) => {
 
 // Register Form Component
 const RegisterForm = ({ onToggle }) => {
-  const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
-    email: "",
-    phone: "",
-    password: "",
-    confirmPassword: "",
-    agreeTerms: false
-  });
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [agreeTerms, setAgreeTerms] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
-  // Define errors with the same structure as formData for TypeScript
-  const [errors, setErrors] = useState({
-    firstName: null,
-    lastName: null,
-    email: null,
-    password: null,
-    confirmPassword: null,
-    agreeTerms: null
-  });
+  const [errors, setErrors] = useState({});
   
   const { register } = useAuth();
   const router = useRouter();
 
-  const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value
-    }));
-  };
-
   const validateForm = () => {
     const newErrors = {};
     
-    if (!formData.firstName) newErrors.firstName = "First name is required";
-    if (!formData.lastName) newErrors.lastName = "Last name is required";
-    if (!formData.email) newErrors.email = "Email is required";
-    if (formData.email && !/^\S+@\S+\.\S+$/.test(formData.email)) newErrors.email = "Invalid email format";
-    if (!formData.password) newErrors.password = "Password is required";
-    if (formData.password && formData.password.length < 8) newErrors.password = "Password must be at least 8 characters";
-    if (formData.password !== formData.confirmPassword) newErrors.confirmPassword = "Passwords do not match";
-    if (!formData.agreeTerms) newErrors.agreeTerms = "You must agree to the terms";
+    if (!firstName) newErrors.firstName = "First name is required";
+    if (!lastName) newErrors.lastName = "Last name is required";
+    if (!email) newErrors.email = "Email is required";
+    if (email && !/^\S+@\S+\.\S+$/.test(email)) newErrors.email = "Invalid email format";
+    if (!password) newErrors.password = "Password is required";
+    if (password && password.length < 8) newErrors.password = "Password must be at least 8 characters";
+    if (password !== confirmPassword) newErrors.confirmPassword = "Passwords do not match";
+    if (!agreeTerms) newErrors.agreeTerms = "You must agree to the terms";
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -346,11 +330,11 @@ const RegisterForm = ({ onToggle }) => {
       setError("");
       
       await register({
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        email: formData.email,
-        password: formData.password,
-        phone: formData.phone
+        firstName,
+        lastName,
+        email,
+        password,
+        phone
       });
       
       // Redirect to home page or show success message
@@ -381,10 +365,8 @@ const RegisterForm = ({ onToggle }) => {
             id="firstName"
             label="First Name"
             placeholder="John"
-            value={formData.firstName}
-            onChange={(e) => handleChange({
-              target: { name: 'firstName', value: e.target.value }
-            })}
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
             required
             icon={<User size={18} />}
             error={errors.firstName}
@@ -394,10 +376,8 @@ const RegisterForm = ({ onToggle }) => {
             id="lastName"
             label="Last Name"
             placeholder="Doe"
-            value={formData.lastName}
-            onChange={(e) => handleChange({
-              target: { name: 'lastName', value: e.target.value }
-            })}
+            value={lastName}
+            onChange={(e) => setLastName(e.target.value)}
             required
             icon={<User size={18} />}
             error={errors.lastName}
@@ -409,10 +389,8 @@ const RegisterForm = ({ onToggle }) => {
           label="Email"
           type="email"
           placeholder="your@email.com"
-          value={formData.email}
-          onChange={(e) => handleChange({
-            target: { name: 'email', value: e.target.value }
-          })}
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
           required
           icon={<Mail size={18} />}
           error={errors.email}
@@ -423,10 +401,8 @@ const RegisterForm = ({ onToggle }) => {
           label="Phone Number"
           type="tel"
           placeholder="(123) 456-7890"
-          value={formData.phone}
-          onChange={(e) => handleChange({
-            target: { name: 'phone', value: e.target.value }
-          })}
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
           icon={<Phone size={18} />}
         />
 
@@ -435,10 +411,8 @@ const RegisterForm = ({ onToggle }) => {
           label="Password"
           type="password"
           placeholder="Create a password"
-          value={formData.password}
-          onChange={(e) => handleChange({
-            target: { name: 'password', value: e.target.value }
-          })}
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
           required
           icon={<Lock size={18} />}
           error={errors.password}
@@ -449,10 +423,8 @@ const RegisterForm = ({ onToggle }) => {
           label="Confirm Password"
           type="password"
           placeholder="Confirm your password"
-          value={formData.confirmPassword}
-          onChange={(e) => handleChange({
-            target: { name: 'confirmPassword', value: e.target.value }
-          })}
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
           required
           icon={<Lock size={18} />}
           error={errors.confirmPassword}
@@ -462,11 +434,8 @@ const RegisterForm = ({ onToggle }) => {
           <label className="flex items-start">
             <input
               type="checkbox"
-              name="agreeTerms"
-              checked={formData.agreeTerms}
-              onChange={(e) => handleChange({
-                target: { name: 'agreeTerms', type: 'checkbox', checked: e.target.checked }
-              })}
+              checked={agreeTerms}
+              onChange={() => setAgreeTerms(!agreeTerms)}
               className={`w-4 h-4 mt-0.5 text-orange-500 border-gray-300 rounded focus:ring-orange-500 ${
                 errors.agreeTerms ? "border-red-500" : ""
               }`}
@@ -517,129 +486,46 @@ const RegisterForm = ({ onToggle }) => {
 
 // Main Auth Page Component
 export default function AuthPage({ initialMode = "login" }) {
-  const [mode, setMode] = useState(initialMode);
-  
-  // Toggle between login and register modes
-  const toggleMode = () => {
-    setMode(mode === "login" ? "register" : "login");
-  };
-  
-  // Get scroll position for animated elements
-  const [scrollY, setScrollY] = useState(0);
-  
-  // Update scroll position
+  const [isLogin, setIsLogin] = useState(initialMode === "login");
+  const [scrolled, setScrolled] = useState(false);
+  const { isAuthenticated, user } = useAuth();
+  const router = useRouter();
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      router.push("/");
+    }
+  }, [isAuthenticated, user, router]);
+
+  // Handle scroll event for page appearance
   useEffect(() => {
     const handleScroll = () => {
-      setScrollY(window.scrollY);
+      setScrolled(window.scrollY > 10);
     };
-    
+
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   return (
-    <div className="py-12 md:py-20 px-4">
-      <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-12 items-center">
-        {/* Left: Auth Form */}
-        <div className="md:order-1 order-2">
-          <div className="max-w-md mx-auto">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2 text-center">
-              {mode === "login" ? "Sign In" : "Create Account"}
-            </h1>
-            <p className="text-gray-600 text-center mb-8">
-              {mode === "login"
-                ? "Sign in to access your My Ride account"
-                : "Register to start browsing premium vehicles"}
-            </p>
-
-            {mode === "login" ? (
-              <LoginForm onToggle={toggleMode} />
-            ) : (
-              <RegisterForm onToggle={toggleMode} />
-            )}
-          </div>
-        </div>
-
-        {/* Right: Image and Text */}
-        <div className="md:order-2 order-1 relative overflow-hidden rounded-xl shadow-xl">
-          <div className="absolute inset-0 bg-gradient-to-br from-orange-500/90 to-orange-700/90 z-10"></div>
-          <img
-            src="/images/auth-bg.jpg"
-            alt="Luxury car interior"
-            className="absolute inset-0 w-full h-full object-cover"
-          />
-          <div
-            className="relative z-20 p-8 md:p-12 text-white"
-            style={{
-              transform: `translateY(${scrollY * 0.1}px)`,
-              transition: "transform 0.1s ease-out",
-            }}
+    <div className="min-h-screen bg-gray-100 pt-32">
+      <div className="w-full max-w-md mx-auto px-4">
+        <div className="mb-8">
+          <Link
+            href="/"
+            className="inline-flex items-center text-gray-700 hover:text-orange-500 transition-colors"
           >
-            <h2 className="text-3xl md:text-4xl font-bold mb-6">
-              {mode === "login"
-                ? "Welcome Back to My Ride"
-                : "Join the My Ride Community"}
-            </h2>
-            <p className="text-lg mb-6 text-white/90">
-              {mode === "login"
-                ? "Sign in to access your profile, saved vehicles, and custom preferences."
-                : "Create an account to save your favorite cars, get updates on new listings, and more."}
-            </p>
-            <div className="space-y-4">
-              <div className="flex items-center">
-                <div className="h-8 w-8 rounded-full bg-white/20 flex items-center justify-center mr-4">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </div>
-                <span>Premium vehicle selection</span>
-              </div>
-              <div className="flex items-center">
-                <div className="h-8 w-8 rounded-full bg-white/20 flex items-center justify-center mr-4">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </div>
-                <span>Personalized recommendations</span>
-              </div>
-              <div className="flex items-center">
-                <div className="h-8 w-8 rounded-full bg-white/20 flex items-center justify-center mr-4">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </div>
-                <span>Save favorite vehicles</span>
-              </div>
-            </div>
-          </div>
+            <ArrowLeft size={18} className="mr-2" />
+            <span className="font-medium">Back to Home</span>
+          </Link>
         </div>
+
+        {isLogin ? (
+          <LoginForm onToggle={() => setIsLogin(false)} />
+        ) : (
+          <RegisterForm onToggle={() => setIsLogin(true)} />
+        )}
       </div>
     </div>
   );

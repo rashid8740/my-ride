@@ -1,18 +1,11 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "package.json",
-      "use": "@vercel/next"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(.*)",
-      "dest": "/$1"
-    }
+  "framework": "nextjs",
+  "buildCommand": "chmod +x vercel-build.sh && ./vercel-build.sh",
+  "outputDirectory": ".next",
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/" }
   ],
   "env": {
-    "NEXT_PUBLIC_API_URL": "https://my-ride-hhne.vercel.app"
+    "NEXT_PUBLIC_API_URL": "https://my-ride-backend.vercel.app"
   }
 } 
