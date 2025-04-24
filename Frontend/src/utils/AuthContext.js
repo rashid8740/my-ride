@@ -3,7 +3,7 @@ import { createContext, useContext, useState, useEffect } from 'react';
 import apiService from './api';
 
 // Create auth context
-const AuthContext = createContext();
+const AuthContext = createContext(null);
 
 // Session storage key
 const SESSION_AUTH_KEY = 'my-ride-auth-session';
@@ -17,6 +17,40 @@ export const useAuth = () => {
   return context;
 };
 
+// Utility function to safely get/set from storage
+const storage = {
+  get: (key) => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const item = localStorage.getItem(key);
+      return item ? JSON.parse(item) : null;
+    } catch (e) {
+      console.error(`Error getting ${key} from localStorage:`, e);
+      return null;
+    }
+  },
+  set: (key, value) => {
+    if (typeof window === 'undefined') return;
+    try {
+      if (value === null) {
+        localStorage.removeItem(key);
+      } else {
+        localStorage.setItem(key, JSON.stringify(value));
+      }
+    } catch (e) {
+      console.error(`Error setting ${key} in localStorage:`, e);
+    }
+  },
+  remove: (key) => {
+    if (typeof window === 'undefined') return;
+    try {
+      localStorage.removeItem(key);
+    } catch (e) {
+      console.error(`Error removing ${key} from localStorage:`, e);
+    }
+  }
+};
+
 // Auth provider component
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
@@ -24,56 +58,76 @@ export const AuthProvider = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Restore auth session from sessionStorage first for better page refreshes
+  // Check for existing session on initial load
   useEffect(() => {
-    const restoreSession = async () => {
-      setIsLoading(true);
+    const initializeAuth = async () => {
       try {
-        // Try to get user from sessionStorage first (fastest)
-        if (typeof window !== 'undefined') {
-          const sessionUser = sessionStorage.getItem(SESSION_AUTH_KEY);
-          if (sessionUser) {
-            const userData = JSON.parse(sessionUser);
-            setUser(userData);
-            setIsAuthenticated(true);
-            setIsLoading(false);
-            return;
-          }
-        }
+        setIsLoading(true);
         
-        // Then try to get user from localStorage
+        // Check for token in localStorage
         const token = localStorage.getItem('token');
         
         if (token) {
+          console.log("Found existing auth token, validating...");
+          
           try {
-            // Verify token by getting user profile
-            const response = await apiService.auth.getProfile();
+            // Try to get user profile with the token
+            const userData = await apiService.auth.getProfile();
             
-            if (response.status === 'success' && response.data) {
-              setUser(response.data);
+            if (userData) {
+              console.log("Token valid, user authenticated:", userData);
+              setUser(userData.data || userData);
               setIsAuthenticated(true);
-              // Update session storage to speed up future page loads
+              
+              // Update session storage
               if (typeof window !== 'undefined') {
-                sessionStorage.setItem(SESSION_AUTH_KEY, JSON.stringify(response.data));
+                sessionStorage.setItem(SESSION_AUTH_KEY, JSON.stringify(userData.data || userData));
               }
-            } else {
-              // Invalid token
-              handleLogout();
             }
-          } catch (error) {
-            console.error('Error verifying auth token:', error);
-            // Token validation failed, clear authentication
-            handleLogout();
+          } catch (profileError) {
+            console.error("Error validating token:", profileError);
+            
+            // Clear invalid token
+            localStorage.removeItem('token');
+            if (typeof window !== 'undefined') {
+              sessionStorage.removeItem(SESSION_AUTH_KEY);
+            }
+            
+            setUser(null);
+            setIsAuthenticated(false);
           }
+        } else {
+          // No token found, check for saved session
+          if (typeof window !== 'undefined') {
+            const savedSession = sessionStorage.getItem(SESSION_AUTH_KEY);
+            
+            if (savedSession) {
+              try {
+                const sessionData = JSON.parse(savedSession);
+                console.warn("Found session data but no token - user will need to login again");
+                
+                // Clean up invalid session
+                sessionStorage.removeItem(SESSION_AUTH_KEY);
+              } catch (e) {
+                console.error("Error parsing saved session:", e);
+                sessionStorage.removeItem(SESSION_AUTH_KEY);
+              }
+            }
+          }
+          
+          setUser(null);
+          setIsAuthenticated(false);
         }
       } catch (error) {
-        console.error('Authentication restoration error:', error);
+        console.error("Auth initialization error:", error);
+        setUser(null);
+        setIsAuthenticated(false);
       } finally {
         setIsLoading(false);
       }
     };
-    
-    restoreSession();
+
+    initializeAuth();
   }, []);
 
   // Register a new user
@@ -88,6 +142,12 @@ export const AuthProvider = ({ children }) => {
       if (response.data && response.data.token) {
         localStorage.setItem('token', response.data.token);
         setUser(response.data);
+        setIsAuthenticated(true);
+        
+        // Store user in session storage for better refresh handling
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem(SESSION_AUTH_KEY, JSON.stringify(response.data));
+        }
       }
       
       return response;
@@ -105,42 +165,28 @@ export const AuthProvider = ({ children }) => {
     
     try {
       console.log("Attempting login with credentials:", {...credentials, password: '****'});
-      
-      if (!credentials.email || !credentials.password) {
-        throw new Error('Email and password are required');
-      }
-      
       const response = await apiService.auth.login(credentials);
       console.log("Login response:", response);
       
-      // Handle specific server error responses
-      if (response.status === 'error' || response.error) {
-        const errorMessage = response.message || response.error || 'Authentication failed';
-        
-        // Check for specific error conditions
-        if (errorMessage.toLowerCase().includes('user not found') || 
-            errorMessage.toLowerCase().includes('email not found')) {
-          throw new Error('Account not found. Please check your email or register for a new account');
-        }
-        
-        if (errorMessage.toLowerCase().includes('password') || 
-            errorMessage.toLowerCase().includes('invalid credentials')) {
-          throw new Error('Invalid password. Please try again');
-        }
-        
-        throw new Error(errorMessage);
-      }
+      // Check if we have a token in the response - handle all possible response structures
+      const token = 
+        response.token || 
+        (response.data && response.data.token) || 
+        (response.data && response.data.data && response.data.data.token);
       
-      // Check if we have a token in the response
-      if (response.token || (response.data && response.data.token)) {
-        // Get the token from wherever it is in the response
-        const token = response.token || response.data.token;
+      if (token) {
+        console.log("Token received, storing authentication data");
         
         // Store token
         localStorage.setItem('token', token);
         
-        // Get user data
-        const userData = response.data?.user || response.user || response.data;
+        // Get user data from response with fallbacks for different API response structures
+        const userData = 
+          response.data?.user || 
+          response.user || 
+          response.data || 
+          (response.data?.data) || 
+          {};
         
         // Set user state
         setUser(userData);
@@ -154,24 +200,12 @@ export const AuthProvider = ({ children }) => {
         return { success: true };
       } else {
         console.error("No token in response:", response);
-        throw new Error('Login failed - authentication token not received from server');
+        throw new Error(response.message || 'Login failed - no token received');
       }
     } catch (error) {
       console.error('Login error:', error);
-      
-      // Enhance error message based on error type
-      let errorMessage = error.message || 'Login failed';
-      
-      if (error.name === 'TypeError') {
-        errorMessage = 'Network error. Please check your connection and try again.';
-      } else if (error.message.includes('401') || error.message.includes('403')) {
-        errorMessage = 'Invalid email or password. Please try again.';
-      } else if (error.message.includes('500')) {
-        errorMessage = 'Server error. Please try again later.';
-      }
-      
-      setError(errorMessage);
-      return { success: false, message: errorMessage };
+      setError(error.message || 'Invalid credentials');
+      return { success: false, message: error.message || 'Login failed' };
     } finally {
       setIsLoading(false);
     }
@@ -189,33 +223,69 @@ export const AuthProvider = ({ children }) => {
     setIsAuthenticated(false);
   };
 
-  // Forgot password
+  // Forgot password - fixed implementation
   const forgotPassword = async (email) => {
     try {
       setIsLoading(true);
       setError(null);
       
-      const response = await apiService.auth.forgotPassword(email);
-      return response;
+      if (!email) {
+        throw new Error('Email is required');
+      }
+      
+      console.log('Requesting password reset for email:', email);
+      const response = await apiService.auth.forgotPassword({ email });
+      
+      if (!response || response.status === 'error') {
+        throw new Error(response?.message || 'Failed to process password reset request');
+      }
+      
+      console.log('Password reset response:', response);
+      return { 
+        success: true, 
+        message: response.message || 'Password reset instructions sent to your email'
+      };
     } catch (error) {
-      setError(error.message);
-      throw error;
+      console.error('Forgot password error:', error);
+      setError(error.message || 'Failed to process password reset request');
+      return { 
+        success: false, 
+        message: error.message || 'Failed to send reset email. Please try again.'
+      };
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Reset password
+  // Reset password - fixed implementation
   const resetPassword = async (token, password) => {
     try {
       setIsLoading(true);
       setError(null);
       
-      const response = await apiService.auth.resetPassword(token, password);
-      return response;
+      if (!token || !password) {
+        throw new Error('Reset token and new password are required');
+      }
+      
+      console.log('Attempting to reset password with token');
+      const response = await apiService.auth.resetPassword(token, { password });
+      
+      if (!response || response.status === 'error') {
+        throw new Error(response?.message || 'Failed to reset password');
+      }
+      
+      console.log('Password reset successful:', response);
+      return { 
+        success: true, 
+        message: response.message || 'Password has been reset successfully'
+      };
     } catch (error) {
-      setError(error.message);
-      throw error;
+      console.error('Reset password error:', error);
+      setError(error.message || 'Failed to reset password');
+      return { 
+        success: false, 
+        message: error.message || 'Failed to reset password. Please try again.'
+      };
     } finally {
       setIsLoading(false);
     }
@@ -246,10 +316,17 @@ export const AuthProvider = ({ children }) => {
       const response = await apiService.users.updateProfile(profileData);
       
       if (response.data) {
-        setUser(prevUser => ({
-          ...prevUser,
+        const updatedUser = {
+          ...user,
           ...response.data
-        }));
+        };
+        
+        setUser(updatedUser);
+        
+        // Update session storage with updated user data
+        if (typeof window !== 'undefined') {
+          sessionStorage.setItem(SESSION_AUTH_KEY, JSON.stringify(updatedUser));
+        }
       }
       
       return response;
