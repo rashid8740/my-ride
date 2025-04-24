@@ -72,17 +72,29 @@ export const AuthProvider = ({ children }) => {
           
           try {
             // Try to get user profile with the token
-            const userData = await apiService.auth.getProfile();
+            const userResponse = await apiService.auth.getProfile();
+            
+            // Handle different response formats from the API
+            const userData = 
+              (userResponse.data?.user) || 
+              (userResponse.data) || 
+              (userResponse.user) || 
+              userResponse;
+              
+            console.log("Token validation response:", userResponse);
             
             if (userData) {
               console.log("Token valid, user authenticated:", userData);
-              setUser(userData.data || userData);
+              setUser(userData);
               setIsAuthenticated(true);
               
               // Update session storage
               if (typeof window !== 'undefined') {
-                sessionStorage.setItem(SESSION_AUTH_KEY, JSON.stringify(userData.data || userData));
+                sessionStorage.setItem(SESSION_AUTH_KEY, JSON.stringify(userData));
               }
+            } else {
+              console.error("Invalid user data in profile response:", userResponse);
+              throw new Error("Invalid user data returned from profile endpoint");
             }
           } catch (profileError) {
             console.error("Error validating token:", profileError);

@@ -165,7 +165,7 @@ const apiService = {
     // Use getApiUrl to ensure correct URL in all environments
     const url = `${getApiUrl()}/api${endpoint}`;
     
-    const isImportantRequest = endpoint.includes('/auth/login') || endpoint.includes('/users');
+    const isImportantRequest = endpoint.includes('/auth/login') || endpoint.includes('/users') || endpoint.includes('/auth/me');
     
     if (isImportantRequest) {
       console.log(`API Request to: ${url} [${options.method || 'GET'}]`);
@@ -184,6 +184,10 @@ const apiService = {
       if (isImportantRequest) {
         console.log('Using token for request:', token.substring(0, 15) + '...');
       }
+    } else if (isImportantRequest && (endpoint.includes('/auth/me') || endpoint === '/user')) {
+      // Skip requests that require auth if no token available
+      console.warn('Auth token required but not available for:', endpoint);
+      throw new Error('Authentication required. Please log in first.');
     }
     
     // Create fetch config with proper signal handling
@@ -229,16 +233,34 @@ const apiService = {
         return { message: 'Invalid response from server' };
       });
       
+      if (isImportantRequest) {
+        console.log(`Response data from ${url}:`, data);
+      }
+      
       // Handle API errors
       if (!response.ok) {
         if (response.status === 401) {
           console.error('Authentication error on endpoint:', endpoint);
           
           // Clear invalid token if authorization fails
-          if (token && (data.message?.includes('Not authorized') || data.message?.includes('invalid token'))) {
-            console.warn('Clearing invalid token');
+          if (token && (data.message?.includes('Not authorized') || 
+                        data.message?.includes('invalid token') || 
+                        data.message?.includes('jwt expired') ||
+                        data.message?.includes('Authentication required'))) {
+            console.warn('Clearing invalid token due to auth error');
             localStorage.removeItem('token');
             sessionStorage.removeItem('my-ride-auth-session');
+            
+            // Reload the page to reset the app state if on a protected route
+            if (typeof window !== 'undefined' && 
+                window.location.pathname !== '/' && 
+                window.location.pathname !== '/login' &&
+                window.location.pathname !== '/register' &&
+                !window.location.pathname.includes('/reset-password')) {
+              console.log('Redirecting to login page due to auth error');
+              window.location.href = '/login';
+              return null; // Stop execution
+            }
           }
           
           throw new Error('Authentication required. Please log in first.');
@@ -342,7 +364,27 @@ const apiService = {
     },
     
     async getProfile() {
-      return apiService.request('/auth/me');
+      try {
+        // Check for token first
+        const token = localStorage.getItem('token');
+        if (!token) {
+          console.error('Token missing for getProfile request');
+          throw new Error('Authentication required. Please log in first.');
+        }
+        
+        // Make the request with explicit auth header
+        const response = await apiService.request('/auth/me', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        
+        console.log('Get profile response:', response);
+        return response;
+      } catch (error) {
+        console.error('Error getting profile:', error);
+        throw error;
+      }
     },
     
     async forgotPassword(emailData) {
