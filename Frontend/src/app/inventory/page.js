@@ -434,26 +434,6 @@ export default function InventoryPage() {
           </div>
         </div>
         
-        {/* Featured Cars - Show only when no filters are active */}
-        {featuredCars.length > 0 && activeFilterCount === 0 && !searchTerm && (
-          <section className="py-8 md:py-12 bg-white">
-            <div className="container mx-auto px-4 md:px-8">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">Featured Vehicles</h2>
-                <Link href="/inventory" className="text-orange-500 hover:text-orange-600 font-medium flex items-center">
-                  View all <ArrowRight size={16} className="ml-1" />
-                </Link>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {featuredCars.map(car => (
-                  <CarCard key={car.id} car={{...car, featured: true}} />
-                ))}
-              </div>
-            </div>
-          </section>
-        )}
-
         <section className="py-8 bg-gray-50">
           <div className="container mx-auto px-4 md:px-8">
             <div className="flex flex-col lg:flex-row gap-8">
