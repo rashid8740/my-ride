@@ -251,6 +251,8 @@ export default function InventoryPage() {
         
         // Fetch data from API
         console.log('Fetching cars from API with params:', queryParams.toString());
+        
+        // Use API route instead of direct fetch
         const response = await fetch(`/api/cars?${queryParams.toString()}`);
         
         if (!response.ok) {
@@ -262,33 +264,10 @@ export default function InventoryPage() {
         
         if (result && result.data && Array.isArray(result.data)) {
           setCars(result.data);
-          
-          // Set featured cars (only on initial load with no filters)
-          if (!filters.category && !filters.minPrice && !filters.maxPrice && 
-              !filters.minYear && !filters.maxYear && !filters.fuel && 
-              !filters.transmission && !searchTerm) {
-            const featuredResponse = await fetch('/api/cars/featured');
-            if (featuredResponse.ok) {
-              const featuredResult = await featuredResponse.json();
-              if (featuredResult && featuredResult.data) {
-                setFeaturedCars(featuredResult.data);
-              }
-            }
-          } else {
-            setFeaturedCars([]);
-          }
         } else {
           // Fallback to sample data if API returns no results
           console.log('No cars found in API response, using sample data');
           setCars(sampleCars);
-          
-          if (!filters.category && !filters.minPrice && !filters.maxPrice && 
-              !filters.minYear && !filters.maxYear && !filters.fuel && 
-              !filters.transmission && !searchTerm) {
-            setFeaturedCars(sampleCars.filter(car => car.featured));
-          } else {
-            setFeaturedCars([]);
-          }
         }
       } catch (err) {
         console.error('Error fetching cars:', err);
@@ -296,16 +275,9 @@ export default function InventoryPage() {
         
         // Fallback to sample data on error
         setCars(sampleCars);
-        
-        if (!filters.category && !filters.minPrice && !filters.maxPrice && 
-            !filters.minYear && !filters.maxYear && !filters.fuel && 
-            !filters.transmission && !searchTerm) {
-          setFeaturedCars(sampleCars.filter(car => car.featured));
-        } else {
-          setFeaturedCars([]);
-        }
       } finally {
         setLoading(false);
+        setFeaturedCars([]); // Clear featured cars since we've removed the section
       }
     };
     
