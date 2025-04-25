@@ -14,7 +14,7 @@ export function getApiUrl() {
   // Check if we're in a browser and in production
   if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
     // Return the correct backend URL
-    return 'https://my-ride-hhne.vercel.app';
+    return 'https://my-ride-backend.vercel.app';
   }
   
   // Default for local development
