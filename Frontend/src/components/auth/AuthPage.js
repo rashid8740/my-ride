@@ -176,9 +176,13 @@ const LoginForm = ({ onToggle }) => {
       console.error("Login error in form:", err);
       
       // Customize error message based on type of error
-      if (err.message?.includes("Network error") || err.message?.includes("Failed to fetch")) {
-        setError("Cannot connect to the server. Please check your internet connection.");
-      } else if (err.message?.includes("Invalid credentials")) {
+      if (err.message?.includes("Network error") || err.message?.includes("Failed to fetch") || err.message?.includes("fetch failed")) {
+        setError("Cannot connect to the server. Please check your internet connection or try again later.");
+        // Try to show more diagnostic info in dev mode
+        if (process.env.NODE_ENV === 'development') {
+          setConnectionStatus(`❌ Connection error: ${err.message}`);
+        }
+      } else if (err.message?.includes("Invalid credentials") || err.message?.includes("Invalid email or password")) {
         setError("Invalid email or password. Please try again.");
       } else if (err.message?.includes("verify your email")) {
         setError("Please verify your email before logging in.");

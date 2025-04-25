@@ -236,6 +236,7 @@ const apiService = {
   // Auth endpoints
   auth: {
     async register(userData) {
+      console.log('Registering user with data:', { ...userData, password: '****' });
       return apiService.request('/auth/register', {
         method: 'POST',
         body: JSON.stringify(userData),
@@ -245,28 +246,45 @@ const apiService = {
     async login(credentials) {
       try {
         console.log('Attempting login with credentials:', { ...credentials, password: '****' });
-        const loginResponse = await apiService.request('/auth/login', {
+        
+        // Use the direct backend URL to ensure reliability
+        const backendUrl = getApiUrl();
+        const loginUrl = `${backendUrl}/api/auth/login`;
+        
+        console.log('Making direct login request to:', loginUrl);
+        
+        // Create fetch config
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 second timeout
+        
+        const response = await fetch(loginUrl, {
           method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
           body: JSON.stringify(credentials),
+          signal: controller.signal
         });
         
-        console.log('Login response received:', loginResponse);
+        clearTimeout(timeoutId);
         
-        // Validate the response has required data
-        if (!loginResponse) {
-          throw new Error('Empty response received from server');
+        if (!response.ok) {
+          // Handle error responses
+          let errorMsg = 'Login failed';
+          try {
+            const errorData = await response.json();
+            errorMsg = errorData.message || `Server error (${response.status})`;
+          } catch (e) {
+            // If parsing fails, use status text
+            errorMsg = `Server error: ${response.statusText} (${response.status})`;
+          }
+          throw new Error(errorMsg);
         }
         
-        // Check if token exists in expected locations
-        if (
-          (loginResponse.data && loginResponse.data.token) || 
-          loginResponse.token
-        ) {
-          return loginResponse;
-        } else {
-          console.error('Invalid login response format:', loginResponse);
-          throw new Error('Invalid response format from server');
-        }
+        const loginData = await response.json();
+        console.log('Login response received (direct call):', loginData);
+        
+        return loginData;
       } catch (error) {
         console.error('Login request failed:', error);
         throw error;
@@ -284,10 +302,10 @@ const apiService = {
       });
     },
     
-    async resetPassword(token, password) {
-      return apiService.request(`/auth/reset-password/${token}`, {
+    async resetPassword(token, email, password) {
+      return apiService.request('/auth/reset-password', {
         method: 'POST',
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({ token, email, password }),
       });
     },
     
