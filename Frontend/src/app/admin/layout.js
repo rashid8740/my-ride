@@ -24,11 +24,30 @@ export default function AdminLayout({ children }) {
   const { user, isAdmin, isLoading, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [newInquiryCount, setNewInquiryCount] = useState(0);
   const [inquiryLoading, setInquiryLoading] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
+  
+  // Detect screen size
+  useEffect(() => {
+    const checkIsMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+      // Open sidebar by default on desktop, closed on mobile
+      setIsSidebarOpen(window.innerWidth >= 768);
+    };
+    
+    // Check on initial load
+    checkIsMobile();
+    
+    // Add resize listener
+    window.addEventListener('resize', checkIsMobile);
+    
+    // Clean up
+    return () => window.removeEventListener('resize', checkIsMobile);
+  }, []);
   
   // Fetch the new inquiry count
   useEffect(() => {
@@ -72,6 +91,22 @@ export default function AdminLayout({ children }) {
 
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
+  };
+  
+  const handleLinkClick = () => {
+    // Only close sidebar on mobile when clicking a link
+    if (isMobile) {
+      setIsSidebarOpen(false);
+    }
+  };
+  
+  const handleLinkAndMenuClick = () => {
+    // Close all menus and sidebar on mobile
+    if (isMobile) {
+      setIsSidebarOpen(false);
+    }
+    setNotificationsOpen(false);
+    setUserMenuOpen(false);
   };
   
   const handleLogout = () => {
@@ -118,7 +153,7 @@ export default function AdminLayout({ children }) {
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Sidebar overlay for mobile */}
-      {isSidebarOpen && (
+      {isSidebarOpen && isMobile && (
         <div 
           className="fixed inset-0 bg-gray-800/40 backdrop-blur-sm z-20 md:hidden" 
           onClick={toggleSidebar}
@@ -133,7 +168,7 @@ export default function AdminLayout({ children }) {
         } md:translate-x-0 z-30 transition duration-300 ease-in-out flex flex-col w-64 md:w-72 bg-white border-r border-gray-200 shadow-xl`}
       >
         <div className="flex items-center justify-between h-16 px-4 md:px-6 border-b border-gray-200 bg-gradient-to-r from-orange-600 to-orange-500">
-          <Link href="/admin/dashboard" className="flex items-center">
+          <Link href="/admin/dashboard" onClick={handleLinkClick} className="flex items-center">
             <span className="text-lg md:text-xl font-bold text-white">MyRide Admin</span>
           </Link>
           <button 
@@ -154,6 +189,7 @@ export default function AdminLayout({ children }) {
               <Link
                 key={item.path}
                 href={item.path}
+                onClick={handleLinkClick}
                 className={`flex items-center justify-between px-3 md:px-4 py-2.5 md:py-3 text-sm font-medium rounded-xl transition-all ${
                   item.active 
                     ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-md' 
@@ -183,6 +219,7 @@ export default function AdminLayout({ children }) {
               <Link
                 key={item.path}
                 href={item.path}
+                onClick={handleLinkClick}
                 className={`flex items-center justify-between px-3 md:px-4 py-2.5 md:py-3 text-sm font-medium rounded-xl transition-all ${
                   item.active 
                     ? 'bg-gradient-to-r from-orange-500 to-orange-600 text-white shadow-md' 
@@ -210,7 +247,7 @@ export default function AdminLayout({ children }) {
           <div className="px-4 py-2 mt-6 md:mt-8 mx-3 bg-gradient-to-br from-orange-50 to-white rounded-xl border border-orange-100">
             <h3 className="text-sm font-medium text-orange-800 mb-2">Need Help?</h3>
             <p className="text-xs text-gray-600 mb-3">Access tutorials and documentation to get the most out of your admin dashboard.</p>
-            <Link href="/admin/help" className="text-xs font-medium text-orange-600 hover:text-orange-700 flex items-center">
+            <Link href="/admin/help" onClick={handleLinkClick} className="text-xs font-medium text-orange-600 hover:text-orange-700 flex items-center">
               View help center
               <svg className="h-3 w-3 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -305,6 +342,7 @@ export default function AdminLayout({ children }) {
                               </p>
                               <Link 
                                 href="/admin/inquiries" 
+                                onClick={handleLinkAndMenuClick}
                                 className="text-xs text-orange-600 hover:text-orange-700 mt-1 inline-block"
                               >
                                 View inquiries
@@ -321,6 +359,7 @@ export default function AdminLayout({ children }) {
                     <div className="p-2 bg-gray-50 border-t border-gray-200">
                       <Link 
                         href="/admin/notifications" 
+                        onClick={handleLinkAndMenuClick}
                         className="block text-xs text-center text-gray-600 hover:text-gray-900 font-medium p-2 rounded-lg hover:bg-gray-100 transition-colors"
                       >
                         View all notifications
@@ -355,6 +394,7 @@ export default function AdminLayout({ children }) {
                     <div className="py-1">
                       <Link 
                         href="/admin/profile" 
+                        onClick={handleLinkAndMenuClick}
                         className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-orange-500"
                       >
                         <User className="h-4 w-4 mr-3 text-gray-500" />
@@ -362,6 +402,7 @@ export default function AdminLayout({ children }) {
                       </Link>
                       <Link 
                         href="/admin/settings" 
+                        onClick={handleLinkAndMenuClick}
                         className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-orange-500"
                       >
                         <Settings className="h-4 w-4 mr-3 text-gray-500" />
