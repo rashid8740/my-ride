@@ -7,12 +7,17 @@ const nextConfig = {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'https://my-ride-hhne.vercel.app',
     NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL || 'https://my-ride-git-main-rashid8740s-projects.vercel.app'
   },
-  // Only rewrite API routes, not page routes
+  // Handle both API and dynamic page routes
   async rewrites() {
     return [
       {
         source: '/api/:path*',
         destination: '/api/:path*',
+      },
+      // Ensure car detail pages are correctly handled
+      {
+        source: '/cars/:id',
+        destination: '/app/cars/:id',
       }
     ];
   },
@@ -37,6 +42,10 @@ const nextConfig = {
   */
   // Ensure trailing slashes are handled consistently
   trailingSlash: false,
+  // Add experimental configuration to properly handle mixed App and Pages Router
+  experimental: {
+    appDir: true,
+  }
 }
 
 module.exports = nextConfig 
