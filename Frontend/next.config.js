@@ -42,10 +42,6 @@ const nextConfig = {
   */
   // Ensure trailing slashes are handled consistently
   trailingSlash: false,
-  // Add experimental configuration to properly handle mixed App and Pages Router
-  experimental: {
-    appDir: true,
-  }
 }
 
 module.exports = nextConfig 

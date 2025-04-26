@@ -19,7 +19,8 @@ import {
   ChevronRight,
   User,
   Eye,
-  Reply
+  Reply,
+  Bell
 } from 'lucide-react';
 import apiService from '@/utils/api';
 import Link from 'next/link';
@@ -284,14 +285,14 @@ export default function AdminDashboard() {
         // Extract the recent inquiries (last 5)
         const recentInquiries = inquiriesResponse.data
           ? inquiriesResponse.data
-              .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+              .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
               .slice(0, 5)
           : [];
           
         // Extract the recent users (last 5)
         const recentUsers = usersResponse.data
           ? usersResponse.data
-              .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+              .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
               .slice(0, 5)
           : [];
           
@@ -442,6 +443,17 @@ export default function AdminDashboard() {
     }
   };
 
+  // Function to view inquiry details
+  const handleViewInquiry = (inquiry) => {
+    setSelectedInquiry(inquiry);
+  };
+
+  // Function to handle reply click
+  const handleReplyClick = (inquiry) => {
+    setReplyInquiry(inquiry);
+    setReplyModalOpen(true);
+  };
+
   // Function to render each inquiry row
   const renderInquiryRow = (inquiry) => {
     // Format date
@@ -508,535 +520,408 @@ export default function AdminDashboard() {
 
   return (
     <div>
-      <div className="mb-8">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Dashboard</h1>
-            <p className="text-gray-600">Welcome back, <span className="font-semibold text-gray-800">{user?.firstName}</span>. Here's your business overview.</p>
-          </div>
-          <div className="mt-4 md:mt-0 flex flex-wrap sm:flex-nowrap gap-3">
-            <div className="bg-orange-50 px-4 py-2 rounded-xl border border-orange-100 flex items-center">
-              <Calendar className="h-4 w-4 text-orange-500 mr-2" />
-              <span className="text-sm font-medium text-gray-700">{new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}</span>
+      <div className="mb-6">
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Dashboard</h1>
+        <p className="text-sm text-gray-600 mt-1">Welcome back, {user?.firstName || 'Admin'}. Here's what's happening today.</p>
+      </div>
+
+      {/* New inquiry notification */}
+      {showRefreshAlert && (
+        <div className="mb-6 bg-white border border-orange-200 rounded-xl p-4 shadow-sm animate-pulse">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <div className="bg-orange-100 rounded-full p-2 mr-3">
+                <Bell className="h-5 w-5 text-orange-500" />
+              </div>
+              <div>
+                <h3 className="font-medium text-gray-900">New inquiries available!</h3>
+                <p className="text-sm text-gray-600">There are {newInquiriesCount} new customer inquiries awaiting your response.</p>
+              </div>
             </div>
-            <button className="px-4 py-2 bg-orange-500 rounded-xl text-sm font-medium text-white hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 transition-colors shadow-sm flex items-center gap-2">
-              <ArrowUpRight className="h-4 w-4" />
-              <span>Export Report</span>
+            <button 
+              onClick={() => window.location.reload()} 
+              className="ml-4 px-3 py-1.5 bg-orange-500 text-white text-sm font-medium rounded-lg hover:bg-orange-600 transition-colors"
+            >
+              Refresh
             </button>
           </div>
         </div>
-        
-        {/* Today's Highlights */}
-        <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl shadow-md mb-8 overflow-hidden">
-          <div className="p-6 text-white">
-            <div className="flex items-center mb-4">
-              <ShieldCheck className="h-5 w-5 mr-2" />
-              <h2 className="text-lg font-semibold">Today's Highlights</h2>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-white/20 backdrop-blur-sm p-4 rounded-xl">
-                <div className="flex items-center mb-3">
-                  <Users className="h-4 w-4 text-white/80 mr-2" />
-                  <p className="text-xs font-medium text-white/80">New Users</p>
-              </div>
-                <p className="text-2xl font-bold text-white">12</p>
-                <p className="text-xs text-white/70 mt-1 flex items-center">
-                  <TrendingUp className="h-3 w-3 mr-1" />
-                  <span>+3 from yesterday</span>
-                </p>
-            </div>
-              <div className="bg-white/20 backdrop-blur-sm p-4 rounded-xl">
-                <div className="flex items-center mb-3">
-                  <MessageSquare className="h-4 w-4 text-white/80 mr-2" />
-                  <p className="text-xs font-medium text-white/80">New Inquiries</p>
-          </div>
-                <p className="text-2xl font-bold text-white">8</p>
-                <p className="text-xs text-white/70 mt-1 flex items-center">
-                  <TrendingUp className="h-3 w-3 mr-1" />
-                  <span>+2 from yesterday</span>
-                </p>
-              </div>
-              <div className="bg-white/20 backdrop-blur-sm p-4 rounded-xl">
-                <div className="flex items-center mb-3">
-                  <DollarSign className="h-4 w-4 text-white/80 mr-2" />
-                  <p className="text-xs font-medium text-white/80">Today's Sales</p>
-                </div>
-                <p className="text-2xl font-bold text-white">KSh 580K</p>
-                <p className="text-xs text-white/70 mt-1 flex items-center">
-                  <TrendingUp className="h-3 w-3 mr-1" />
-                  <span>+120K from yesterday</span>
-                </p>
-              </div>
-              <div className="bg-white/20 backdrop-blur-sm p-4 rounded-xl">
-                <div className="flex items-center mb-3">
-                  <Car className="h-4 w-4 text-white/80 mr-2" />
-                  <p className="text-xs font-medium text-white/80">Test Drives</p>
-                </div>
-                <p className="text-2xl font-bold text-white">3</p>
-                <p className="text-xs text-white/70 mt-1 flex items-center">
-                  <TrendingDown className="h-3 w-3 mr-1" />
-                  <span>-1 from yesterday</span>
-                </p>
-              </div>
-            </div>
-          </div>
-          <div className="bg-gradient-to-r from-white/10 to-white/5 px-6 py-3 border-t border-white/20">
-            <p className="text-xs text-white/80">
-              Last updated: <span className="font-medium">Today at {new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-            </p>
-          </div>
-        </div>
-      </div>
-      
-      {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      )}
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6">
         <StatCard 
-          title="Total Users" 
-          value={stats.totalUsers} 
-          change="+12% from last month"
-          icon={<Users className="h-5 w-5" />} 
-          color="blue"
+          title="Total Users"
+          value={stats.totalUsers || 0}
+          change="+12.5%"
+          icon={<Users className="h-5 w-5" />}
+          color="orange"
+          subtext="vs. previous month"
           onClick="/admin/users"
         />
         <StatCard 
-          title="Vehicles in Stock" 
-          value={stats.totalCars} 
-          change="-3% from last month"
-          trend="down"
-          icon={<Car className="h-5 w-5" />} 
-          color="green"
+          title="Vehicles"
+          value={stats.totalCars || 0}
+          change="+8.1%"
+          icon={<Car className="h-5 w-5" />}
+          color="blue"
+          subtext="total inventory"
           onClick="/admin/inventory"
         />
         <StatCard 
-          title="Active Inquiries" 
-          value={stats.totalInquiries} 
-          change="+18% from last month"
-          icon={<MessageSquare className="h-5 w-5" />} 
-          color="yellow"
+          title="Inquiries"
+          value={stats.totalInquiries || 0}
+          change="+24.3%"
+          icon={<MessageSquare className="h-5 w-5" />}
+          color="green"
+          subtext="awaiting response"
           onClick="/admin/inquiries"
         />
         <StatCard 
-          title="Revenue" 
-          value={`KSh ${currentSales.toLocaleString()}`} 
-          change="+8% from last month"
-          icon={<DollarSign className="h-5 w-5" />} 
-          color="orange"
-          onClick="/admin/finance"
+          title="Revenue"
+          value={`KSh ${(stats.totalRevenue || 0).toLocaleString()}`}
+          change="+5.4%"
+          icon={<DollarSign className="h-5 w-5" />}
+          color="purple"
+          subtext="total earnings"
+          onClick="/admin/sales"
         />
       </div>
-      
-      {/* Sales Goal */}
-      <div className="bg-white rounded-xl shadow-sm p-6 mb-8 border border-gray-100">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6">
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900 mb-1">Monthly Sales Goal</h2>
-            <p className="text-sm text-gray-500">Progress toward this month's target</p>
-          </div>
-          <div className="mt-3 md:mt-0">
-            <span className="inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium bg-orange-100 text-orange-800 shadow-sm">
-              <Tag className="h-3.5 w-3.5 mr-1.5" />
-              Q2 Goal
-            </span>
-          </div>
-        </div>
-        
-        <div className="mb-4 bg-gradient-to-r from-orange-50 to-orange-100 p-5 rounded-xl border border-orange-200">
-          <div className="flex flex-col md:flex-row md:items-end md:justify-between">
-            <div>
-              <div className="text-sm text-gray-500 mb-1">Current sales</div>
-              <div className="text-3xl font-bold text-gray-900">KSh {currentSales.toLocaleString()}</div>
-            </div>
-            <div className="mt-4 md:mt-0 md:text-right">
-              <div className="text-sm text-gray-500 mb-1">Target</div>
-              <div className="text-xl font-semibold text-gray-700">KSh {salesGoal.toLocaleString()}</div>
-            </div>
-        </div>
-        
-          <div className="mt-4">
-            <div className="flex justify-between mb-1.5">
-              <div className="text-xs font-medium text-gray-500">Progress</div>
-              <div className="text-xs font-semibold text-orange-600">{Math.round(salesPercentage)}%</div>
-            </div>
-        <ProgressBar value={currentSales} max={salesGoal} color="orange" />
-          </div>
-        </div>
-        
-        <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4">
-          {stats.salesByMonth.map((month, index) => (
-            <div key={month.month} className="flex flex-col p-3 bg-gray-50 rounded-lg border border-gray-100">
-              <div className="text-sm font-medium text-gray-700 mb-1">{month.month}</div>
-              <div className="text-lg font-semibold text-gray-900">KSh {month.amount.toLocaleString()}</div>
-              <div className="mt-2 bg-gray-200 h-1 w-full rounded-full overflow-hidden">
-                <div 
-                  className="h-full bg-orange-500 rounded-full" 
-                  style={{
-                    width: `${(month.amount / Math.max(...stats.salesByMonth.map(m => m.amount))) * 100}%`,
-                    opacity: 0.6 + (index / stats.salesByMonth.length) * 0.4
-                  }}
-                ></div>
+
+      {/* Two column layout for larger screens */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Main content - 2/3 width on large screens */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Sales Progress Card */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div className="flex items-center justify-between p-4 md:p-6 border-b border-gray-100">
+              <div>
+                <h2 className="text-lg font-bold text-gray-900">Sales Progress</h2>
+                <p className="text-sm text-gray-600 mt-1">Monthly target vs. actual sales</p>
+              </div>
+              <div className="bg-orange-100 text-orange-600 px-2 py-1 rounded-lg text-sm font-medium">
+                {Math.round((currentSales / salesGoal) * 100)}% of goal
               </div>
             </div>
-          ))}
-        </div>
-      </div>
-      
-      {/* Activity and Recent Items */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-8">
-        {/* Recent Activity */}
-        <div className="xl:col-span-1 bg-white rounded-xl shadow-sm p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-lg font-semibold text-gray-900">Recent Activity</h2>
-            <button className="text-sm text-orange-500 hover:text-orange-600 font-medium flex items-center">
-              <span>View all</span>
-              <ArrowRight className="ml-1 h-4 w-4" />
-            </button>
-          </div>
-          
-          <div className="relative">
-            <div className="absolute left-4 top-0 bottom-0 w-0.5 bg-gray-100"></div>
-            <div className="space-y-5 relative">
-              <div className="pl-8 relative">
-                <div className="absolute left-0 p-1.5 rounded-full bg-green-500 shadow-sm z-10">
-                  <Users className="h-3 w-3 text-white" />
-                </div>
-                <div className="rounded-lg border border-gray-100 p-3 hover:bg-gray-50 transition-colors cursor-pointer">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">New User Registration</p>
-                      <p className="text-xs text-gray-600 mt-0.5">James Wilson created an account</p>
-                    </div>
-                    <span className="text-[10px] font-medium bg-green-50 text-green-700 px-1.5 py-0.5 rounded">new</span>
-                  </div>
-                  <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-50">
-                    <p className="text-xs text-gray-400">10 minutes ago</p>
-                    <button className="text-xs font-medium text-blue-500 hover:text-blue-600">View Profile</button>
-                  </div>
+            <div className="p-4 md:p-6">
+              <div className="flex items-center justify-between mb-2">
+                <div className="text-sm text-gray-600">Current Sales</div>
+                <div className="text-sm font-medium text-gray-900">
+                  KSh {currentSales.toLocaleString()}
                 </div>
               </div>
-              
-              <div className="pl-8 relative">
-                <div className="absolute left-0 p-1.5 rounded-full bg-blue-500 shadow-sm z-10">
-                  <MessageSquare className="h-3 w-3 text-white" />
-                </div>
-                <div className="rounded-lg border border-gray-100 p-3 hover:bg-gray-50 transition-colors cursor-pointer">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">New Inquiry Received</p>
-                      <p className="text-xs text-gray-600 mt-0.5">Sarah Johnson is interested in BMW X5</p>
-                    </div>
-                    <span className="text-[10px] font-medium bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded">info</span>
-                  </div>
-                  <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-50">
-                    <p className="text-xs text-gray-400">1 hour ago</p>
-                    <button className="text-xs font-medium text-blue-500 hover:text-blue-600">View Inquiry</button>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="pl-8 relative">
-                <div className="absolute left-0 p-1.5 rounded-full bg-green-500 shadow-sm z-10">
-                  <Car className="h-3 w-3 text-white" />
-                </div>
-                <div className="rounded-lg border border-gray-100 p-3 hover:bg-gray-50 transition-colors cursor-pointer">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">Vehicle Sold</p>
-                      <p className="text-xs text-gray-600 mt-0.5">Audi A4 2022 has been sold for KSh 3.85M</p>
-                    </div>
-                    <span className="text-[10px] font-medium bg-green-50 text-green-700 px-1.5 py-0.5 rounded">success</span>
-                  </div>
-                  <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-50">
-                    <p className="text-xs text-gray-400">3 hours ago</p>
-                    <button className="text-xs font-medium text-blue-500 hover:text-blue-600">View Details</button>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="pl-8 relative">
-                <div className="absolute left-0 p-1.5 rounded-full bg-yellow-500 shadow-sm z-10">
-                  <AlertTriangle className="h-3 w-3 text-white" />
-                </div>
-                <div className="rounded-lg border border-gray-100 p-3 hover:bg-gray-50 transition-colors cursor-pointer">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">Low Stock Alert</p>
-                      <p className="text-xs text-gray-600 mt-0.5">Honda Civic 2023 - Only 1 unit left</p>
-                    </div>
-                    <span className="text-[10px] font-medium bg-yellow-50 text-yellow-700 px-1.5 py-0.5 rounded">warning</span>
-                  </div>
-                  <div className="flex justify-between items-center mt-2 pt-2 border-t border-gray-50">
-                    <p className="text-xs text-gray-400">1 day ago</p>
-                    <button className="text-xs font-medium text-blue-500 hover:text-blue-600">Update Stock</button>
-                  </div>
-                </div>
+              <ProgressBar 
+                value={currentSales} 
+                max={salesGoal} 
+              />
+              <div className="flex items-center justify-between mt-1">
+                <div className="text-xs text-gray-500">0</div>
+                <div className="text-xs text-gray-500">Target: KSh {salesGoal.toLocaleString()}</div>
               </div>
             </div>
           </div>
-        </div>
-        
-        {/* Recent Inquiries */}
-        <div className="xl:col-span-2 bg-white rounded-xl shadow-sm overflow-hidden mb-8">
-          <div className="flex justify-between items-center p-6 border-b border-gray-200">
-            <div className="flex items-center">
-              <MessageSquare className="h-5 w-5 text-orange-500 mr-2" />
-            <h2 className="text-lg font-semibold text-gray-900">Recent Inquiries</h2>
-              {newInquiriesCount > 0 && (
-                <span className="ml-2 bg-orange-100 text-orange-800 text-xs font-medium px-2.5 py-0.5 rounded-full">
-                  {newInquiriesCount} new
-                </span>
-              )}
+
+          {/* Recent Inquiries */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div className="flex items-center justify-between p-4 md:p-6 border-b border-gray-100">
+              <div>
+                <h2 className="text-lg font-bold text-gray-900">Recent Inquiries</h2>
+                <p className="text-sm text-gray-600 mt-1">Latest customer messages</p>
+              </div>
+              <Link href="/admin/inquiries" className="text-sm text-orange-600 hover:text-orange-700 font-medium flex items-center">
+                View all
+                <ArrowRight className="ml-1 h-4 w-4" />
+              </Link>
             </div>
-            <div className="flex items-center space-x-2">
-              <button 
-                onClick={() => fetchDashboardData(true)}
-                className="flex items-center text-sm font-medium text-orange-500 hover:text-orange-600 bg-orange-50 hover:bg-orange-100 px-3 py-1.5 rounded-lg transition-colors"
-              >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-                Refresh
-              </button>
-              <Link href="/admin/inquiries" className="text-sm text-gray-500 hover:text-gray-600 font-medium flex items-center hover:underline">
-              <span>View all</span>
-              <ArrowRight className="ml-1 h-4 w-4" />
-            </Link>
-            </div>
-          </div>
-          
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200 table-fixed">
-              <thead>
-                <tr className="bg-gray-50 text-left">
-                  <th className="px-3 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">Customer</th>
-                  <th className="px-3 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">Vehicle</th>
-                  <th className="px-3 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">Status</th>
-                  <th className="px-3 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider w-1/6">Date</th>
-                  <th className="px-3 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider text-right w-1/6">Action</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {stats.recentInquiries.length > 0 ? (
-                  stats.recentInquiries.map((inquiry) => renderInquiryRow(inquiry))
-                ) : (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
                   <tr>
-                    <td colSpan="5" className="px-3 py-8 text-center">
-                      <div className="flex flex-col items-center justify-center">
-                        <div className="p-3 rounded-full bg-gray-100 mb-3">
-                          <MessageSquare className="h-6 w-6 text-gray-400" />
-                        </div>
-                        <p className="text-sm text-gray-500 mb-1">No recent inquiries</p>
-                        <p className="text-xs text-gray-400">New inquiries will appear here</p>
-                      </div>
-                    </td>
+                    <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Customer
+                    </th>
+                    <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
+                      Subject
+                    </th>
+                    <th className="px-4 md:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">
+                      Date
+                    </th>
+                    <th className="px-4 md:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Status
+                    </th>
                   </tr>
-                )}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {stats.recentInquiries && stats.recentInquiries.length > 0 ? (
+                    stats.recentInquiries.slice(0, 5).map((inquiry) => renderInquiryRow(inquiry))
+                  ) : (
+                    <tr>
+                      <td colSpan={4} className="px-4 md:px-6 py-4 text-center text-sm text-gray-500">
+                        {isLoading ? (
+                          <div className="flex justify-center">
+                            <div className="loader animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-orange-500"></div>
+                          </div>
+                        ) : (
+                          "No inquiries found"
+                        )}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          
+          {/* Low Stock Vehicles */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div className="flex items-center justify-between p-4 md:p-6 border-b border-gray-100">
+              <div>
+                <h2 className="text-lg font-bold text-gray-900">Inventory Status</h2>
+                <p className="text-sm text-gray-600 mt-1">Vehicles requiring attention</p>
+              </div>
+              <Link href="/admin/inventory" className="text-sm text-orange-600 hover:text-orange-700 font-medium flex items-center">
+                View inventory
+                <ArrowRight className="ml-1 h-4 w-4" />
+              </Link>
+            </div>
+            <div className="p-4 md:p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-yellow-50 rounded-lg p-4 border border-yellow-200">
+                <div className="flex">
+                  <div className="p-2 bg-yellow-100 rounded-lg mr-4">
+                    <AlertTriangle className="h-6 w-6 text-yellow-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-medium text-gray-900">Low Stock Alert</h3>
+                    <p className="text-sm text-gray-600 mt-1">3 vehicles with only 1 unit left</p>
+                    <button className="mt-2 text-xs font-medium text-yellow-600 hover:text-yellow-700">
+                      View vehicles
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-red-50 rounded-lg p-4 border border-red-200">
+                <div className="flex">
+                  <div className="p-2 bg-red-100 rounded-lg mr-4">
+                    <Clock className="h-6 w-6 text-red-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-medium text-gray-900">Expiring Offers</h3>
+                    <p className="text-sm text-gray-600 mt-1">5 promotional offers ending soon</p>
+                    <button className="mt-2 text-xs font-medium text-red-600 hover:text-red-700">
+                      Review offers
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-green-50 rounded-lg p-4 border border-green-200">
+                <div className="flex">
+                  <div className="p-2 bg-green-100 rounded-lg mr-4">
+                    <Tag className="h-6 w-6 text-green-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-medium text-gray-900">Popular Vehicles</h3>
+                    <p className="text-sm text-gray-600 mt-1">2 vehicles with high inquiry rates</p>
+                    <button className="mt-2 text-xs font-medium text-green-600 hover:text-green-700">
+                      View analytics
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                <div className="flex">
+                  <div className="p-2 bg-blue-100 rounded-lg mr-4">
+                    <ShieldCheck className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-medium text-gray-900">Maintenance Due</h3>
+                    <p className="text-sm text-gray-600 mt-1">4 vehicles requiring service</p>
+                    <button className="mt-2 text-xs font-medium text-blue-600 hover:text-blue-700">
+                      Schedule service
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-      
-      {/* Low Stock Vehicles */}
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-        <div className="flex justify-between items-center p-6 border-b border-gray-200">
-          <h2 className="text-lg font-semibold text-gray-900">Low Stock Vehicles</h2>
-          <Link href="/admin/inventory" className="text-sm text-orange-500 hover:text-orange-600 font-medium flex items-center">
-            <span>View inventory</span>
-            <ArrowRight className="ml-1 h-4 w-4" />
-          </Link>
-        </div>
         
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead>
-              <tr className="bg-gray-50">
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Vehicle</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {stats.lowStockCars.length > 0 ? (
-                stats.lowStockCars.map((car) => (
-                  <tr key={car._id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="h-12 w-16 bg-gray-200 rounded-md flex-shrink-0 overflow-hidden">
-                          {car.images && car.images.length > 0 ? (
-                            <img
-                              src={car.images[0].url}
-                              alt={car.make + ' ' + car.model}
-                              className="h-12 w-16 object-cover"
-                            />
-                          ) : (
-                            <div className="h-12 w-16 flex items-center justify-center">
-                              <Car size={20} className="text-gray-400" />
-                            </div>
-                          )}
-                        </div>
-                        <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">
-                            {car.year} {car.make} {car.model}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            VIN: {car.vin?.slice(-6) || 'N/A'}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className={`text-sm font-medium ${car.stock === 0 ? 'text-red-600' : car.stock < 2 ? 'text-yellow-600' : 'text-green-600'}`}>
-                        {car.stock} {car.stock === 1 ? 'unit' : 'units'}
-                      </div>
-                      {car.stock < 2 && (
-                        <div className="text-xs text-orange-500 font-medium mt-1">
-                          Reorder needed
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">
-                        KSh {car.price.toLocaleString()}
-                      </div>
-                      {car.msrp && car.msrp > car.price && (
-                        <div className="text-xs text-gray-500 line-through">
-                          MSRP: KSh {car.msrp.toLocaleString()}
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        car.status === 'available' 
-                          ? 'bg-green-100 text-green-800' 
-                          : car.status === 'sold' 
-                          ? 'bg-gray-100 text-gray-800' 
-                          : car.status === 'reserved'
-                          ? 'bg-blue-100 text-blue-800'
-                          : 'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        {car.status.charAt(0).toUpperCase() + car.status.slice(1)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right">
-                      <Link 
-                        href={`/admin/inventory/edit/${car._id}`}
-                        className="text-sm font-medium text-orange-500 hover:text-orange-600 mr-4"
-                      >
-                        Edit
-                      </Link>
-                      <Link 
-                        href={`/admin/inventory/update-stock/${car._id}`}
-                        className="text-sm font-medium text-blue-500 hover:text-blue-600"
-                      >
-                        Update Stock
-                      </Link>
-                    </td>
-                  </tr>
+        {/* Sidebar - 1/3 width on large screens */}
+        <div className="space-y-6">
+          {/* Recent Activity */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div className="p-4 md:p-6 border-b border-gray-100">
+              <h2 className="text-lg font-bold text-gray-900">Recent Activity</h2>
+              <p className="text-sm text-gray-600 mt-1">Latest actions in the system</p>
+            </div>
+            <div className="p-4 md:p-6">
+              <ActivityItem 
+                icon={<User className="h-4 w-4" />}
+                title="New user registered"
+                description="John Doe created a new account"
+                time="2 hours ago"
+                type="success"
+              />
+              <ActivityItem 
+                icon={<Eye className="h-4 w-4" />}
+                title="New inquiry about BMW X5"
+                description="Sarah Johnson requested more details"
+                time="5 hours ago"
+                type="info"
+              />
+              <ActivityItem 
+                icon={<Car className="h-4 w-4" />}
+                title="Inventory updated"
+                description="3 new vehicles added to inventory"
+                time="Yesterday"
+                type="neutral"
+              />
+              <ActivityItem 
+                icon={<Check className="h-4 w-4" />}
+                title="Test drive completed"
+                description="Michael Smith completed a test drive"
+                time="2 days ago"
+                type="success"
+              />
+              <ActivityItem 
+                icon={<Reply className="h-4 w-4" />}
+                title="Inquiry response sent"
+                description="Response sent to Emily Wilson"
+                time="3 days ago"
+                type="neutral"
+              />
+            </div>
+          </div>
+          
+          {/* New User Stats */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div className="p-4 md:p-6 border-b border-gray-100">
+              <h2 className="text-lg font-bold text-gray-900">New Users</h2>
+              <p className="text-sm text-gray-600 mt-1">Recent account registrations</p>
+            </div>
+            <div className="p-4 md:p-6 space-y-4">
+              {stats.recentUsers && stats.recentUsers.length > 0 ? (
+                stats.recentUsers.slice(0, 3).map((user, index) => (
+                  <div key={index} className="flex items-center">
+                    <div className="h-10 w-10 rounded-full bg-gradient-to-br from-gray-500 to-gray-600 flex items-center justify-center text-white uppercase font-bold text-sm shadow-sm">
+                      {user.firstName?.[0]}{user.lastName?.[0]}
+                    </div>
+                    <div className="ml-3">
+                      <p className="text-sm font-medium text-gray-900">{user.firstName} {user.lastName}</p>
+                      <p className="text-xs text-gray-500">{user.email}</p>
+                    </div>
+                  </div>
                 ))
               ) : (
-                <tr>
-                  <td colSpan="5" className="px-6 py-4 text-center text-gray-500">
-                    No low stock vehicles
-                  </td>
-                </tr>
+                <div className="py-4 text-center text-sm text-gray-500">
+                  {isLoading ? (
+                    <div className="flex justify-center">
+                      <div className="loader animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-orange-500"></div>
+                    </div>
+                  ) : (
+                    "No recent users"
+                  )}
+                </div>
               )}
-            </tbody>
-          </table>
+            </div>
+          </div>
+          
+          {/* Quick Links */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            <div className="p-4 md:p-6 border-b border-gray-100">
+              <h2 className="text-lg font-bold text-gray-900">Quick Actions</h2>
+              <p className="text-sm text-gray-600 mt-1">Common admin tasks</p>
+            </div>
+            <div className="p-2">
+              <Link 
+                href="/admin/inventory/add" 
+                className="flex items-center p-2 hover:bg-orange-50 rounded-lg text-gray-700 hover:text-orange-600 transition-colors"
+              >
+                <div className="p-2 bg-orange-100 rounded-lg mr-3">
+                  <Car className="h-4 w-4 text-orange-600" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium">Add New Vehicle</p>
+                  <p className="text-xs text-gray-500">Create a new inventory listing</p>
+                </div>
+                <ArrowUpRight className="h-4 w-4 text-gray-400" />
+              </Link>
+              
+              <Link 
+                href="/admin/users/add" 
+                className="flex items-center p-2 hover:bg-orange-50 rounded-lg text-gray-700 hover:text-orange-600 transition-colors"
+              >
+                <div className="p-2 bg-orange-100 rounded-lg mr-3">
+                  <User className="h-4 w-4 text-orange-600" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium">Add New User</p>
+                  <p className="text-xs text-gray-500">Create user or dealer account</p>
+                </div>
+                <ArrowUpRight className="h-4 w-4 text-gray-400" />
+              </Link>
+              
+              <Link 
+                href="/admin/reports" 
+                className="flex items-center p-2 hover:bg-orange-50 rounded-lg text-gray-700 hover:text-orange-600 transition-colors"
+              >
+                <div className="p-2 bg-orange-100 rounded-lg mr-3">
+                  <TrendingUp className="h-4 w-4 text-orange-600" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-medium">Generate Report</p>
+                  <p className="text-xs text-gray-500">Create sales or inventory report</p>
+                </div>
+                <ArrowUpRight className="h-4 w-4 text-gray-400" />
+              </Link>
+            </div>
+          </div>
         </div>
       </div>
       
       {/* Reply Modal */}
-      {replyModalOpen && replyInquiry && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] flex flex-col overflow-hidden animate-fade-in">
+      {replyModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 px-4">
+          <div className="bg-white rounded-xl max-w-2xl w-full shadow-2xl">
             <div className="p-6 border-b border-gray-200">
-              <div className="flex justify-between items-center">
-                <h3 className="text-lg font-semibold text-gray-900">Reply to Inquiry</h3>
-                <button 
-                  onClick={() => {
-                    setReplyModalOpen(false);
-                    setReplyInquiry(null);
-                    setReplyMessage('');
-                  }}
-                  className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-100"
-                >
-                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
-              </div>
+              <h2 className="text-xl font-bold text-gray-900">Reply to Inquiry</h2>
+              <p className="text-sm text-gray-600 mt-1">
+                Responding to {replyInquiry?.name} about {replyInquiry?.subject}
+              </p>
             </div>
-            
-            <div className="p-6 overflow-y-auto flex-grow">
-              <div className="bg-blue-50 p-4 rounded-lg mb-6">
-                <div className="flex items-center mb-3">
-                  <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-500">
-                    <MessageSquare className="h-4 w-4" />
-                  </div>
-                  <div className="ml-3">
-                    <div className="text-sm font-medium text-gray-900">
-                      {replyInquiry.name} <span className="text-gray-500 font-normal">({replyInquiry.email})</span>
-                    </div>
-                    <div className="text-xs text-gray-500">
-                      {new Date(replyInquiry.createdAt).toLocaleString()}
-                    </div>
-                  </div>
-                </div>
-                <div className="text-sm text-gray-600">
-                  <div className="font-medium mb-1 text-blue-700">Original Message:</div>
-                  <p>{replyInquiry.message}</p>
-                </div>
-                <div className="mt-3 text-sm">
-                  <div className="font-medium text-gray-700">Interested in: <span className="text-blue-600">{replyInquiry.vehicle || 'Not specified'}</span></div>
-                </div>
+            <div className="p-6">
+              <div className="mb-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
+                <p className="text-sm text-gray-800">{replyInquiry?.message}</p>
+                <p className="text-xs text-gray-500 mt-2">
+                  Received on {new Date(replyInquiry?.createdAt).toLocaleDateString()}
+                </p>
               </div>
-              
-              <div>
-                <label htmlFor="reply-message" className="block text-sm font-medium text-gray-700 mb-2">Your Reply</label>
-                <textarea 
-                  id="reply-message"
-                  rows={6}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Your Response
+                </label>
+                <textarea
                   value={replyMessage}
                   onChange={(e) => setReplyMessage(e.target.value)}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent resize-none"
-                  placeholder="Type your response here..."
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent h-32"
+                  placeholder="Type your reply here..."
                 ></textarea>
               </div>
             </div>
-            
-            <div className="p-6 border-t border-gray-200 bg-gray-50 flex justify-end">
+            <div className="p-6 border-t border-gray-200 flex justify-end space-x-3">
               <button
-                onClick={() => {
-                  setReplyModalOpen(false);
-                  setReplyInquiry(null);
-                  setReplyMessage('');
-                }}
-                className="px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg mr-3"
+                onClick={() => setReplyModalOpen(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-800 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSendReply}
-                disabled={!replyMessage.trim() || sendingReply}
-                className={`px-4 py-2 text-sm font-medium text-white rounded-lg flex items-center ${
-                  replyMessage.trim() && !sendingReply
-                    ? 'bg-orange-500 hover:bg-orange-600' 
-                    : 'bg-orange-300 cursor-not-allowed'
+                disabled={sendingReply || !replyMessage.trim()}
+                className={`px-4 py-2 text-sm font-medium text-white bg-orange-500 hover:bg-orange-600 rounded-lg transition-colors ${
+                  (sendingReply || !replyMessage.trim()) ? 'opacity-70 cursor-not-allowed' : ''
                 }`}
               >
-                {sendingReply ? (
-                  <>
-                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Sending...
-                  </>
-                ) : (
-                  'Send Reply'
-                )}
+                {sendingReply ? 'Sending...' : 'Send Reply'}
               </button>
             </div>
           </div>
