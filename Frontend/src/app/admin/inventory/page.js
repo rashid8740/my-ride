@@ -78,89 +78,157 @@ const CarListItem = ({ car, onEdit, onDelete, onView }) => {
     pending: <RefreshCw className="h-3 w-3 mr-1" />
   };
 
-  return (
-    <tr 
-      className="hover:bg-orange-50 transition-colors"
-      onMouseEnter={() => setShowActions(true)}
-      onMouseLeave={() => setShowActions(false)}
-    >
-      <td className="px-6 py-4 whitespace-nowrap">
+  // Mobile card view for small screens
+  const MobileCardView = () => (
+    <div className="block sm:hidden bg-white border border-gray-200 rounded-lg p-4 mb-4 hover:shadow-md transition-shadow">
+      <div className="flex mb-3">
+        <div className="h-16 w-24 bg-gray-100 rounded-md flex-shrink-0 overflow-hidden border border-gray-200">
+          {imageUrl ? (
+            <img
+              src={imageUrl}
+              alt={car.make + ' ' + car.model}
+              className="h-16 w-24 object-cover"
+            />
+          ) : (
+            <div className="h-16 w-24 flex items-center justify-center">
+              <Car size={20} className="text-gray-400" />
+            </div>
+          )}
+        </div>
+        <div className="ml-3 flex-1">
+          <div className="text-base font-medium text-gray-900">
+            {car.year} {car.make} {car.model}
+          </div>
+          <div className="mt-1 flex items-center">
+            <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border ${statusColors[car.status] || 'bg-gray-100 text-gray-800 border-gray-200'}`}>
+              {statusIcons[car.status]}
+              {car.status.charAt(0).toUpperCase() + car.status.slice(1)}
+            </span>
+          </div>
+        </div>
+      </div>
+      <div className="flex justify-between items-center mb-3 border-t border-gray-100 pt-3">
+        <div>
+          <div className="text-base font-semibold text-gray-900">
+            KSh {typeof car.price === 'number' 
+              ? car.price.toLocaleString() 
+              : (car.price || '0')}
+          </div>
+          <div className={`text-xs font-medium ${car.stock === 0 ? 'text-red-600' : car.stock < 3 ? 'text-yellow-600' : 'text-green-600'} flex items-center mt-1`}>
+            <Tag className="h-3 w-3 mr-1" />
+            {car.stock} {car.stock === 1 ? 'unit' : 'units'}
+          </div>
+        </div>
         <div className="flex items-center">
-          <div className="h-16 w-24 bg-gray-100 rounded-md flex-shrink-0 overflow-hidden border border-gray-200">
-            {imageUrl ? (
-              <img
-                src={imageUrl}
-                alt={car.make + ' ' + car.model}
-                className="h-16 w-24 object-cover"
-              />
-            ) : (
-              <div className="h-16 w-24 flex items-center justify-center">
-                <Car size={20} className="text-gray-400" />
-              </div>
-            )}
-          </div>
-          <div className="ml-4">
-            <div className="text-base font-medium text-gray-900">
-              {car.year} {car.make} {car.model}
-            </div>
-            <div className="text-xs text-gray-500 flex items-center mt-1">
-              <FileText className="h-3 w-3 mr-1 text-gray-400" />
-              VIN: <span className="font-medium">{car.vin || 'N/A'}</span>
-            </div>
-          </div>
-        </div>
-      </td>
-      <td className="px-6 py-4 whitespace-nowrap">
-        <div className="text-base font-semibold text-gray-900">
-          KSh {typeof car.price === 'number' 
-            ? car.price.toLocaleString() 
-            : (car.price || '0')}
-        </div>
-        {car.msrp && car.msrp > car.price && (
-          <div className="text-xs text-gray-500 line-through mt-1 flex items-center">
-            <Wallet className="h-3 w-3 mr-1 text-gray-400" />
-            MSRP: KSh {typeof car.msrp === 'number' ? car.msrp.toLocaleString() : car.msrp}
-          </div>
-        )}
-      </td>
-      <td className="px-6 py-4 whitespace-nowrap">
-        <div className={`text-sm font-medium ${car.stock === 0 ? 'text-red-600' : car.stock < 3 ? 'text-yellow-600' : 'text-green-600'} flex items-center`}>
-          <Tag className="h-4 w-4 mr-1" />
-          {car.stock} {car.stock === 1 ? 'unit' : 'units'}
-        </div>
-      </td>
-      <td className="px-6 py-4 whitespace-nowrap">
-        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${statusColors[car.status] || 'bg-gray-100 text-gray-800 border-gray-200'}`}>
-          {statusIcons[car.status]}
-          {car.status.charAt(0).toUpperCase() + car.status.slice(1)}
-        </span>
-      </td>
-      <td className="px-6 py-4 whitespace-nowrap text-right">
-        <div className={`flex items-center justify-end transition-opacity duration-200 ${showActions ? 'opacity-100' : 'opacity-0 md:opacity-100'}`}>
           <button 
             onClick={() => onView(car)} 
-            className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 p-1.5 rounded-full transition-colors"
-            title="View vehicle details"
+            className="text-blue-600 hover:text-blue-800 bg-blue-50 p-2 rounded-lg transition-colors"
           >
             <Eye className="h-4 w-4" />
           </button>
           <button 
             onClick={() => onEdit(car)} 
-            className="text-orange-500 hover:text-orange-700 hover:bg-orange-50 p-1.5 rounded-full transition-colors ml-1"
-            title="Edit vehicle"
+            className="text-orange-500 hover:text-orange-700 bg-orange-50 p-2 rounded-lg transition-colors ml-2"
           >
             <Edit className="h-4 w-4" />
           </button>
           <button 
             onClick={() => onDelete(car)} 
-            className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1.5 rounded-full transition-colors ml-1"
-            title="Delete vehicle"
+            className="text-red-500 hover:text-red-700 bg-red-50 p-2 rounded-lg transition-colors ml-2"
           >
             <Trash2 className="h-4 w-4" />
           </button>
         </div>
-      </td>
-    </tr>
+      </div>
+    </div>
+  );
+
+  return (
+    <>
+      <MobileCardView />
+      <tr 
+        className="hidden sm:table-row hover:bg-orange-50 transition-colors"
+        onMouseEnter={() => setShowActions(true)}
+        onMouseLeave={() => setShowActions(false)}
+      >
+        <td className="px-6 py-4 whitespace-nowrap">
+          <div className="flex items-center">
+            <div className="h-16 w-24 bg-gray-100 rounded-md flex-shrink-0 overflow-hidden border border-gray-200">
+              {imageUrl ? (
+                <img
+                  src={imageUrl}
+                  alt={car.make + ' ' + car.model}
+                  className="h-16 w-24 object-cover"
+                />
+              ) : (
+                <div className="h-16 w-24 flex items-center justify-center">
+                  <Car size={20} className="text-gray-400" />
+                </div>
+              )}
+            </div>
+            <div className="ml-4">
+              <div className="text-base font-medium text-gray-900">
+                {car.year} {car.make} {car.model}
+              </div>
+              <div className="text-xs text-gray-500 flex items-center mt-1">
+                <FileText className="h-3 w-3 mr-1 text-gray-400" />
+                VIN: <span className="font-medium">{car.vin || 'N/A'}</span>
+              </div>
+            </div>
+          </div>
+        </td>
+        <td className="px-6 py-4 whitespace-nowrap">
+          <div className="text-base font-semibold text-gray-900">
+            KSh {typeof car.price === 'number' 
+              ? car.price.toLocaleString() 
+              : (car.price || '0')}
+          </div>
+          {car.msrp && car.msrp > car.price && (
+            <div className="text-xs text-gray-500 line-through mt-1 flex items-center">
+              <Wallet className="h-3 w-3 mr-1 text-gray-400" />
+              MSRP: KSh {typeof car.msrp === 'number' ? car.msrp.toLocaleString() : car.msrp}
+            </div>
+          )}
+        </td>
+        <td className="px-6 py-4 whitespace-nowrap">
+          <div className={`text-sm font-medium ${car.stock === 0 ? 'text-red-600' : car.stock < 3 ? 'text-yellow-600' : 'text-green-600'} flex items-center`}>
+            <Tag className="h-4 w-4 mr-1" />
+            {car.stock} {car.stock === 1 ? 'unit' : 'units'}
+          </div>
+        </td>
+        <td className="px-6 py-4 whitespace-nowrap">
+          <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium border ${statusColors[car.status] || 'bg-gray-100 text-gray-800 border-gray-200'}`}>
+            {statusIcons[car.status]}
+            {car.status.charAt(0).toUpperCase() + car.status.slice(1)}
+          </span>
+        </td>
+        <td className="px-6 py-4 whitespace-nowrap text-right">
+          <div className={`flex items-center justify-end transition-opacity duration-200 ${showActions ? 'opacity-100' : 'opacity-0 md:opacity-100'}`}>
+            <button 
+              onClick={() => onView(car)} 
+              className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 p-1.5 rounded-full transition-colors"
+              title="View vehicle details"
+            >
+              <Eye className="h-4 w-4" />
+            </button>
+            <button 
+              onClick={() => onEdit(car)} 
+              className="text-orange-500 hover:text-orange-700 hover:bg-orange-50 p-1.5 rounded-full transition-colors ml-1"
+              title="Edit vehicle"
+            >
+              <Edit className="h-4 w-4" />
+            </button>
+            <button 
+              onClick={() => onDelete(car)} 
+              className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1.5 rounded-full transition-colors ml-1"
+              title="Delete vehicle"
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          </div>
+        </td>
+      </tr>
+    </>
   );
 };
 
@@ -169,22 +237,22 @@ const InventoryFilters = ({ filters, availableMakes, handleFilterChange, clearFi
   if (!showFilters) return null;
   
   return (
-    <div className="bg-white rounded-xl shadow-sm p-6 mb-6 border border-gray-100">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center">
+    <div className="bg-white rounded-xl shadow-sm p-4 md:p-6 mb-6 border border-gray-100">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-6">
+        <div className="flex items-center mb-3 sm:mb-0">
           <Sliders className="h-5 w-5 text-orange-500 mr-2" />
           <h2 className="text-lg font-medium text-gray-900">Filter Inventory</h2>
         </div>
         <button 
           onClick={clearFilters}
-          className="text-sm text-orange-500 hover:text-orange-600 font-medium hover:bg-orange-50 px-3 py-1 rounded-md transition-colors flex items-center"
+          className="text-sm text-orange-500 hover:text-orange-600 font-medium hover:bg-orange-50 px-3 py-1 rounded-md transition-colors flex items-center self-start sm:self-auto"
         >
           <RefreshCw className="h-3 w-3 mr-1" />
           Clear All
         </button>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
         <div>
           <label htmlFor="make" className="block text-sm font-medium text-gray-700 mb-1">Make</label>
           <div className="relative">
@@ -287,24 +355,25 @@ const StatCard = ({ title, value, subtitle, icon: Icon, color }) => (
 );
 
 export default function AdminInventory() {
-  const { user } = useAuth();
-  const router = useRouter();
-  const [vehicles, setVehicles] = useState([]);
+  const { user, isAdmin } = useAuth();
+  const [cars, setCars] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+  const [carToDelete, setCarToDelete] = useState(null);
+  const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
     make: '',
+    model: '',
     status: '',
     minPrice: '',
     maxPrice: '',
-    search: '',
+    yearFrom: '',
+    yearTo: '',
   });
-  const [sortBy, setSortBy] = useState('createdAt');
-  const [sortOrder, setSortOrder] = useState('desc');
-  const [showFilters, setShowFilters] = useState(false);
-  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
-  const [selectedCar, setSelectedCar] = useState(null);
   const [availableMakes, setAvailableMakes] = useState([]);
+  const [sortConfig, setSortConfig] = useState({ key: 'updatedAt', direction: 'desc' });
+  const router = useRouter();
 
   // Fetch vehicles when component mounts or when user navigates back to page
   useEffect(() => {
@@ -403,7 +472,7 @@ export default function AdminInventory() {
         return processedCar;
       });
       
-      setVehicles(processedVehicles);
+      setCars(processedVehicles);
       
       // Extract unique makes for filter dropdown
       const makes = [...new Set(processedVehicles.map(car => car.make).filter(Boolean))];
@@ -429,18 +498,18 @@ export default function AdminInventory() {
   };
 
   const handleDeleteClick = (car) => {
-    setSelectedCar(car);
-    setDeleteModalOpen(true);
+    setCarToDelete(car);
+    setShowConfirmDelete(true);
   };
 
   const confirmDelete = async () => {
-    if (!selectedCar) return;
+    if (!carToDelete) return;
     
     try {
-      await apiService.cars.deleteCar(selectedCar._id);
-      setVehicles(vehicles.filter(v => v._id !== selectedCar._id));
-      setDeleteModalOpen(false);
-      setSelectedCar(null);
+      await apiService.cars.deleteCar(carToDelete._id);
+      setCars(cars.filter(v => v._id !== carToDelete._id));
+      setShowConfirmDelete(false);
+      setCarToDelete(null);
       toast.success('Vehicle deleted successfully');
     } catch (err) {
       console.error('Error deleting car:', err);
@@ -450,8 +519,8 @@ export default function AdminInventory() {
   };
 
   const cancelDelete = () => {
-    setDeleteModalOpen(false);
-    setSelectedCar(null);
+    setShowConfirmDelete(false);
+    setCarToDelete(null);
   };
 
   const handleFilterChange = (e) => {
@@ -465,22 +534,22 @@ export default function AdminInventory() {
       status: '',
       minPrice: '',
       maxPrice: '',
-      search: '',
+      yearFrom: '',
+      yearTo: '',
     });
     toast.success('Filters cleared');
   };
 
   const toggleSort = (field) => {
-    if (sortBy === field) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+    if (sortConfig.key === field) {
+      setSortConfig({ ...sortConfig, direction: sortConfig.direction === 'asc' ? 'desc' : 'asc' });
     } else {
-      setSortBy(field);
-      setSortOrder('asc');
+      setSortConfig({ key: field, direction: 'asc' });
     }
   };
 
   // Apply filters and sorting to vehicles
-  const filteredVehicles = vehicles.filter(car => {
+  const filteredVehicles = cars.filter(car => {
     if (filters.make && car.make !== filters.make) return false;
     if (filters.status && car.status !== filters.status) return false;
     
@@ -503,10 +572,10 @@ export default function AdminInventory() {
     }
     return true;
   }).sort((a, b) => {
-    let aValue = a[sortBy];
-    let bValue = b[sortBy];
+    let aValue = a[sortConfig.key];
+    let bValue = b[sortConfig.key];
     
-    if (sortBy === 'price' || sortBy === 'year' || sortBy === 'stock') {
+    if (sortConfig.key === 'price' || sortConfig.key === 'year' || sortConfig.key === 'stock') {
       // Convert to number, handle string prices with commas
       aValue = typeof aValue === 'number' ? aValue : parseFloat(aValue?.toString().replace(/[^\d.-]/g, '') || '0');
       bValue = typeof bValue === 'number' ? bValue : parseFloat(bValue?.toString().replace(/[^\d.-]/g, '') || '0');
@@ -515,21 +584,24 @@ export default function AdminInventory() {
       bValue = bValue?.toLowerCase() || '';
     }
     
-    if (aValue < bValue) return sortOrder === 'asc' ? -1 : 1;
-    if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1;
+    if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+    if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
     return 0;
   });
 
   const getInventoryStats = () => {
-    const total = vehicles.length;
-    const available = vehicles.filter(car => car.status === 'available').length;
-    const reserved = vehicles.filter(car => car.status === 'reserved').length;
-    const sold = vehicles.filter(car => car.status === 'sold').length;
+    const total = cars.length;
+    const available = cars.filter(car => car.status === 'available').length;
+    const reserved = cars.filter(car => car.status === 'reserved').length;
+    const sold = cars.filter(car => car.status === 'sold').length;
     
-    return { total, available, reserved, sold };
+    return [
+      { title: 'Total Vehicles', value: total, subtitle: 'units in inventory', icon: Car, color: 'bg-indigo-500' },
+      { title: 'Available', value: available, subtitle: 'ready for sale', icon: Tag, color: 'bg-green-500' },
+      { title: 'Reserved', value: reserved, subtitle: 'pending purchase', icon: Clock, color: 'bg-blue-500' },
+      { title: 'Sold', value: sold, subtitle: 'in last 30 days', icon: ShoppingCart, color: 'bg-gray-500' },
+    ];
   };
-
-  const stats = getInventoryStats();
 
   if (isLoading) {
     return (
@@ -544,190 +616,239 @@ export default function AdminInventory() {
 
   return (
     <div>
-      <div className="mb-6">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-8">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 flex items-center">
-              <Car className="h-6 w-6 mr-2 text-orange-500" />
-              Vehicle Inventory
-            </h1>
-            <p className="text-gray-500 mt-1">Manage your dealership's vehicle inventory</p>
-          </div>
-          <div className="mt-4 md:mt-0 flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
-            <button 
-              onClick={() => setShowFilters(!showFilters)} 
-              className={`px-4 py-2 border rounded-lg text-sm font-medium flex items-center justify-center transition-colors ${
-                showFilters 
-                  ? 'bg-orange-50 text-orange-600 border-orange-200 hover:bg-orange-100' 
-                  : 'border-gray-300 text-gray-700 hover:bg-gray-50'
-              }`}
-            >
-              <Filter className="h-4 w-4 mr-2" />
-              {showFilters ? 'Hide Filters' : 'Show Filters'}
-            </button>
-            <Link
-              href="/admin/inventory/add"
-              className="px-4 py-2 bg-orange-500 rounded-lg text-sm font-medium text-white hover:bg-orange-600 flex items-center justify-center shadow-sm hover:shadow transition-all"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Vehicle
-            </Link>
-          </div>
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between">
+        <div className="mb-4 sm:mb-0">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Inventory Management</h1>
+          <p className="text-sm text-gray-600 mt-1">Manage your vehicle listings</p>
         </div>
-
-        {/* Stats cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <StatCard 
-            title="Total Vehicles" 
-            value={stats.total} 
-            subtitle="units in inventory" 
-            icon={Car} 
-            color="bg-indigo-500" 
-          />
-          <StatCard 
-            title="Available" 
-            value={stats.available} 
-            subtitle="ready for sale" 
-            icon={Tag} 
-            color="bg-green-500" 
-          />
-          <StatCard 
-            title="Reserved" 
-            value={stats.reserved} 
-            subtitle="pending purchase" 
-            icon={Clock} 
-            color="bg-blue-500" 
-          />
-          <StatCard 
-            title="Sold" 
-            value={stats.sold} 
-            subtitle="in last 30 days" 
-            icon={ShoppingCart} 
-            color="bg-gray-500" 
-          />
+        <div className="flex flex-col sm:flex-row space-y-3 sm:space-y-0 sm:space-x-3">
+          <Link href="/admin/inventory/add" className="bg-orange-500 text-white px-3 md:px-4 py-2 rounded-lg shadow-sm hover:bg-orange-600 transition-colors text-sm font-medium flex items-center justify-center">
+            <Plus className="h-4 w-4 mr-1.5" />
+            Add Vehicle
+          </Link>
+          <button 
+            onClick={() => setShowFilters(!showFilters)}
+            className="bg-white border border-gray-300 text-gray-700 px-3 md:px-4 py-2 rounded-lg shadow-sm hover:bg-gray-50 transition-colors text-sm font-medium flex items-center justify-center"
+          >
+            <Filter className="h-4 w-4 mr-1.5" />
+            {showFilters ? 'Hide Filters' : 'Show Filters'}
+          </button>
         </div>
+      </div>
 
-        <InventoryFilters 
-          filters={filters} 
-          availableMakes={availableMakes} 
-          handleFilterChange={handleFilterChange} 
-          clearFilters={clearFilters}
-          showFilters={showFilters}
-        />
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6">
+        {getInventoryStats().map((stat, index) => (
+          <StatCard key={index} {...stat} />
+        ))}
+      </div>
 
-        {/* Search bar */}
-        <div className="relative mb-6">
+      {/* Filters Panel */}
+      <InventoryFilters 
+        filters={filters} 
+        availableMakes={availableMakes} 
+        handleFilterChange={handleFilterChange} 
+        clearFilters={clearFilters} 
+        showFilters={showFilters} 
+      />
+
+      {/* Search Bar */}
+      <div className="mb-6 flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Search className="h-5 w-5 text-gray-400" />
+            <Search className="h-4 w-4 text-gray-400" />
           </div>
           <input
             type="text"
-            name="search"
-            id="search"
-            className="block w-full pl-10 pr-3 py-2.5 border border-gray-300 rounded-lg shadow-sm bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent sm:text-sm"
-            placeholder="Search inventory by make, model, VIN, or year..."
-            value={filters.search}
-            onChange={handleFilterChange}
+            placeholder="Search by make, model, or year..."
+            className="block w-full pl-10 pr-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 sm:text-sm text-gray-800 bg-white"
           />
         </div>
+        <div className="flex space-x-2">
+          <button className="px-3 py-2 bg-white border border-gray-200 rounded-lg text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors flex items-center">
+            <Download className="h-4 w-4 mr-1.5 text-gray-500" /> 
+            Export
+          </button>
+          <button className="px-3 py-2 bg-white border border-gray-200 rounded-lg text-gray-700 text-sm font-medium hover:bg-gray-50 transition-colors flex items-center">
+            <Settings className="h-4 w-4 mr-1.5 text-gray-500" />
+            Options
+          </button>
+        </div>
+      </div>
 
-        {error && (
-          <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-md">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <AlertCircle className="h-5 w-5 text-red-500" />
-              </div>
-              <div className="ml-3">
-                <p className="text-sm text-red-700">{error}</p>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Inventory table */}
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-200">
-          <div className="flex justify-between items-center p-4 border-b border-gray-200">
-            <h2 className="text-lg font-medium text-gray-900 flex items-center">
-              <span className="bg-orange-100 text-orange-600 rounded-full px-2 py-0.5 text-xs mr-2">
-                {filteredVehicles.length}
-              </span>
-              {filteredVehicles.length === 1 ? 'Vehicle' : 'Vehicles'} Found
-            </h2>
-            <button className="text-sm text-gray-600 flex items-center px-3 py-1.5 rounded-md hover:bg-gray-50 transition-colors">
-              <Download className="h-4 w-4 mr-1" />
-              Export
-            </button>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
+      {/* Cars Listing */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-6">
+        <div className="hidden sm:block">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <button 
+                    onClick={() => toggleSort('name')}
+                    className="group flex items-center"
+                  >
+                    Vehicle
+                    <ArrowUpDown className="ml-1.5 h-3.5 w-3.5 text-gray-400 group-hover:text-gray-500" />
+                  </button>
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <button 
+                    onClick={() => toggleSort('price')}
+                    className="group flex items-center"
+                  >
+                    Price
+                    <ArrowUpDown className="ml-1.5 h-3.5 w-3.5 text-gray-400 group-hover:text-gray-500" />
+                  </button>
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <button 
+                    onClick={() => toggleSort('stock')}
+                    className="group flex items-center"
+                  >
+                    Stock
+                    <ArrowUpDown className="ml-1.5 h-3.5 w-3.5 text-gray-400 group-hover:text-gray-500" />
+                  </button>
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <button 
+                    onClick={() => toggleSort('status')}
+                    className="group flex items-center"
+                  >
+                    Status
+                    <ArrowUpDown className="ml-1.5 h-3.5 w-3.5 text-gray-400 group-hover:text-gray-500" />
+                  </button>
+                </th>
+                <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {isLoading ? (
                 <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    <button onClick={() => toggleSort('make')} className="flex items-center group">
-                      Vehicle
-                      <ArrowUpDown className="ml-1 h-3 w-3 text-gray-400 group-hover:text-orange-500" />
-                    </button>
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    <button onClick={() => toggleSort('price')} className="flex items-center group">
-                      Price
-                      <ArrowUpDown className="ml-1 h-3 w-3 text-gray-400 group-hover:text-orange-500" />
-                    </button>
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    <button onClick={() => toggleSort('stock')} className="flex items-center group">
-                      Stock
-                      <ArrowUpDown className="ml-1 h-3 w-3 text-gray-400 group-hover:text-orange-500" />
-                    </button>
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    <button onClick={() => toggleSort('status')} className="flex items-center group">
-                      Status
-                      <ArrowUpDown className="ml-1 h-3 w-3 text-gray-400 group-hover:text-orange-500" />
-                    </button>
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
-                  </th>
+                  <td colSpan={5} className="px-6 py-16 text-center">
+                    <div className="flex flex-col items-center justify-center">
+                      <Loader2 className="h-8 w-8 text-orange-500 animate-spin mb-3" />
+                      <p className="text-sm text-gray-600">Loading inventory data...</p>
+                    </div>
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredVehicles.length > 0 ? (
-                  filteredVehicles.map(car => (
-                    <CarListItem 
-                      key={car._id} 
-                      car={car} 
-                      onView={handleViewCar}
-                      onEdit={handleEditCar} 
-                      onDelete={handleDeleteClick} 
-                    />
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="5" className="px-6 py-10 text-center text-gray-500 bg-gray-50">
-                      <div className="flex flex-col items-center">
-                        <Car className="h-10 w-10 text-gray-400 mb-2" />
-                        <p className="text-gray-500 font-medium">No vehicles found</p>
-                        <p className="text-sm text-gray-400 mt-1">Try adjusting your search or filter criteria</p>
-                        
+              ) : error ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-16 text-center">
+                    <div className="flex flex-col items-center justify-center">
+                      <AlertCircle className="h-8 w-8 text-red-500 mb-3" />
+                      <p className="text-base font-medium text-gray-900 mb-1">Unable to load inventory</p>
+                      <p className="text-sm text-gray-600">{error}</p>
+                      <button 
+                        onClick={fetchVehicles}
+                        className="mt-4 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm font-medium rounded-lg transition-colors"
+                      >
+                        Try Again
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ) : cars.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-16 text-center">
+                    <div className="flex flex-col items-center justify-center">
+                      <div className="bg-gray-100 rounded-full p-3 mb-3">
+                        <Car className="h-6 w-6 text-gray-400" />
+                      </div>
+                      <p className="text-base font-medium text-gray-900 mb-1">No vehicles found</p>
+                      <p className="text-sm text-gray-600 mb-4">No vehicles match your current filters.</p>
+                      <div className="flex space-x-3">
                         <button 
                           onClick={clearFilters}
-                          className="mt-4 px-4 py-2 text-sm bg-orange-50 text-orange-600 rounded-md font-medium hover:bg-orange-100 transition-colors"
+                          className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm font-medium rounded-lg transition-colors"
                         >
-                          Clear All Filters
+                          Clear Filters
                         </button>
+                        <Link 
+                          href="/admin/inventory/add" 
+                          className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-lg transition-colors flex items-center"
+                        >
+                          <Plus className="h-4 w-4 mr-1.5" />
+                          Add Vehicle
+                        </Link>
                       </div>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                cars.map(car => (
+                  <CarListItem 
+                    key={car._id} 
+                    car={car} 
+                    onView={handleViewCar}
+                    onEdit={handleEditCar}
+                    onDelete={handleDeleteClick}
+                  />
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+        
+        {/* Mobile list view already handled by CarListItem's MobileCardView */}
+        <div className="sm:hidden px-4 py-4">
+          {isLoading ? (
+            <div className="flex flex-col items-center justify-center py-16">
+              <Loader2 className="h-8 w-8 text-orange-500 animate-spin mb-3" />
+              <p className="text-sm text-gray-600">Loading inventory data...</p>
+            </div>
+          ) : error ? (
+            <div className="flex flex-col items-center justify-center py-16">
+              <AlertCircle className="h-8 w-8 text-red-500 mb-3" />
+              <p className="text-base font-medium text-gray-900 mb-1">Unable to load inventory</p>
+              <p className="text-sm text-gray-600">{error}</p>
+              <button 
+                onClick={fetchVehicles}
+                className="mt-4 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm font-medium rounded-lg transition-colors"
+              >
+                Try Again
+              </button>
+            </div>
+          ) : cars.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16">
+              <div className="bg-gray-100 rounded-full p-3 mb-3">
+                <Car className="h-6 w-6 text-gray-400" />
+              </div>
+              <p className="text-base font-medium text-gray-900 mb-1">No vehicles found</p>
+              <p className="text-sm text-gray-600 mb-4">No vehicles match your current filters.</p>
+              <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-3">
+                <button 
+                  onClick={clearFilters}
+                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 text-sm font-medium rounded-lg transition-colors w-full"
+                >
+                  Clear Filters
+                </button>
+                <Link 
+                  href="/admin/inventory/add" 
+                  className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium rounded-lg transition-colors flex items-center justify-center w-full"
+                >
+                  <Plus className="h-4 w-4 mr-1.5" />
+                  Add Vehicle
+                </Link>
+              </div>
+            </div>
+          ) : (
+            cars.map(car => (
+              <CarListItem 
+                key={car._id} 
+                car={car} 
+                onView={handleViewCar}
+                onEdit={handleEditCar}
+                onDelete={handleDeleteClick}
+              />
+            ))
+          )}
         </div>
       </div>
 
       {/* Delete Confirmation Modal */}
-      {deleteModalOpen && (
+      {showConfirmDelete && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 max-w-md w-full shadow-2xl">
             <div className="flex items-center justify-center text-red-500 mb-4">
@@ -737,7 +858,7 @@ export default function AdminInventory() {
             </div>
             <h3 className="text-xl font-bold text-gray-900 text-center mb-2">Delete Vehicle</h3>
             <p className="text-gray-600 text-center mb-6">
-              Are you sure you want to delete the {selectedCar?.year} {selectedCar?.make} {selectedCar?.model}? This action cannot be undone.
+              Are you sure you want to delete the {carToDelete?.year} {carToDelete?.make} {carToDelete?.model}? This action cannot be undone.
             </p>
             <div className="flex justify-center space-x-3">
               <button
