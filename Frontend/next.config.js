@@ -13,11 +13,6 @@ const nextConfig = {
       {
         source: '/api/:path*',
         destination: '/api/:path*',
-      },
-      // Ensure car detail pages are correctly handled
-      {
-        source: '/cars/:id',
-        destination: '/app/cars/:id',
       }
     ];
   },
