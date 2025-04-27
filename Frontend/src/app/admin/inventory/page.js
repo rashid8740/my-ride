@@ -507,7 +507,7 @@ export default function AdminInventory() {
     if (!carToDelete) return;
     
     try {
-      await apiService.cars.deleteCar(carToDelete._id);
+      await apiService.cars.delete(carToDelete._id);
       setCars(cars.filter(v => v._id !== carToDelete._id));
       setShowConfirmDelete(false);
       setCarToDelete(null);
