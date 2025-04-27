@@ -579,21 +579,32 @@ const apiService = {
     },
     
     async create(userData) {
-      console.log('API: Creating new user', userData);
+      console.log('API: Creating new user', { ...userData, password: '****' });
       try {
+        // Log the API URL being used
+        console.log('API URL:', getApiUrl());
+        console.log('Token available:', !!localStorage.getItem('token'));
+        
         // Try admin route first
         try {
+          console.log('Trying admin route: /admin/users');
           const response = await apiService.request('/admin/users', {
             method: 'POST',
             body: JSON.stringify(userData),
           });
+          console.log('Admin create user success:', response);
           return response;
         } catch (adminError) {
-          console.log('Admin create user endpoint failed, trying standard endpoint');
-          return await apiService.request('/users', {
+          console.log('Admin create user endpoint failed:', adminError);
+          
+          // Try standard endpoint as fallback
+          console.log('Trying standard endpoint: /users');
+          const response = await apiService.request('/users', {
             method: 'POST',
             body: JSON.stringify(userData),
           });
+          console.log('Standard create user success:', response);
+          return response;
         }
       } catch (error) {
         console.error('Error creating user:', error);

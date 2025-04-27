@@ -523,8 +523,8 @@ export default function AdminDashboard() {
       <div className="mb-6">
         <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Dashboard</h1>
         <p className="text-sm text-gray-600 mt-1">Welcome back, {user?.firstName || 'Admin'}. Here's what's happening today.</p>
-      </div>
-
+        </div>
+        
       {/* New inquiry notification */}
       {showRefreshAlert && (
         <div className="mb-6 bg-white border border-orange-200 rounded-xl p-4 shadow-sm animate-pulse">
@@ -532,7 +532,7 @@ export default function AdminDashboard() {
             <div className="flex items-center">
               <div className="bg-orange-100 rounded-full p-2 mr-3">
                 <Bell className="h-5 w-5 text-orange-500" />
-              </div>
+            </div>
               <div>
                 <h3 className="font-medium text-gray-900">New inquiries available!</h3>
                 <p className="text-sm text-gray-600">There are {newInquiriesCount} new customer inquiries awaiting your response.</p>
@@ -545,16 +545,16 @@ export default function AdminDashboard() {
               Refresh
             </button>
           </div>
-        </div>
+              </div>
       )}
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-6">
         <StatCard 
-          title="Total Users"
+          title="Total Users" 
           value={stats.totalUsers || 0}
           change="+12.5%"
-          icon={<Users className="h-5 w-5" />}
+          icon={<Users className="h-5 w-5" />} 
           color="orange"
           subtext="vs. previous month"
           onClick="/admin/users"
@@ -563,7 +563,7 @@ export default function AdminDashboard() {
           title="Vehicles"
           value={stats.totalCars || 0}
           change="+8.1%"
-          icon={<Car className="h-5 w-5" />}
+          icon={<Car className="h-5 w-5" />} 
           color="blue"
           subtext="total inventory"
           onClick="/admin/inventory"
@@ -572,22 +572,22 @@ export default function AdminDashboard() {
           title="Inquiries"
           value={stats.totalInquiries || 0}
           change="+24.3%"
-          icon={<MessageSquare className="h-5 w-5" />}
+          icon={<MessageSquare className="h-5 w-5" />} 
           color="green"
           subtext="awaiting response"
           onClick="/admin/inquiries"
         />
         <StatCard 
-          title="Revenue"
+          title="Revenue" 
           value={`KSh ${(stats.totalRevenue || 0).toLocaleString()}`}
           change="+5.4%"
-          icon={<DollarSign className="h-5 w-5" />}
+          icon={<DollarSign className="h-5 w-5" />} 
           color="purple"
           subtext="total earnings"
           onClick="/admin/sales"
         />
       </div>
-
+      
       {/* Two column layout for larger screens */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main content - 2/3 width on large screens */}
@@ -595,21 +595,21 @@ export default function AdminDashboard() {
           {/* Sales Progress Card */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <div className="flex items-center justify-between p-4 md:p-6 border-b border-gray-100">
-              <div>
+          <div>
                 <h2 className="text-lg font-bold text-gray-900">Sales Progress</h2>
                 <p className="text-sm text-gray-600 mt-1">Monthly target vs. actual sales</p>
-              </div>
+          </div>
               <div className="bg-orange-100 text-orange-600 px-2 py-1 rounded-lg text-sm font-medium">
                 {Math.round((currentSales / salesGoal) * 100)}% of goal
-              </div>
-            </div>
+          </div>
+        </div>
             <div className="p-4 md:p-6">
               <div className="flex items-center justify-between mb-2">
                 <div className="text-sm text-gray-600">Current Sales</div>
                 <div className="text-sm font-medium text-gray-900">
                   KSh {currentSales.toLocaleString()}
-                </div>
-              </div>
+            </div>
+            </div>
               <ProgressBar 
                 value={currentSales} 
                 max={salesGoal} 
@@ -617,10 +617,10 @@ export default function AdminDashboard() {
               <div className="flex items-center justify-between mt-1">
                 <div className="text-xs text-gray-500">0</div>
                 <div className="text-xs text-gray-500">Target: KSh {salesGoal.toLocaleString()}</div>
-              </div>
-            </div>
+        </div>
           </div>
-
+        </div>
+        
           {/* Recent Inquiries */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <div className="flex items-center justify-between p-4 md:p-6 border-b border-gray-100">
@@ -660,7 +660,7 @@ export default function AdminDashboard() {
                         {isLoading ? (
                           <div className="flex justify-center">
                             <div className="loader animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-orange-500"></div>
-                          </div>
+        </div>
                         ) : (
                           "No inquiries found"
                         )}
@@ -669,21 +669,21 @@ export default function AdminDashboard() {
                   )}
                 </tbody>
               </table>
-            </div>
+      </div>
           </div>
           
           {/* Low Stock Vehicles */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <div className="flex items-center justify-between p-4 md:p-6 border-b border-gray-100">
-              <div>
+                    <div>
                 <h2 className="text-lg font-bold text-gray-900">Inventory Status</h2>
                 <p className="text-sm text-gray-600 mt-1">Vehicles requiring attention</p>
-              </div>
+                    </div>
               <Link href="/admin/inventory" className="text-sm text-orange-600 hover:text-orange-700 font-medium flex items-center">
                 View inventory
                 <ArrowRight className="ml-1 h-4 w-4" />
               </Link>
-            </div>
+                  </div>
             <div className="p-4 md:p-6 grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="bg-yellow-50 rounded-lg p-4 border border-yellow-200">
                 <div className="flex">
@@ -696,49 +696,49 @@ export default function AdminDashboard() {
                     <button className="mt-2 text-xs font-medium text-yellow-600 hover:text-yellow-700">
                       View vehicles
                     </button>
-                  </div>
                 </div>
               </div>
+                </div>
               <div className="bg-red-50 rounded-lg p-4 border border-red-200">
                 <div className="flex">
                   <div className="p-2 bg-red-100 rounded-lg mr-4">
                     <Clock className="h-6 w-6 text-red-600" />
                   </div>
-                  <div>
+                    <div>
                     <h3 className="font-medium text-gray-900">Expiring Offers</h3>
                     <p className="text-sm text-gray-600 mt-1">5 promotional offers ending soon</p>
                     <button className="mt-2 text-xs font-medium text-red-600 hover:text-red-700">
                       Review offers
                     </button>
+                    </div>
                   </div>
-                </div>
-              </div>
+                  </div>
               <div className="bg-green-50 rounded-lg p-4 border border-green-200">
                 <div className="flex">
                   <div className="p-2 bg-green-100 rounded-lg mr-4">
                     <Tag className="h-6 w-6 text-green-600" />
-                  </div>
-                  <div>
+                </div>
+                    <div>
                     <h3 className="font-medium text-gray-900">Popular Vehicles</h3>
                     <p className="text-sm text-gray-600 mt-1">2 vehicles with high inquiry rates</p>
                     <button className="mt-2 text-xs font-medium text-green-600 hover:text-green-700">
                       View analytics
                     </button>
+                    </div>
                   </div>
-                </div>
-              </div>
+                  </div>
               <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
                 <div className="flex">
                   <div className="p-2 bg-blue-100 rounded-lg mr-4">
                     <ShieldCheck className="h-6 w-6 text-blue-600" />
-                  </div>
-                  <div>
+                </div>
+                    <div>
                     <h3 className="font-medium text-gray-900">Maintenance Due</h3>
                     <p className="text-sm text-gray-600 mt-1">4 vehicles requiring service</p>
                     <button className="mt-2 text-xs font-medium text-blue-600 hover:text-blue-700">
                       Schedule service
                     </button>
-                  </div>
+                    </div>
                 </div>
               </div>
             </div>
@@ -797,33 +797,33 @@ export default function AdminDashboard() {
             <div className="p-4 md:p-6 border-b border-gray-100">
               <h2 className="text-lg font-bold text-gray-900">New Users</h2>
               <p className="text-sm text-gray-600 mt-1">Recent account registrations</p>
-            </div>
+                        </div>
             <div className="p-4 md:p-6 space-y-4">
               {stats.recentUsers && stats.recentUsers.length > 0 ? (
                 stats.recentUsers.slice(0, 3).map((user, index) => (
                   <div key={index} className="flex items-center">
                     <div className="h-10 w-10 rounded-full bg-gradient-to-br from-gray-500 to-gray-600 flex items-center justify-center text-white uppercase font-bold text-sm shadow-sm">
                       {user.firstName?.[0]}{user.lastName?.[0]}
-                    </div>
+                      </div>
                     <div className="ml-3">
                       <p className="text-sm font-medium text-gray-900">{user.firstName} {user.lastName}</p>
                       <p className="text-xs text-gray-500">{user.email}</p>
-                    </div>
-                  </div>
+          </div>
+        </div>
                 ))
               ) : (
                 <div className="py-4 text-center text-sm text-gray-500">
                   {isLoading ? (
                     <div className="flex justify-center">
                       <div className="loader animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-orange-500"></div>
-                    </div>
+                            </div>
                   ) : (
                     "No recent users"
-                  )}
-                </div>
+                          )}
+                        </div>
               )}
-            </div>
-          </div>
+                      </div>
+                        </div>
           
           {/* Quick Links */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -832,7 +832,7 @@ export default function AdminDashboard() {
               <p className="text-sm text-gray-600 mt-1">Common admin tasks</p>
             </div>
             <div className="p-2">
-              <Link 
+                      <Link 
                 href="/admin/inventory/add" 
                 className="flex items-center p-2 hover:bg-orange-50 rounded-lg text-gray-700 hover:text-orange-600 transition-colors"
               >
@@ -844,19 +844,19 @@ export default function AdminDashboard() {
                   <p className="text-xs text-gray-500">Create a new inventory listing</p>
                 </div>
                 <ArrowUpRight className="h-4 w-4 text-gray-400" />
-              </Link>
+                      </Link>
               
-              <Link 
+                      <Link 
                 href="/admin/users/add" 
                 className="flex items-center p-2 hover:bg-orange-50 rounded-lg text-gray-700 hover:text-orange-600 transition-colors"
               >
                 <div className="p-2 bg-orange-100 rounded-lg mr-3">
                   <User className="h-4 w-4 text-orange-600" />
-                </div>
+        </div>
                 <div className="flex-1">
                   <p className="text-sm font-medium">Add New User</p>
                   <p className="text-xs text-gray-500">Create user or dealer account</p>
-                </div>
+      </div>
                 <ArrowUpRight className="h-4 w-4 text-gray-400" />
               </Link>
               
@@ -866,17 +866,17 @@ export default function AdminDashboard() {
               >
                 <div className="p-2 bg-orange-100 rounded-lg mr-3">
                   <TrendingUp className="h-4 w-4 text-orange-600" />
-                </div>
+              </div>
                 <div className="flex-1">
                   <p className="text-sm font-medium">Generate Report</p>
                   <p className="text-xs text-gray-500">Create sales or inventory report</p>
-                </div>
+            </div>
                 <ArrowUpRight className="h-4 w-4 text-gray-400" />
               </Link>
-            </div>
-          </div>
-        </div>
-      </div>
+                  </div>
+                    </div>
+                    </div>
+                  </div>
       
       {/* Reply Modal */}
       {replyModalOpen && (
@@ -887,19 +887,19 @@ export default function AdminDashboard() {
               <p className="text-sm text-gray-600 mt-1">
                 Responding to {replyInquiry?.name} about {replyInquiry?.subject}
               </p>
-            </div>
+                </div>
             <div className="p-6">
               <div className="mb-4 bg-gray-50 p-4 rounded-lg border border-gray-200">
                 <p className="text-sm text-gray-800">{replyInquiry?.message}</p>
                 <p className="text-xs text-gray-500 mt-2">
                   Received on {new Date(replyInquiry?.createdAt).toLocaleDateString()}
                 </p>
-              </div>
+                </div>
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Your Response
                 </label>
-                <textarea
+                <textarea 
                   value={replyMessage}
                   onChange={(e) => setReplyMessage(e.target.value)}
                   className="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent h-32"

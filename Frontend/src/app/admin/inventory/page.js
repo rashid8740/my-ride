@@ -370,6 +370,7 @@ export default function AdminInventory() {
     maxPrice: '',
     yearFrom: '',
     yearTo: '',
+    search: '',
   });
   const [availableMakes, setAvailableMakes] = useState([]);
   const [sortConfig, setSortConfig] = useState({ key: 'updatedAt', direction: 'desc' });
@@ -531,11 +532,13 @@ export default function AdminInventory() {
   const clearFilters = () => {
     setFilters({
       make: '',
+      model: '',
       status: '',
       minPrice: '',
       maxPrice: '',
       yearFrom: '',
       yearTo: '',
+      search: '',
     });
     toast.success('Filters cleared');
   };
@@ -563,12 +566,13 @@ export default function AdminInventory() {
     
     if (filters.search) {
       const searchLower = filters.search.toLowerCase();
-      return (
+      const matchesSearch = 
         car.make?.toLowerCase().includes(searchLower) ||
         car.model?.toLowerCase().includes(searchLower) ||
         car.vin?.toLowerCase().includes(searchLower) ||
-        car.year?.toString().includes(searchLower)
-      );
+        car.year?.toString().includes(searchLower);
+      
+      if (!matchesSearch) return false;
     }
     return true;
   }).sort((a, b) => {
@@ -660,6 +664,9 @@ export default function AdminInventory() {
           </div>
           <input
             type="text"
+            name="search"
+            value={filters.search}
+            onChange={handleFilterChange}
             placeholder="Search by make, model, or year..."
             className="block w-full pl-10 pr-3 py-2 rounded-lg border border-gray-200 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 sm:text-sm text-gray-800 bg-white"
           />

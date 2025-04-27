@@ -55,6 +55,72 @@ const StatusBadge = ({ status }) => {
   );
 };
 
+// Mobile card component for inquiries
+const InquiryCard = ({ inquiry, onView, onDelete }) => {
+  // Format date
+  const formattedDate = new Date(inquiry.createdAt).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  });
+  
+  // Get vehicle info from either car reference or vehicleInfo field
+  const vehicleInfo = inquiry.car ? 
+    `${inquiry.car.year} ${inquiry.car.make} ${inquiry.car.model}` : 
+    (inquiry.vehicleInfo || 'Not specified');
+  
+  // Get a truncated message preview
+  const messagePreview = inquiry.message ? 
+    (inquiry.message.length > 100 ? inquiry.message.substring(0, 100) + '...' : inquiry.message) : 
+    'No message';
+
+  return (
+    <div className="block sm:hidden bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4">
+      <div className="flex justify-between items-start mb-3">
+        <div>
+          <div className="text-sm font-medium text-gray-900">{inquiry.name}</div>
+          <div className="text-xs text-gray-500 flex items-center mt-1">
+            <Mail className="h-3 w-3 mr-1 text-gray-400" />
+            {inquiry.email}
+          </div>
+        </div>
+        <StatusBadge status={inquiry.status} />
+      </div>
+      
+      <div className="mb-3">
+        <div className="text-xs text-gray-500 mb-1 flex items-center">
+          <Car className="h-3 w-3 mr-1 text-gray-400" />
+          {vehicleInfo}
+        </div>
+        <div className="text-sm text-gray-600 bg-gray-50 p-2 rounded-lg">
+          {messagePreview}
+        </div>
+      </div>
+      
+      <div className="flex justify-between items-center border-t border-gray-100 pt-3">
+        <div className="text-xs text-gray-500 flex items-center">
+          <Calendar className="h-3 w-3 mr-1 text-gray-400" />
+          {formattedDate}
+        </div>
+        <div className="flex space-x-2">
+          <button
+            onClick={() => onView(inquiry)}
+            className="bg-orange-50 text-orange-600 hover:bg-orange-100 p-2 rounded-lg text-sm"
+          >
+            <Eye className="h-4 w-4" />
+          </button>
+          <button
+            onClick={() => onDelete(inquiry)}
+            className="bg-red-50 text-red-600 hover:bg-red-100 p-2 rounded-lg text-sm"
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const InquiryRow = ({ inquiry, onView, onDelete }) => {
   // Format date
   const formattedDate = new Date(inquiry.createdAt).toLocaleDateString('en-US', {
@@ -74,7 +140,7 @@ const InquiryRow = ({ inquiry, onView, onDelete }) => {
     'No message';
   
   return (
-    <tr className="hover:bg-gray-50">
+    <tr className="hidden sm:table-row hover:bg-gray-50">
       <td className="px-6 py-4 whitespace-nowrap">
         <div className="flex items-center">
           <div className="ml-2">
@@ -98,15 +164,15 @@ const InquiryRow = ({ inquiry, onView, onDelete }) => {
       <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
         <button 
           onClick={() => onView(inquiry)}
-          className="text-orange-600 hover:text-orange-900 mr-4"
+          className="text-blue-600 hover:text-blue-900 hover:bg-blue-50 p-1.5 rounded-full transition-colors"
         >
-          View
+          <Eye className="h-4 w-4" />
         </button>
         <button 
           onClick={() => onDelete(inquiry)}
-          className="text-red-600 hover:text-red-900"
+          className="text-red-600 hover:text-red-900 hover:bg-red-50 p-1.5 rounded-full transition-colors ml-2"
         >
-          Delete
+          <Trash2 className="h-4 w-4" />
         </button>
       </td>
     </tr>
@@ -323,147 +389,102 @@ export default function AdminInquiries() {
 
   return (
     <div>
-      <div className="mb-6">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Customer Inquiries</h1>
-            <p className="text-gray-500">Manage and respond to customer questions and requests</p>
-          </div>
-          <div className="mt-4 md:mt-0 flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
-            <button 
-              onClick={() => setShowFilters(!showFilters)} 
-              className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center"
-            >
-              <Filter className="h-4 w-4 mr-2" />
-              {showFilters ? 'Hide Filters' : 'Show Filters'}
-            </button>
-          </div>
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between">
+        <div className="mb-4 sm:mb-0">
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Customer Inquiries</h1>
+          <p className="text-sm text-gray-600 mt-1">Manage and respond to customer messages</p>
         </div>
-
-        {/* Stats cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100 hover:shadow transition-all">
-            <div className="flex items-center">
-              <div className="bg-indigo-100 rounded-lg p-2.5 mr-3">
-                <MessageSquare className="h-5 w-5 text-indigo-600" />
-              </div>
-              <div>
-                <div className="text-sm font-medium text-gray-500">Total Inquiries</div>
-                <div className="mt-1 flex items-end">
-                  <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
-                  <div className="text-xs text-gray-500 ml-2 mb-1">total messages</div>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100 hover:shadow transition-all">
-            <div className="flex items-center">
-              <div className="bg-blue-100 rounded-lg p-2.5 mr-3">
-                <AlertCircle className="h-5 w-5 text-blue-600" />
-              </div>
-              <div>
-                <div className="text-sm font-medium text-gray-500">New</div>
-                <div className="mt-1 flex items-end">
-                  <div className="text-2xl font-bold text-blue-600">{stats.newCount}</div>
-                  <div className="text-xs text-gray-500 ml-2 mb-1">awaiting response</div>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100 hover:shadow transition-all">
-            <div className="flex items-center">
-              <div className="bg-yellow-100 rounded-lg p-2.5 mr-3">
-                <Clock className="h-5 w-5 text-yellow-600" />
-              </div>
-              <div>
-                <div className="text-sm font-medium text-gray-500">In Progress</div>
-                <div className="mt-1 flex items-end">
-                  <div className="text-2xl font-bold text-yellow-600">{stats.inProgressCount}</div>
-                  <div className="text-xs text-gray-500 ml-2 mb-1">being addressed</div>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100 hover:shadow transition-all">
-            <div className="flex items-center">
-              <div className="bg-green-100 rounded-lg p-2.5 mr-3">
-                <CheckCircle className="h-5 w-5 text-green-600" />
-              </div>
-              <div>
-                <div className="text-sm font-medium text-gray-500">Resolved</div>
-                <div className="mt-1 flex items-end">
-                  <div className="text-2xl font-bold text-green-600">{stats.resolvedCount}</div>
-                  <div className="text-xs text-gray-500 ml-2 mb-1">successfully completed</div>
-                </div>
-              </div>
-            </div>
-          </div>
+        <div className="flex space-x-3">
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className={`px-4 py-2 rounded-lg border text-sm font-medium flex items-center ${
+              showFilters 
+                ? 'bg-orange-50 border-orange-200 text-orange-600 hover:bg-orange-100' 
+                : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+            }`}
+          >
+            <Filter className="h-4 w-4 mr-1.5" />
+            {showFilters ? 'Hide Filters' : 'Show Filters'}
+          </button>
         </div>
+      </div>
 
-        {/* Recent Activity */}
-        {stats.newCount > 0 && (
-          <div className="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-6">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <AlertCircle className="h-5 w-5 text-orange-500" />
-              </div>
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-orange-800">Attention Required</h3>
-                <div className="mt-1 text-sm text-orange-700">
-                  <p>You have {stats.newCount} new {stats.newCount === 1 ? 'inquiry' : 'inquiries'} that {stats.newCount === 1 ? 'needs' : 'need'} your attention. Please respond promptly.</p>
-                </div>
-                <div className="mt-2">
-                  <button 
-                    onClick={() => setFilters({...filters, status: 'new'})}
-                    className="text-sm font-medium text-orange-800 hover:text-orange-900 flex items-center"
-                  >
-                    View new {stats.newCount === 1 ? 'inquiry' : 'inquiries'}
-                    <ArrowRight className="ml-1 h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Filters */}
-        <div className={`bg-white rounded-xl shadow-sm p-4 mb-6 ${showFilters ? 'block' : 'hidden'}`}>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-medium text-gray-900">Filter Inquiries</h2>
-            <button 
-              onClick={clearFilters}
-              className="text-sm text-orange-500 hover:text-orange-600 font-medium"
-            >
-              Clear All
-            </button>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 md:gap-6 mb-6">
+        <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
+          <div className="flex items-center justify-between">
             <div>
-              <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">Status</label>
+              <p className="text-sm font-medium text-gray-500">Total Inquiries</p>
+              <p className="text-2xl font-bold text-gray-900 mt-1">{inquiries.length}</p>
+            </div>
+            <div className="rounded-lg p-2 bg-blue-500">
+              <MessageSquare className="h-5 w-5 text-white" />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-500">New Inquiries</p>
+              <p className="text-2xl font-bold text-gray-900 mt-1">
+                {inquiries.filter(i => i.status === 'new').length}
+              </p>
+            </div>
+            <div className="rounded-lg p-2 bg-green-500">
+              <Mail className="h-5 w-5 text-white" />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-xl shadow-sm p-5 border border-gray-100">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-500">In Progress</p>
+              <p className="text-2xl font-bold text-gray-900 mt-1">
+                {inquiries.filter(i => i.status === 'inProgress').length}
+              </p>
+            </div>
+            <div className="rounded-lg p-2 bg-yellow-500">
+              <Clock className="h-5 w-5 text-white" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Filter Panel */}
+      {showFilters && (
+        <div className="bg-white p-4 md:p-6 rounded-xl shadow-sm border border-gray-200 mb-6">
+          <h2 className="text-lg font-medium text-gray-900 mb-4">Filter Inquiries</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div>
+              <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-1">
+                Status
+              </label>
               <select
                 id="status"
                 name="status"
+                className="w-full rounded-lg border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500"
                 value={filters.status}
                 onChange={handleFilterChange}
-                className="w-full rounded-lg border-gray-300 shadow-sm text-gray-900 focus:border-orange-500 focus:ring-orange-500"
               >
-                <option value="">All Status</option>
+                <option value="">All Statuses</option>
                 <option value="new">New</option>
                 <option value="inProgress">In Progress</option>
                 <option value="resolved">Resolved</option>
               </select>
             </div>
+            
             <div>
-              <label htmlFor="vehicle" className="block text-sm font-medium text-gray-700 mb-1">Vehicle</label>
+              <label htmlFor="vehicle" className="block text-sm font-medium text-gray-700 mb-1">
+                Vehicle
+              </label>
               <select
                 id="vehicle"
                 name="vehicle"
+                className="w-full rounded-lg border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500"
                 value={filters.vehicle}
                 onChange={handleFilterChange}
-                className="w-full rounded-lg border-gray-300 shadow-sm text-gray-900 focus:border-orange-500 focus:ring-orange-500"
               >
                 <option value="">All Vehicles</option>
                 {availableVehicles.map(vehicle => (
@@ -471,153 +492,245 @@ export default function AdminInquiries() {
                 ))}
               </select>
             </div>
+            
             <div>
-              <label htmlFor="dateFrom" className="block text-sm font-medium text-gray-700 mb-1">Date From</label>
+              <label htmlFor="dateFrom" className="block text-sm font-medium text-gray-700 mb-1">
+                From Date
+              </label>
               <input
                 type="date"
                 id="dateFrom"
                 name="dateFrom"
+                className="w-full rounded-lg border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500"
                 value={filters.dateFrom}
                 onChange={handleFilterChange}
-                className="w-full rounded-lg border-gray-300 shadow-sm text-gray-900 focus:border-orange-500 focus:ring-orange-500"
               />
             </div>
+            
             <div>
-              <label htmlFor="dateTo" className="block text-sm font-medium text-gray-700 mb-1">Date To</label>
+              <label htmlFor="dateTo" className="block text-sm font-medium text-gray-700 mb-1">
+                To Date
+              </label>
               <input
                 type="date"
                 id="dateTo"
                 name="dateTo"
+                className="w-full rounded-lg border-gray-300 shadow-sm focus:border-orange-500 focus:ring-orange-500"
                 value={filters.dateTo}
                 onChange={handleFilterChange}
-                className="w-full rounded-lg border-gray-300 shadow-sm text-gray-900 focus:border-orange-500 focus:ring-orange-500"
               />
             </div>
           </div>
+          
+          <div className="mt-4 flex justify-end">
+            <button
+              onClick={clearFilters}
+              className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
+            >
+              Clear Filters
+            </button>
+          </div>
         </div>
+      )}
 
-        {/* Search bar */}
-        <div className="relative mb-6">
+      {/* Search Bar */}
+      <div className="mb-6">
+        <div className="relative">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Search className="h-5 w-5 text-gray-400" />
+            <Search className="h-4 w-4 text-gray-400" />
           </div>
           <input
             type="text"
             name="search"
-            id="search"
-            className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg leading-5 bg-white text-gray-900 placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-orange-500 focus:border-orange-500 sm:text-sm"
-            placeholder="Search by name, email, phone, or message content..."
+            placeholder="Search by name, email, or message content"
+            className="block w-full pl-10 pr-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500 text-sm"
             value={filters.search}
             onChange={handleFilterChange}
           />
         </div>
+      </div>
 
-        {error && (
-          <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-r-md">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <AlertCircle className="h-5 w-5 text-red-500" />
-              </div>
-              <div className="ml-3">
-                <p className="text-sm text-red-700">{error}</p>
-              </div>
+      {/* Inquiries List */}
+      {isLoading ? (
+        <div className="flex justify-center py-20">
+          <div className="flex flex-col items-center">
+            <Loader2 className="h-8 w-8 text-orange-500 animate-spin" />
+            <p className="mt-4 text-sm text-gray-600">Loading inquiries...</p>
+          </div>
+        </div>
+      ) : error ? (
+        <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-md mb-6">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <AlertCircle className="h-5 w-5 text-red-500" />
+            </div>
+            <div className="ml-3">
+              <p className="text-sm text-red-700">{error}</p>
+              <button 
+                onClick={fetchInquiries}
+                className="mt-2 text-sm font-medium text-red-700 underline"
+              >
+                Try Again
+              </button>
             </div>
           </div>
-        )}
-
-        {/* Inquiries table */}
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-          <div className="flex justify-between items-center p-4 border-b border-gray-200">
-            <h2 className="text-lg font-medium text-gray-900">
-              {filteredInquiries.length} {filteredInquiries.length === 1 ? 'Inquiry' : 'Inquiries'} Found
-            </h2>
-            <button className="text-sm text-gray-600 flex items-center">
-              <Download className="h-4 w-4 mr-1" />
-              Export
-            </button>
+        </div>
+      ) : (
+        <>
+          {/* Mobile view - card layout */}
+          <div className="sm:hidden">
+            {filteredInquiries.length > 0 ? (
+              filteredInquiries.map(inquiry => (
+                <InquiryCard 
+                  key={inquiry._id} 
+                  inquiry={inquiry}
+                  onView={handleViewInquiry}
+                  onDelete={handleDeleteClick}
+                />
+              ))
+            ) : (
+              <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
+                <div className="flex justify-center mb-4">
+                  <div className="bg-gray-100 rounded-full p-3">
+                    <MessageSquare className="h-6 w-6 text-gray-400" />
+                  </div>
+                </div>
+                <h3 className="text-gray-900 font-medium">No inquiries found</h3>
+                <p className="text-gray-500 text-sm mt-1">There are no customer inquiries matching your filters</p>
+                <button
+                  onClick={clearFilters}
+                  className="mt-4 px-4 py-2 bg-gray-100 text-sm text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  Clear Filters
+                </button>
+              </div>
+            )}
           </div>
-          <div className="overflow-x-auto">
+
+          {/* Desktop view - table layout */}
+          <div className="hidden sm:block bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    <button onClick={() => toggleSort('name')} className="flex items-center">
-                      Customer
-                      <ArrowUpDown className="ml-1 h-3 w-3" />
+                  <th 
+                    scope="col" 
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    <button 
+                      className="flex items-center" 
+                      onClick={() => toggleSort('name')}
+                    >
+                      Customer 
+                      <ArrowUpDown className="ml-1.5 h-3.5 w-3.5 text-gray-400" />
                     </button>
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    <button onClick={() => toggleSort('vehicle')} className="flex items-center">
+                  <th 
+                    scope="col" 
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    <button 
+                      className="flex items-center" 
+                      onClick={() => toggleSort('vehicleInfo')}
+                    >
                       Vehicle
-                      <ArrowUpDown className="ml-1 h-3 w-3" />
+                      <ArrowUpDown className="ml-1.5 h-3.5 w-3.5 text-gray-400" />
                     </button>
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    <button onClick={() => toggleSort('message')} className="flex items-center">
-                      Message
-                      <ArrowUpDown className="ml-1 h-3 w-3" />
-                    </button>
+                  <th 
+                    scope="col" 
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    Message
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    <button onClick={() => toggleSort('status')} className="flex items-center">
+                  <th 
+                    scope="col" 
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    <button 
+                      className="flex items-center" 
+                      onClick={() => toggleSort('status')}
+                    >
                       Status
-                      <ArrowUpDown className="ml-1 h-3 w-3" />
+                      <ArrowUpDown className="ml-1.5 h-3.5 w-3.5 text-gray-400" />
                     </button>
                   </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    <button onClick={() => toggleSort('createdAt')} className="flex items-center">
+                  <th 
+                    scope="col" 
+                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                  >
+                    <button 
+                      className="flex items-center" 
+                      onClick={() => toggleSort('createdAt')}
+                    >
                       Date
-                      <ArrowUpDown className="ml-1 h-3 w-3" />
+                      <ArrowUpDown className="ml-1.5 h-3.5 w-3.5 text-gray-400" />
                     </button>
                   </th>
-                  <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Actions
+                  <th scope="col" className="relative px-6 py-3">
+                    <span className="sr-only">Actions</span>
                   </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredInquiries.length > 0 ? (
                   filteredInquiries.map(inquiry => (
-                    <InquiryRow key={inquiry._id} inquiry={inquiry} onView={handleViewInquiry} onDelete={handleDeleteClick} />
+                    <InquiryRow 
+                      key={inquiry._id} 
+                      inquiry={inquiry}
+                      onView={handleViewInquiry}
+                      onDelete={handleDeleteClick}
+                    />
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="6" className="px-6 py-4 text-center text-gray-500">
-                      No inquiries found matching your criteria
+                    <td colSpan={6} className="px-6 py-10 text-center">
+                      <div className="flex flex-col items-center">
+                        <div className="bg-gray-100 rounded-full p-3 mb-3">
+                          <MessageSquare className="h-6 w-6 text-gray-400" />
+                        </div>
+                        <h3 className="text-gray-900 font-medium">No inquiries found</h3>
+                        <p className="text-gray-500 text-sm mt-1">There are no customer inquiries matching your filters</p>
+                        <button
+                          onClick={clearFilters}
+                          className="mt-4 px-4 py-2 bg-gray-100 text-sm text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors"
+                        >
+                          Clear Filters
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 )}
               </tbody>
             </table>
           </div>
-        </div>
-      </div>
+        </>
+      )}
 
-      {/* Delete Confirmation Modal */}
+      {/* Delete confirmation modal */}
       {deleteModalOpen && (
-        <div className="fixed inset-0 bg-black/30 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full">
+        <div className="fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full shadow-xl">
             <div className="flex items-center justify-center text-red-500 mb-4">
-              <AlertCircle size={48} />
+              <div className="bg-red-50 rounded-full p-3">
+                <AlertCircle className="h-10 w-10" />
+              </div>
             </div>
-            <h3 className="text-lg font-medium text-gray-900 text-center mb-2">Delete Inquiry</h3>
-            <p className="text-gray-600 text-center mb-6">
-              Are you sure you want to delete this inquiry from {selectedInquiry?.name}? This action cannot be undone.
+            <h2 className="text-xl font-bold text-gray-900 text-center mb-2">Delete Inquiry</h2>
+            <p className="text-center text-gray-600 mb-6">
+              Are you sure you want to delete this inquiry from <span className="font-semibold">{selectedInquiry?.name}</span>? This action cannot be undone.
             </p>
-            <div className="flex justify-end space-x-3">
-              <button
+            <div className="flex justify-center space-x-3">
+              <button 
                 onClick={cancelDelete}
-                className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center"
+                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 font-medium text-sm hover:bg-gray-50 transition-colors"
               >
-                <X className="h-4 w-4 mr-2" />
                 Cancel
               </button>
               <button
                 onClick={confirmDelete}
-                className="px-4 py-2 bg-red-500 rounded-lg text-sm font-medium text-white hover:bg-red-600 flex items-center"
+                className="px-4 py-2 bg-red-500 rounded-lg text-white font-medium text-sm hover:bg-red-600 transition-colors"
               >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete
+                Delete Inquiry
               </button>
             </div>
           </div>

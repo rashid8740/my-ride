@@ -15,7 +15,7 @@ export default function AddUserPage() {
     password: '',
     confirmPassword: '',
     phone: '',
-    role: 'user',
+    role: 'customer',
     isActive: true
   });
   
@@ -97,18 +97,25 @@ export default function AddUserPage() {
         isActive: formData.isActive
       };
       
-      console.log('Creating user with data:', userData);
-      await apiService.users.create(userData);
+      console.log('Submit form - Creating user with data:', { ...userData, password: '****' });
       
-      setSuccessMessage('User created successfully');
-      
-      // Redirect back to users list after a delay
-      setTimeout(() => {
-        router.push('/admin/users');
-      }, 2000);
+      try {
+        const response = await apiService.users.create(userData);
+        console.log('User creation successful:', response);
+        
+        setSuccessMessage('User created successfully');
+        
+        // Redirect back to users list after a delay
+        setTimeout(() => {
+          router.push('/admin/users');
+        }, 2000);
+      } catch (apiError) {
+        console.error('API error creating user:', apiError);
+        setError(apiError.message || 'Failed to create user. Please try again.');
+      }
       
     } catch (err) {
-      console.error('Error creating user:', err);
+      console.error('Overall error creating user:', err);
       setError('Failed to create user. Please try again.');
     } finally {
       setIsSaving(false);
@@ -266,9 +273,9 @@ export default function AddUserPage() {
                   onChange={handleChange}
                   className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm text-gray-900"
                 >
-                  <option value="user">User</option>
+                  <option value="customer">Customer</option>
+                  <option value="dealer">Dealer</option>
                   <option value="admin">Admin</option>
-                  <option value="manager">Manager</option>
                 </select>
               </div>
               

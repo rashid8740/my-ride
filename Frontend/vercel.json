@@ -6,7 +6,6 @@
     { "source": "/api/:path*", "destination": "/api/:path*" }
   ],
   "env": {
-    "NEXT_PUBLIC_API_URL": "https://my-ride-backend.vercel.app",
-    "NEXT_PUBLIC_SITE_URL": "https://my-ride-git-main-rashid8740s-projects.vercel.app"
+    "NEXT_PUBLIC_API_URL": "https://my-ride-backend.vercel.app"
   }
 } 
