@@ -234,6 +234,7 @@ const CarDetailPage = ({ params }) => {
         
         // Case 1: Array of image objects with url property
         if (carData.images && Array.isArray(carData.images)) {
+          console.log("Processing car images array:", carData.images);
           carData.images.forEach(img => {
             if (typeof img === 'string') {
               carData.processedImages.push({ url: img });
@@ -242,6 +243,12 @@ const CarDetailPage = ({ params }) => {
                 carData.processedImages.push({ url: img.url });
               } else if (img.secure_url) {
                 carData.processedImages.push({ url: img.secure_url });
+              } else if (img.src) {
+                carData.processedImages.push({ url: img.src });
+              } else if (img.path) {
+                carData.processedImages.push({ url: img.path });
+              } else {
+                console.warn("Found image object with no recognized URL property:", img);
               }
             }
           });
@@ -255,6 +262,14 @@ const CarDetailPage = ({ params }) => {
         // Case 3: Handle imageUrl property that some sample data might have
         if (carData.imageUrl && typeof carData.imageUrl === 'string' && carData.processedImages.length === 0) {
           carData.processedImages.push({ url: carData.imageUrl });
+        }
+        
+        // If we still have no images, use a placeholder
+        if (carData.processedImages.length === 0) {
+          console.warn("No valid images found for car:", carData._id || carData.id);
+          carData.processedImages.push({ 
+            url: "https://via.placeholder.com/800x500?text=No+Image+Available" 
+          });
         }
         
         // Log what we found
